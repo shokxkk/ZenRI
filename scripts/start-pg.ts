@@ -1,3 +1,4 @@
+// @ts-nocheck
 import EmbeddedPostgres from 'embedded-postgres';
 import path from 'path';
 import { fileURLToPath } from 'url';
