@@ -24,25 +24,50 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const email = (credentials.email as string).toLowerCase().trim();
         const password = credentials.password as string;
 
-        const user = await prisma.user.findUnique({
-          where: { email },
-        });
+        try {
+          let user = await prisma.user.findUnique({
+            where: { email },
+          });
 
-        if (!user || !user.passwordHash) {
+          // Auto-seed Demo User if logging in with demo credentials on fresh production database
+          if (!user && email === 'demo@zenri.app') {
+            const passwordHash = await bcrypt.hash('password123', 10);
+            user = await prisma.user.create({
+              data: {
+                email: 'demo@zenri.app',
+                name: 'Шохрух (Демо)',
+                passwordHash,
+                accounts: {
+                  create: [
+                    { name: 'Uzcard (Основная)', type: 'CARD', currency: 'UZS', initialBalance: 12500000, currentBalance: 12500000, icon: 'uzcard' },
+                    { name: 'Humo (Зарплатная)', type: 'CARD', currency: 'UZS', initialBalance: 8200000, currentBalance: 8200000, icon: 'humo' },
+                    { name: 'Visa Gold ($)', type: 'CARD', currency: 'USD', initialBalance: 1500, currentBalance: 1500, icon: 'visa' },
+                    { name: 'Наличные (Кошелек)', type: 'CASH', currency: 'UZS', initialBalance: 450000, currentBalance: 450000, icon: 'cash' },
+                  ],
+                },
+              },
+            });
+          }
+
+          if (!user || !user.passwordHash) {
+            return null;
+          }
+
+          const isValid = await bcrypt.compare(password, user.passwordHash);
+          if (!isValid) {
+            return null;
+          }
+
+          return {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            image: user.avatarUrl,
+          };
+        } catch (err) {
+          console.error('Error during authorization:', err);
           return null;
         }
-
-        const isValid = await bcrypt.compare(password, user.passwordHash);
-        if (!isValid) {
-          return null;
-        }
-
-        return {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          image: user.avatarUrl,
-        };
       },
     }),
   ],
