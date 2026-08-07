@@ -1,0 +1,32 @@
+# dependencies
+/node_modules
+/.pnpm-store
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# debug logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# local env files containing credentials
+.env
+.env*.local
+.env.test
+
+# database data directory
+/.pgdata/
+*.log
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# OS files
+.DS_Store
+Thumbs.db

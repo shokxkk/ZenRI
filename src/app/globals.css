@@ -1,0 +1,134 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #F4F7FC;
+  --foreground: #0F172A;
+  --card-bg: #FFFFFF;
+  --card-border: rgba(0, 0, 0, 0.08);
+  --accent: #0066FF;
+  --accent-hover: #0052CC;
+  --accent-light: rgba(0, 102, 255, 0.08);
+  --muted: #64748B;
+  --muted-light: #F1F5F9;
+}
+
+.dark {
+  --background: #0A0F1D;
+  --foreground: #F8FAFC;
+  --card-bg: #131C2E;
+  --card-border: rgba(255, 255, 255, 0.07);
+  --accent: #0066FF;
+  --accent-hover: #1A75FF;
+  --accent-light: rgba(0, 102, 255, 0.18);
+  --muted: #94A3B8;
+  --muted-light: #1E293B;
+}
+
+body {
+  background-color: var(--background);
+  background-image: radial-gradient(at 0% 0%, rgba(0, 102, 255, 0.04) 0px, transparent 50%),
+                    radial-gradient(at 100% 0%, rgba(139, 92, 246, 0.04) 0px, transparent 50%),
+                    radial-gradient(at 50% 100%, rgba(16, 185, 129, 0.03) 0px, transparent 50%);
+  background-attachment: fixed;
+  color: var(--foreground);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+.dark body {
+  background-image: radial-gradient(at 0% 0%, rgba(0, 102, 255, 0.1) 0px, transparent 50%),
+                    radial-gradient(at 100% 0%, rgba(139, 92, 246, 0.08) 0px, transparent 50%);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--muted-light);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--muted);
+}
+
+/* Glassmorphism */
+.apple-glass {
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+.dark .apple-glass {
+  background: rgba(19, 28, 46, 0.88);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+/* Card Hover Micro-animations */
+.card-hover {
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.card-hover:hover {
+  transform: translateY(-3px) scale(1.005);
+  box-shadow: 0 14px 35px -10px rgba(0, 102, 255, 0.15);
+  border-color: rgba(0, 102, 255, 0.35);
+}
+
+/* Ambient Background Animations */
+@keyframes ambientFloat1 {
+  0%, 100% {
+    transform: translate(0px, 0px) scale(1);
+    opacity: 0.45;
+  }
+  50% {
+    transform: translate(60px, 40px) scale(1.15);
+    opacity: 0.65;
+  }
+}
+
+@keyframes ambientFloat2 {
+  0%, 100% {
+    transform: translate(0px, 0px) scale(1);
+    opacity: 0.35;
+  }
+  50% {
+    transform: translate(-50px, -30px) scale(1.2);
+    opacity: 0.55;
+  }
+}
+
+@keyframes ambientFloat3 {
+  0%, 100% {
+    transform: translate(0px, 0px) scale(1);
+    opacity: 0.3;
+  }
+  50% {
+    transform: translate(40px, -50px) scale(1.1);
+    opacity: 0.5;
+  }
+}
+
+.animate-ambient-1 {
+  animation: ambientFloat1 18s ease-in-out infinite;
+}
+
+.animate-ambient-2 {
+  animation: ambientFloat2 22s ease-in-out infinite;
+}
+
+.animate-ambient-3 {
+  animation: ambientFloat3 25s ease-in-out infinite;
+}

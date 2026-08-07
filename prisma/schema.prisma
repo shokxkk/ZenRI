@@ -1,0 +1,351 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum AccountType {
+  CASH
+  UZCARD
+  HUMO
+  VISA
+  MASTERCARD
+  BANK
+  PAYME
+  CLICK
+  SAVINGS
+  BUSINESS
+  OTHER
+}
+
+enum CurrencyCode {
+  UZS
+  USD
+  EUR
+  RUB
+}
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+  TRANSFER
+}
+
+enum DebtType {
+  I_OWE
+  THEY_OWE_ME
+}
+
+enum DebtStatus {
+  ACTIVE
+  PARTIALLY_PAID
+  OVERDUE
+  CLOSED
+}
+
+enum TaskPriority {
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum CategoryType {
+  INCOME
+  EXPENSE
+}
+
+model User {
+  id                String                 @id @default(uuid())
+  email             String                 @unique
+  passwordHash      String
+  name              String
+  avatarUrl         String?
+  defaultCurrency   CurrencyCode           @default(UZS)
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
+
+  settings          UserSettings?
+  accounts          Account[]
+  categories        Category[]
+  transactions      Transaction[]
+  budgets           Budget[]
+  budgetCategories  BudgetCategory[]
+  debts             Debt[]
+  debtPayments      DebtPayment[]
+  tasks             Task[]
+  habits            Habit[]
+  habitCompletions  HabitCompletion[]
+  auditLogs         AuditLog[]
+  aiConversations   AIConversation[]
+}
+
+model UserSettings {
+  id               String       @id @default(uuid())
+  userId           String       @unique
+  user             User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  language         String       @default("ru")
+  theme            String       @default("light")
+  weekStart        String       @default("monday")
+  dailySummaryTime String       @default("09:00")
+  eveningSummaryTime String     @default("21:00")
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+}
+
+model Account {
+  id             String       @id @default(uuid())
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name           String
+  type           AccountType  @default(CASH)
+  currency       CurrencyCode @default(UZS)
+  initialBalance Decimal      @default(0) @db.Decimal(18, 2)
+  currentBalance Decimal      @default(0) @db.Decimal(18, 2)
+  icon           String       @default("wallet")
+  isActive       Boolean      @default(true)
+  includeInTotal Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  sourceTransactions      Transaction[] @relation("SourceAccount")
+  destinationTransactions Transaction[] @relation("DestinationAccount")
+  debtPayments            DebtPayment[]
+
+  @@index([userId])
+}
+
+model Category {
+  id          String       @id @default(uuid())
+  userId      String
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  type        CategoryType @default(EXPENSE)
+  icon        String       @default("tag")
+  color       String?
+  parentId    String?
+  parent      Category?    @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  subcategories Category[]  @relation("CategoryHierarchy")
+  isSystem    Boolean      @default(false)
+  isHidden    Boolean      @default(false)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  transactions     Transaction[]
+  budgetCategories BudgetCategory[]
+
+  @@index([userId])
+}
+
+model Transaction {
+  id               String          @id @default(uuid())
+  userId           String
+  user             User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type             TransactionType
+  amount           Decimal         @db.Decimal(18, 2)
+  feeAmount        Decimal         @default(0) @db.Decimal(18, 2)
+  currency         CurrencyCode    @default(UZS)
+  accountId        String
+  account          Account         @relation("SourceAccount", fields: [accountId], references: [id], onDelete: Cascade)
+  targetAccountId String?
+  targetAccount    Account?        @relation("DestinationAccount", fields: [targetAccountId], references: [id], onDelete: SetNull)
+  categoryId       String?
+  category         Category?       @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  date             DateTime        @default(now())
+  comment          String?
+  recipient        String?
+  isRecurring      Boolean         @default(false)
+  taskId           String?
+  task             Task?           @relation(fields: [taskId], references: [id], onDelete: SetNull)
+  isBudgetTracked  Boolean         @default(true)
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  @@index([userId])
+  @@index([userId, date])
+  @@index([userId, accountId])
+}
+
+model Budget {
+  id            String   @id @default(uuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  month         String   // YYYY-MM format
+  totalLimit    Decimal  @db.Decimal(18, 2)
+  reserveAmount Decimal  @default(0) @db.Decimal(18, 2)
+  targetSavings Decimal  @default(0) @db.Decimal(18, 2)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  categories    BudgetCategory[]
+
+  @@unique([userId, month])
+  @@index([userId])
+}
+
+model BudgetCategory {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  budgetId    String
+  budget      Budget   @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+  categoryId  String
+  category    Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  limitAmount Decimal  @db.Decimal(18, 2)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([budgetId, categoryId])
+  @@index([userId])
+}
+
+model Debt {
+  id              String       @id @default(uuid())
+  userId          String
+  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  personName      String
+  phone           String?
+  type            DebtType
+  originalAmount  Decimal      @db.Decimal(18, 2)
+  remainingAmount Decimal      @db.Decimal(18, 2)
+  currency        CurrencyCode @default(UZS)
+  dueDate         DateTime?
+  comment         String?
+  status          DebtStatus   @default(ACTIVE)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  payments        DebtPayment[]
+
+  @@index([userId])
+}
+
+model DebtPayment {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  debtId    String
+  debt      Debt     @relation(fields: [debtId], references: [id], onDelete: Cascade)
+  amount    Decimal  @db.Decimal(18, 2)
+  date      DateTime @default(now())
+  comment   String?
+  accountId String?
+  account   Account? @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model Task {
+  id               String       @id @default(uuid())
+  userId           String
+  user             User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title            String
+  description      String?
+  dueDate          DateTime?
+  dueTime          String?
+  priority         TaskPriority @default(MEDIUM)
+  status           TaskStatus   @default(TODO)
+  categoryName     String?
+  isRepeating      Boolean      @default(false)
+  repeatInterval   String?
+  linkedAmount     Decimal?     @db.Decimal(18, 2)
+  linkedAccountId  String?
+  linkedCategoryId String?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  subtasks         Subtask[]
+  transactions     Transaction[]
+
+  @@index([userId])
+  @@index([userId, dueDate])
+}
+
+model Subtask {
+  id          String   @id @default(uuid())
+  taskId      String
+  task        Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  title       String
+  isCompleted Boolean  @default(false)
+  createdAt   DateTime @default(now())
+}
+
+model Habit {
+  id            String   @id @default(uuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name          String
+  icon          String   @default("check-circle")
+  frequency     String   @default("daily")
+  timeReminder  String?
+  startDate     DateTime @default(now())
+  isActive      Boolean  @default(true)
+  currentStreak Int      @default(0)
+  bestStreak    Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  completions   HabitCompletion[]
+
+  @@index([userId])
+}
+
+model HabitCompletion {
+  id          String   @id @default(uuid())
+  habitId     String
+  habit       Habit    @relation(fields: [habitId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date        DateTime @default(now())
+  isCompleted Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  @@unique([habitId, date])
+  @@index([userId])
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  action    String
+  entity    String
+  entityId  String?
+  details   String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model AIConversation {
+  id        String      @id @default(uuid())
+  userId    String
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String?
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  messages  AIMessage[]
+
+  @@index([userId])
+}
+
+model AIMessage {
+  id             String         @id @default(uuid())
+  conversationId String
+  conversation   AIConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  role           String         // user, assistant, system
+  content        String
+  actionPreview  String?        // JSON string of proposed tool action
+  isConfirmed    Boolean?
+  createdAt      DateTime       @default(now())
+}
