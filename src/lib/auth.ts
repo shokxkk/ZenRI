@@ -2,6 +2,7 @@ import NextAuth from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
+import { AccountType, CurrencyCode } from '@prisma/client';
 
 if (process.env.NODE_ENV === 'production' && !process.env.NEXTAUTH_SECRET && !process.env.AUTH_SECRET) {
   throw new Error('NEXTAUTH_SECRET environment variable must be set in production environment.');
@@ -39,10 +40,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                 passwordHash,
                 accounts: {
                   create: [
-                    { name: 'Uzcard (Основная)', type: 'CARD', currency: 'UZS', initialBalance: 12500000, currentBalance: 12500000, icon: 'uzcard' },
-                    { name: 'Humo (Зарплатная)', type: 'CARD', currency: 'UZS', initialBalance: 8200000, currentBalance: 8200000, icon: 'humo' },
-                    { name: 'Visa Gold ($)', type: 'CARD', currency: 'USD', initialBalance: 1500, currentBalance: 1500, icon: 'visa' },
-                    { name: 'Наличные (Кошелек)', type: 'CASH', currency: 'UZS', initialBalance: 450000, currentBalance: 450000, icon: 'cash' },
+                    { name: 'Uzcard (Основная)', type: AccountType.UZCARD, currency: CurrencyCode.UZS, initialBalance: 12500000, currentBalance: 12500000, icon: 'uzcard' },
+                    { name: 'Humo (Зарплатная)', type: AccountType.HUMO, currency: CurrencyCode.UZS, initialBalance: 8200000, currentBalance: 8200000, icon: 'humo' },
+                    { name: 'Visa Gold ($)', type: AccountType.VISA, currency: CurrencyCode.USD, initialBalance: 1500, currentBalance: 1500, icon: 'visa' },
+                    { name: 'Наличные (Кошелек)', type: AccountType.CASH, currency: CurrencyCode.UZS, initialBalance: 450000, currentBalance: 450000, icon: 'cash' },
                   ],
                 },
               },
