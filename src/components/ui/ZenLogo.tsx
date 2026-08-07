@@ -20,36 +20,35 @@ export const ZenLogo: React.FC<ZenLogoProps> = ({ size = 'md' }) => {
 
   return (
     <div className="flex items-center gap-3 select-none">
-      {/* Modern Stylized Gradient 'Z' Emblem with Dot (as in Image 4) */}
       <div className={`relative flex items-center justify-center flex-shrink-0 ${sizeClasses[size]}`}>
         <svg
           viewBox="0 0 100 100"
-          className="w-full h-full"
+          className="w-full h-full drop-shadow-[0_0_12px_rgba(0,194,255,0.4)]"
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
         >
           <defs>
-            <linearGradient id="zenLogoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#00C2FF" />
-              <stop offset="100%" stopColor="#0055FF" />
+            <linearGradient id="zenLogoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#00E5FF" />
+              <stop offset="50%" stopColor="#00A3FF" />
+              <stop offset="100%" stopColor="#0066FF" />
             </linearGradient>
           </defs>
 
           {/* Top Bar of Z */}
-          <rect x="18" y="18" width="56" height="18" rx="9" fill="url(#zenLogoGradient)" />
+          <rect x="22" y="24" width="46" height="16" rx="8" fill="url(#zenLogoGrad)" />
           {/* Diagonal Slash of Z */}
-          <path
-            d="M68 28 L28 72 C25 75 29 80 34 80 L52 80 C56 80 60 76 60 72 Z"
-            fill="url(#zenLogoGradient)"
-          />
-          {/* Floating Dot (Dot of RI/Zen) */}
-          <circle cx="75" cy="72" r="11" fill="url(#zenLogoGradient)" />
+          <polygon points="68,24 42,74 24,74 50,24" fill="url(#zenLogoGrad)" />
+          {/* Bottom Pill Cap */}
+          <circle cx="33" cy="74" r="9" fill="url(#zenLogoGrad)" />
+          {/* Floating Dot */}
+          <circle cx="74" cy="74" r="8.5" fill="url(#zenLogoGrad)" />
         </svg>
       </div>
 
       <div className="flex flex-col justify-center">
-        <span className={`font-bold tracking-tight text-zen-900 dark:text-white ${textClasses[size]}`}>
-          Zen<span className="bg-gradient-to-r from-[#00C2FF] to-[#0055FF] bg-clip-text text-transparent">RI</span>
+        <span className={`font-black tracking-tight text-zen-900 dark:text-white ${textClasses[size]}`}>
+          Zen<span className="bg-gradient-to-r from-[#00E5FF] via-[#00A3FF] to-[#0066FF] bg-clip-text text-transparent">RI</span>
         </span>
       </div>
     </div>
