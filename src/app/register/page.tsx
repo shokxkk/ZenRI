@@ -42,10 +42,9 @@ export default function RegisterPage() {
       });
 
       if (signRes?.error) {
-        router.push('/login');
+        window.location.href = '/login';
       } else {
-        router.push('/dashboard');
-        router.refresh();
+        window.location.href = '/dashboard';
       }
     }
   };

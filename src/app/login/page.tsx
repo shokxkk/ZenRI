@@ -82,8 +82,7 @@ export default function LoginPage() {
       setError('Неверный email или пароль');
       setLoading(false);
     } else {
-      router.push('/dashboard');
-      router.refresh();
+      window.location.href = '/dashboard';
     }
   };
 
@@ -100,8 +99,7 @@ export default function LoginPage() {
       setError('Не удалось войти в демо-режим');
       setLoading(false);
     } else {
-      router.push('/dashboard');
-      router.refresh();
+      window.location.href = '/dashboard';
     }
   };
 
