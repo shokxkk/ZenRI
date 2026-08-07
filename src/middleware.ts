@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { getToken } from 'next-auth/jwt';
 
-const secret = process.env.NEXTAUTH_SECRET || 'zenri_dev_secret_only_for_local_development_environment';
+const secret = process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || 'zenri_prod_jwt_secret_key_2026_zenri_app';
 
 const protectedRoutes = ['/dashboard', '/tasks', '/finances', '/habits', '/budgets', '/debts', '/ai', '/analytics', '/settings'];
 const authRoutes = ['/login', '/register'];

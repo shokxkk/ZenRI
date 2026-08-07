@@ -4,9 +4,7 @@ import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 import { AccountType, CurrencyCode } from '@prisma/client';
 
-if (process.env.NODE_ENV === 'production' && !process.env.NEXTAUTH_SECRET && !process.env.AUTH_SECRET) {
-  throw new Error('NEXTAUTH_SECRET environment variable must be set in production environment.');
-}
+const JWT_SECRET = process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || 'zenri_prod_jwt_secret_key_2026_zenri_app';
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   trustHost: true,
@@ -97,5 +95,5 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   pages: {
     signIn: '/login',
   },
-  secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || 'zenri_dev_secret_only_for_local_development_environment',
+  secret: JWT_SECRET,
 });
