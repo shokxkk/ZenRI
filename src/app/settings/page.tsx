@@ -27,9 +27,13 @@ export default async function SettingsPage() {
           name: user!.name,
           email: user!.email,
           defaultCurrency: user!.defaultCurrency,
+          avatarUrl: user!.avatarUrl || null,
+          authProvider: user!.authProvider,
+          telegramUsername: user!.telegramUsername || null,
         }}
         categories={serializedCategories}
       />
     </AppShell>
   );
 }
+

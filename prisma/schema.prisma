@@ -67,9 +67,12 @@ enum CategoryType {
 model User {
   id                String                 @id @default(uuid())
   email             String                 @unique
-  passwordHash      String
+  passwordHash      String?
   name              String
   avatarUrl         String?
+  telegramId        String?                @unique
+  telegramUsername  String?
+  authProvider      String                 @default("email")  // "email" | "telegram"
   defaultCurrency   CurrencyCode           @default(UZS)
   createdAt         DateTime               @default(now())
   updatedAt         DateTime               @updatedAt

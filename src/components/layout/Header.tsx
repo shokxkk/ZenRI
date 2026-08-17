@@ -57,17 +57,28 @@ export const Header: React.FC<HeaderProps> = ({ onOpenQuickAdd }) => {
           <Plus size={20} strokeWidth={2.5} />
         </button>
 
-        {/* User Avatar */}
-        <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#0055FF] to-[#00C2FF] p-0.5 flex-shrink-0 cursor-pointer shadow-sm">
-          <div className="w-full h-full rounded-full bg-zen-900 flex items-center justify-center text-white font-bold text-xs">
-            {session?.user?.name ? (
-              session.user.name.charAt(0).toUpperCase()
+        {/* User Avatar — links to settings */}
+        <a href="/settings" title="Настройки профиля">
+          <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#0055FF] to-[#00C2FF] p-0.5 flex-shrink-0 cursor-pointer shadow-sm hover:scale-110 transition-transform">
+            {session?.user?.image ? (
+              <img
+                src={session.user.image}
+                alt={session.user.name || 'avatar'}
+                className="w-full h-full rounded-full object-cover"
+              />
             ) : (
-              <UserIcon size={16} />
+              <div className="w-full h-full rounded-full bg-zen-900 flex items-center justify-center text-white font-bold text-xs">
+                {session?.user?.name ? (
+                  session.user.name.charAt(0).toUpperCase()
+                ) : (
+                  <UserIcon size={16} />
+                )}
+              </div>
             )}
           </div>
-        </div>
+        </a>
       </div>
+
     </header>
   );
 };

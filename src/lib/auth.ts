@@ -10,7 +10,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   trustHost: true,
   providers: [
     CredentialsProvider({
-      name: 'Credentials',
+      id: 'credentials',
+      name: 'Email & Password',
       credentials: {
         email: { label: 'Email', type: 'email' },
         password: { label: 'Password', type: 'password' },
@@ -69,6 +70,37 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }
       },
     }),
+    // Telegram OAuth via Credentials — uses verified user data from /api/auth/telegram
+    CredentialsProvider({
+      id: 'telegram',
+      name: 'Telegram',
+      credentials: {
+        userId: { label: 'User ID', type: 'text' },
+      },
+      async authorize(credentials) {
+        if (!credentials?.userId) return null;
+
+        const userId = credentials.userId as string;
+
+        try {
+          const user = await prisma.user.findUnique({
+            where: { id: userId },
+          });
+
+          if (!user) return null;
+
+          return {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            image: user.avatarUrl,
+          };
+        } catch (err) {
+          console.error('Telegram sign-in error:', err);
+          return null;
+        }
+      },
+    }),
   ],
   session: {
     strategy: 'jwt',
@@ -78,9 +110,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (user) {
         token.id = user.id;
         token.name = user.name;
+        token.picture = user.image;
       }
-      if (trigger === 'update' && session?.name) {
-        token.name = session.name;
+      if (trigger === 'update') {
+        if (session?.name) token.name = session.name;
+        if (session?.picture) token.picture = session.picture;
       }
       return token;
     },
@@ -88,6 +122,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (session.user) {
         if (token.id) session.user.id = token.id as string;
         if (token.name) session.user.name = token.name as string;
+        if (token.picture) session.user.image = token.picture as string;
       }
       return session;
     },

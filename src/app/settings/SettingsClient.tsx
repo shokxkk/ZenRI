@@ -3,11 +3,11 @@
 import React, { useState, useEffect, useTransition } from 'react';
 import {
   User, Mail, Globe, Plus, LogOut, ChevronRight, Palette, Key,
-  ShieldCheck, Eye, EyeOff, AlertTriangle, RotateCcw, CheckCircle2, Sparkles, Database
+  ShieldCheck, Eye, EyeOff, AlertTriangle, RotateCcw, CheckCircle2, Sparkles, Database, Camera, Send
 } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
 import { Badge } from '@/components/ui/Badge';
-import { updateUserProfile, createCategory, resetAllUserData, seedDemoDataAction } from '@/app/actions/analyticsActions';
+import { updateUserProfile, createCategory, resetAllUserData, seedDemoDataAction, updateAvatar } from '@/app/actions/analyticsActions';
 import { signOut, useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
@@ -15,9 +15,18 @@ import { ThemeToggle } from '@/components/ui/ThemeToggle';
 type Category = { id: string; name: string; type: string; color: string | null; icon: string };
 
 interface SettingsClientProps {
-  user: { id: string; name: string; email: string; defaultCurrency: string };
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    defaultCurrency: string;
+    avatarUrl: string | null;
+    authProvider: string;
+    telegramUsername: string | null;
+  };
   categories: Category[];
 }
+
 
 const CURRENCIES = ['UZS', 'USD', 'EUR', 'RUB'];
 const COLORS = ['#0066FF', '#10B981', '#EF4444', '#F59E0B', '#8B5CF6', '#00C2FF', '#EC4899', '#06B6D4', '#84CC16', '#71717A'];
@@ -38,6 +47,10 @@ export function SettingsClient({ user, categories }: SettingsClientProps) {
   // Profile form
   const [name, setName] = useState(user.name);
   const [currency, setCurrency] = useState(user.defaultCurrency);
+  // Avatar
+  const [avatarUrl, setAvatarUrl] = useState(user.avatarUrl || '');
+  const [avatarSaved, setAvatarSaved] = useState(false);
+
 
   // Custom ChatGPT API Key State
   const [customApiKey, setCustomApiKey] = useState('');
@@ -67,11 +80,28 @@ export function SettingsClient({ user, categories }: SettingsClientProps) {
   const handleSaveProfile = () => {
     startTransition(async () => {
       await updateUserProfile({ name, defaultCurrency: currency });
-      await updateSession({ name });
+      // Save avatar if changed
+      if (avatarUrl !== (user.avatarUrl || '')) {
+        await updateAvatar(avatarUrl);
+        await updateSession({ name, picture: avatarUrl || undefined });
+      } else {
+        await updateSession({ name });
+      }
       setShowProfile(false);
       router.refresh();
     });
   };
+
+  const handleSaveAvatarOnly = () => {
+    startTransition(async () => {
+      await updateAvatar(avatarUrl);
+      await updateSession({ picture: avatarUrl || undefined });
+      setAvatarSaved(true);
+      setTimeout(() => setAvatarSaved(false), 2500);
+      router.refresh();
+    });
+  };
+
 
   const handleCreateCategory = () => {
     if (!catName.trim()) return;
@@ -152,7 +182,49 @@ export function SettingsClient({ user, categories }: SettingsClientProps) {
 
       {/* Profile Section */}
       <Section title="Профиль">
-        <Row icon={User} label={user.name} value={user.email} onClick={() => setShowProfile(true)} />
+        {/* Avatar + Identity Block */}
+        <div className="flex items-center gap-4 px-5 py-4 border-b border-zen-100 dark:border-zen-800/40">
+          {/* Avatar */}
+          <div className="relative flex-shrink-0">
+            {user.avatarUrl ? (
+              <img
+                src={user.avatarUrl}
+                alt={user.name}
+                className="w-14 h-14 rounded-full object-cover ring-2 ring-[#0066FF]/40"
+              />
+            ) : (
+              <div className="w-14 h-14 rounded-full bg-gradient-to-br from-[#0066FF] to-[#8B5CF6] flex items-center justify-center text-white font-black text-xl shadow-glow">
+                {user.name.charAt(0).toUpperCase()}
+              </div>
+            )}
+            <button
+              onClick={() => setShowProfile(true)}
+              className="absolute -bottom-0.5 -right-0.5 w-5 h-5 bg-[#0066FF] rounded-full flex items-center justify-center shadow-md"
+            >
+              <Camera size={10} className="text-white" />
+            </button>
+          </div>
+
+          {/* Name + Email + Auth badge */}
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-bold text-zen-900 dark:text-zen-100 truncate">{user.name}</p>
+            <p className="text-xs text-zen-400 mt-0.5 truncate">{user.email}</p>
+            {user.authProvider === 'telegram' ? (
+              <span className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full bg-[#229ED9]/15 text-[#229ED9] text-[10px] font-bold">
+                <Send size={9} /> Telegram
+                {user.telegramUsername && ` @${user.telegramUsername}`}
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full bg-zen-100 dark:bg-zen-800 text-zen-400 text-[10px] font-bold">
+                Email аккаунт
+              </span>
+            )}
+          </div>
+
+          <button onClick={() => setShowProfile(true)} className="text-zen-300">
+            <ChevronRight size={16} />
+          </button>
+        </div>
         <Row icon={Globe} label="Валюта по умолчанию" value={user.defaultCurrency} onClick={() => setShowProfile(true)} />
       </Section>
 
@@ -311,6 +383,35 @@ export function SettingsClient({ user, categories }: SettingsClientProps) {
       {/* Profile Edit Modal */}
       <Modal open={showProfile} onClose={() => setShowProfile(false)} title="Редактировать профиль">
         <div className="space-y-4">
+          {/* Avatar preview + URL */}
+          <div>
+            <label className="block text-xs font-bold text-zen-700 dark:text-zen-300 mb-2">Фото профиля</label>
+            <div className="flex items-center gap-4 mb-2">
+              {avatarUrl ? (
+                <img src={avatarUrl} alt="preview" className="w-14 h-14 rounded-full object-cover ring-2 ring-[#0066FF]/40 flex-shrink-0" />
+              ) : (
+                <div className="w-14 h-14 rounded-full bg-gradient-to-br from-[#0066FF] to-[#8B5CF6] flex items-center justify-center text-white font-black text-xl flex-shrink-0">
+                  {name.charAt(0).toUpperCase()}
+                </div>
+              )}
+              <div className="flex-1">
+                <input
+                  type="url"
+                  value={avatarUrl}
+                  onChange={(e) => setAvatarUrl(e.target.value)}
+                  className="w-full px-3 py-2.5 rounded-xl bg-zen-50 dark:bg-zen-800 border border-zen-200 dark:border-zen-700 text-xs font-bold focus:outline-none focus:border-[#0066FF] text-zen-900 dark:text-zen-100"
+                  placeholder="https://example.com/avatar.jpg"
+                />
+                <p className="text-[10px] text-zen-400 mt-1">Вставьте URL прямой ссылки на фото</p>
+              </div>
+            </div>
+            {avatarSaved && (
+              <p className="text-xs text-emerald-500 font-bold flex items-center gap-1">
+                <CheckCircle2 size={12} /> Аватарка сохранена!
+              </p>
+            )}
+          </div>
+
           <div>
             <label className="block text-xs font-bold text-zen-700 dark:text-zen-300 mb-1">Имя профиля</label>
             <input type="text" value={name} onChange={(e) => setName(e.target.value)}

@@ -2,10 +2,10 @@
 
 import React, { useState } from 'react';
 import { signIn } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ZenLogo } from '@/components/ui/ZenLogo';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
+import { TelegramLoginButton } from '@/components/ui/TelegramLoginButton';
 import {
   Mic,
   Hourglass,
@@ -17,6 +17,7 @@ import {
   EyeOff,
   Star,
   CheckCircle2,
+  Send,
 } from 'lucide-react';
 
 const FEATURES = [
@@ -58,14 +59,16 @@ const FEATURES = [
   },
 ];
 
+const TG_BOT_USERNAME = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME || 'zenriauthefication_bot';
+
 export default function LoginPage() {
-  const router = useRouter();
   const [email, setEmail] = useState('demo@zenri.app');
   const [password, setPassword] = useState('password123');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState(0);
+  const [authMode, setAuthMode] = useState<'email' | 'telegram'>('email');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -116,7 +119,6 @@ export default function LoginPage() {
       {/* Top Navbar */}
       <header className="relative z-20 px-6 lg:px-12 py-5 flex items-center justify-between border-b border-white/10 backdrop-blur-xl bg-slate-950/70">
         <ZenLogo size="md" />
-
         <div className="flex items-center gap-4">
           <div className="hidden sm:flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs font-semibold text-slate-300">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
@@ -128,7 +130,7 @@ export default function LoginPage() {
 
       {/* Main Showcase & Login Grid */}
       <main className="relative z-20 flex-1 max-w-7xl w-full mx-auto px-6 lg:px-12 py-8 lg:py-12 grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
-        {/* Left Column: Startup Showcase with Custom Feature Product Visuals (7 cols) */}
+        {/* Left Column: Startup Showcase (7 cols) */}
         <div className="lg:col-span-7 space-y-8">
           {/* Badge */}
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gradient-to-r from-[#0066FF]/20 via-[#8B5CF6]/20 to-[#EC4899]/20 border border-[#0066FF]/40 text-xs font-bold text-slate-200 shadow-glow">
@@ -136,7 +138,7 @@ export default function LoginPage() {
             <span>Ежедневный центр управления жизнью и финансами</span>
           </div>
 
-          {/* Minimal Headline */}
+          {/* Headline */}
           <div className="space-y-3">
             <h1 className="text-3xl sm:text-5xl font-black tracking-tight leading-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-slate-100 to-slate-400">
               Управляйте жизнью и финансами в один клик.
@@ -169,7 +171,7 @@ export default function LoginPage() {
               })}
             </div>
 
-            {/* Feature Showcase Card with Product Visual */}
+            {/* Feature Showcase Card */}
             <div className="p-6 rounded-3xl bg-slate-900/85 border border-white/15 backdrop-blur-2xl relative overflow-hidden transition-all duration-300 grid sm:grid-cols-12 gap-6 items-center shadow-2xl group">
               <div className="sm:col-span-6 space-y-3 relative z-10">
                 <span className="text-[10px] font-black uppercase tracking-wider text-[#00C2FF] flex items-center gap-1">
@@ -183,7 +185,6 @@ export default function LoginPage() {
                 </div>
               </div>
 
-              {/* Product Feature Graphic Image */}
               <div className="sm:col-span-6 relative flex items-center justify-center">
                 <div
                   className="absolute inset-0 rounded-full blur-2xl opacity-40 pointer-events-none"
@@ -198,7 +199,7 @@ export default function LoginPage() {
             </div>
           </div>
 
-          {/* Minimal Metrics */}
+          {/* Metrics */}
           <div className="grid grid-cols-3 gap-3 pt-2">
             <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10 text-center">
               <p className="text-xl font-black text-white">Быстро</p>
@@ -215,7 +216,7 @@ export default function LoginPage() {
           </div>
         </div>
 
-        {/* Right Column: Glass Login Card (5 cols) */}
+        {/* Right Column: Login Card (5 cols) */}
         <div className="lg:col-span-5 w-full">
           <div className="p-8 rounded-3xl bg-slate-900/90 border border-white/15 backdrop-blur-2xl shadow-2xl space-y-6 relative overflow-hidden">
             <div className="space-y-1 text-center">
@@ -223,7 +224,7 @@ export default function LoginPage() {
               <p className="text-xs text-slate-400 font-medium">Введите данные для доступа к вашему пространству ZenRI</p>
             </div>
 
-            {/* Quick Demo Login Action Button */}
+            {/* Quick Demo Login */}
             <button
               onClick={handleQuickDemoLogin}
               disabled={loading}
@@ -234,9 +235,29 @@ export default function LoginPage() {
               <ArrowRight size={15} className="group-hover:translate-x-1 transition-transform" />
             </button>
 
-            <div className="relative flex items-center justify-center">
-              <div className="border-t border-white/10 w-full" />
-              <span className="bg-slate-900 px-3 text-[10px] uppercase font-bold text-slate-500 relative z-10">или по электронной почте</span>
+            {/* Auth Mode Toggle */}
+            <div className="grid grid-cols-2 gap-2 p-1 bg-slate-800/80 rounded-2xl">
+              <button
+                onClick={() => { setAuthMode('email'); setError(''); }}
+                className={`py-2.5 rounded-xl text-xs font-bold transition-all ${
+                  authMode === 'email'
+                    ? 'bg-white text-slate-900 shadow-md'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                📧 Email
+              </button>
+              <button
+                onClick={() => { setAuthMode('telegram'); setError(''); }}
+                className={`py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                  authMode === 'telegram'
+                    ? 'bg-[#229ED9] text-white shadow-md'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <Send size={13} />
+                Telegram
+              </button>
             </div>
 
             {error && (
@@ -245,48 +266,68 @@ export default function LoginPage() {
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-300 mb-1.5">Электронная почта *</label>
-                <input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full px-4 py-3.5 rounded-2xl bg-slate-950/80 border border-white/10 text-xs font-bold text-white focus:outline-none focus:border-[#0066FF] transition-all"
-                  placeholder="demo@zenri.app"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-300 mb-1.5">Пароль *</label>
-                <div className="relative">
+            {authMode === 'email' ? (
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 mb-1.5">Электронная почта *</label>
                   <input
-                    type={showPassword ? 'text' : 'password'}
+                    type="email"
                     required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="w-full px-4 py-3.5 pr-10 rounded-2xl bg-slate-950/80 border border-white/10 text-xs font-bold text-white focus:outline-none focus:border-[#0066FF] transition-all"
-                    placeholder="••••••••"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full px-4 py-3.5 rounded-2xl bg-slate-950/80 border border-white/10 text-xs font-bold text-white focus:outline-none focus:border-[#0066FF] transition-all"
+                    placeholder="demo@zenri.app"
                   />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3.5 top-3.5 text-slate-400 hover:text-white transition-colors"
-                  >
-                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                  </button>
                 </div>
-              </div>
 
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full py-4 px-4 rounded-2xl bg-white hover:bg-slate-200 text-slate-950 font-black text-xs transition-all shadow-lg active:scale-95 disabled:opacity-50"
-              >
-                {loading ? 'Вход в аккаунт...' : 'Войти в аккаунт'}
-              </button>
-            </form>
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 mb-1.5">Пароль *</label>
+                  <div className="relative">
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      required
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="w-full px-4 py-3.5 pr-10 rounded-2xl bg-slate-950/80 border border-white/10 text-xs font-bold text-white focus:outline-none focus:border-[#0066FF] transition-all"
+                      placeholder="••••••••"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3.5 top-3.5 text-slate-400 hover:text-white transition-colors"
+                    >
+                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full py-4 px-4 rounded-2xl bg-white hover:bg-slate-200 text-slate-950 font-black text-xs transition-all shadow-lg active:scale-95 disabled:opacity-50"
+                >
+                  {loading ? 'Вход в аккаунт...' : 'Войти в аккаунт'}
+                </button>
+              </form>
+            ) : (
+              <div className="space-y-4">
+                <p className="text-xs text-slate-400 text-center leading-relaxed">
+                  Нажмите кнопку ниже и авторизуйтесь через Telegram — мгновенно и без пароля
+                </p>
+                <div className="flex justify-center">
+                  <TelegramLoginButton
+                    botUsername={TG_BOT_USERNAME}
+                    onError={setError}
+                    onLoading={setLoading}
+                  />
+                </div>
+                {loading && (
+                  <p className="text-xs text-[#229ED9] text-center font-bold animate-pulse">
+                    Авторизация через Telegram...
+                  </p>
+                )}
+              </div>
+            )}
 
             <div className="pt-2 border-t border-white/10 text-center">
               <p className="text-xs text-slate-400">

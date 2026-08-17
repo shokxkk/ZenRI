@@ -99,6 +99,18 @@ export async function updateUserProfile(data: { name: string; defaultCurrency: s
   revalidatePath('/dashboard');
 }
 
+export async function updateAvatar(avatarUrl: string) {
+  const userId = await getUserId();
+  await prisma.user.update({
+    where: { id: userId },
+    data: { avatarUrl: avatarUrl.trim() || null },
+  });
+  revalidatePath('/settings');
+  revalidatePath('/dashboard');
+  return { success: true };
+}
+
+
 export async function getExpenseCategories() {
   const userId = await getUserId();
   return prisma.category.findMany({
