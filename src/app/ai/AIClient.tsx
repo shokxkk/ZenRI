@@ -18,7 +18,23 @@ function cleanText(text: string): string {
     .replace(/[\{\}]/g, '');
 }
 
-export function AIClient({ userName }: { userName: string }) {
+interface AIClientProps {
+  userName: string;
+  totalBalance?: number;
+  monthlyIncome?: number;
+  monthlyExpense?: number;
+  topCategoryName?: string;
+  topCategoryAmount?: number;
+}
+
+export function AIClient({
+  userName,
+  totalBalance = 0,
+  monthlyIncome = 0,
+  monthlyExpense = 0,
+  topCategoryName = 'Расходы',
+  topCategoryAmount = 0,
+}: AIClientProps) {
   const [isPending, startTransition] = useTransition();
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<Message[]>([
@@ -67,19 +83,20 @@ export function AIClient({ userName }: { userName: string }) {
       <div>
         <h1 className="text-2xl font-bold text-zen-900 dark:text-zen-100 flex items-center gap-2">
           <Sparkles className="text-[#0066FF]" size={24} />
-          AI Ассистент ChatGPT
+          ИИ Ассистент ZenRI
         </h1>
         <p className="text-xs text-zen-400 mt-0.5">
-          Интеллектуальный советник с реальным анализом ваших финансов ZenRI
+          Интеллектуальный советник с реальным анализом ваших финансов
         </p>
       </div>
 
-      {/* Embedded AI Predict Pro Module */}
+      {/* Embedded AI Predict Module with Live Data */}
       <AIPredictWidget
-        monthlyIncome={12000000}
-        monthlyExpense={545000}
-        topCategoryName="Кафе и рестораны"
-        topCategoryAmount={340000}
+        totalBalance={totalBalance}
+        monthlyIncome={monthlyIncome}
+        monthlyExpense={monthlyExpense}
+        topCategoryName={topCategoryName}
+        topCategoryAmount={topCategoryAmount}
       />
 
       {/* Quick Prompts */}

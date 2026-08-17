@@ -35,6 +35,7 @@ import { AIPredictWidget } from '@/components/ui/AIPredictWidget';
 import { LifeGraphWidget } from '@/components/ui/LifeGraphWidget';
 import { WishlistWidget } from '@/components/ui/WishlistWidget';
 import { DailyFinancialQuote } from '@/components/ui/DailyFinancialQuote';
+import { BooksWidget } from '@/components/ui/BooksWidget';
 import { soundFx } from '@/lib/soundEffects';
 
 function formatMoney(v: number) {
@@ -50,10 +51,15 @@ type DashboardData = {
   totalBalance: number;
   accounts: { id: string; name: string; type: string; currentBalance: string; currency: string }[];
   recentTransactions: { id: string; type: string; amount: string; date: string; comment: string | null; categoryName: string | null; accountName: string }[];
+  allTransactions?: { id: string; type: string; amount: number; date: string }[];
   todayTasks: { id: string; title: string; priority: string; status: string; dueTime: string | null }[];
+  todayTasksTotalCount?: number;
+  todayTasksCompletedCount?: number;
   habits: { id: string; name: string; currentStreak: number; doneToday: boolean }[];
   thisMonthIncome: number;
   thisMonthExpense: number;
+  topCategoryName?: string;
+  topCategoryAmount?: number;
 };
 
 const HABIT_ICONS_MAP: Record<string, React.ElementType> = {
@@ -65,13 +71,14 @@ const HABIT_ICONS_MAP: Record<string, React.ElementType> = {
   'Ранний подъём': Moon,
 };
 
-type WidgetKey = 'quote' | 'aiPredict' | 'wishlist' | 'lifeGraph' | 'finances' | 'tasks' | 'budgets' | 'habits';
+type WidgetKey = 'quote' | 'aiPredict' | 'wishlist' | 'books' | 'lifeGraph' | 'finances' | 'tasks' | 'budgets' | 'habits';
 
 const ALL_WIDGETS: { key: WidgetKey; label: string }[] = [
   { key: 'quote', label: 'Цитата дня (Финансовая мудрость)' },
-  { key: 'aiPredict', label: 'AI Predict Pro (Предиктивная аналитика)' },
-  { key: 'wishlist', label: 'Хотелки (Wishlist + AI Скоринг)' },
-  { key: 'lifeGraph', label: 'Life Graph (Граф Жизни)' },
+  { key: 'aiPredict', label: 'ИИ Прогноз накоплений и бюджета' },
+  { key: 'wishlist', label: 'Хотелки (Wishlist + ИИ Скоринг)' },
+  { key: 'books', label: 'Книги & Чтение (Трекер страниц)' },
+  { key: 'lifeGraph', label: 'Граф Жизни (Life Graph)' },
   { key: 'finances', label: 'Финансы сегодня' },
   { key: 'tasks', label: 'Задачи на сегодня' },
   { key: 'budgets', label: 'Бюджет месяца' },
@@ -92,6 +99,7 @@ export function DashboardClient({ data }: { data: DashboardData }) {
     quote: false,
     aiPredict: false,
     wishlist: false,
+    books: false,
     lifeGraph: false,
     finances: false,
     tasks: false,
@@ -369,10 +377,11 @@ export function DashboardClient({ data }: { data: DashboardData }) {
             <X size={15} />
           </button>
           <AIPredictWidget
+            totalBalance={data.totalBalance}
             monthlyIncome={data.thisMonthIncome}
             monthlyExpense={data.thisMonthExpense}
-            topCategoryName="Расходы"
-            topCategoryAmount={0}
+            topCategoryName={data.topCategoryName || 'Расходы'}
+            topCategoryAmount={data.topCategoryAmount || 0}
           />
         </div>
       )}
@@ -391,6 +400,20 @@ export function DashboardClient({ data }: { data: DashboardData }) {
         </div>
       )}
 
+      {/* Books & Reading Tracker Widget (Hideable) */}
+      {!hiddenWidgets.books && (
+        <div className="relative group">
+          <button
+            onClick={() => toggleWidgetHide('books')}
+            className="absolute top-4 right-4 p-1.5 rounded-lg bg-zen-900/80 text-zen-400 hover:text-white z-20 opacity-0 group-hover:opacity-100 transition-opacity"
+            title="Скрыть виджет"
+          >
+            <X size={15} />
+          </button>
+          <BooksWidget />
+        </div>
+      )}
+
       {/* Life Graph Feature (Hideable) */}
       {!hiddenWidgets.lifeGraph && (
         <div className="relative group">
@@ -401,7 +424,14 @@ export function DashboardClient({ data }: { data: DashboardData }) {
           >
             <X size={15} />
           </button>
-          <LifeGraphWidget />
+          <LifeGraphWidget
+            totalBalance={data.totalBalance}
+            allTransactions={data.allTransactions || []}
+            tasksTotalCount={data.todayTasksTotalCount || (data.todayTasks.length + (data.todayTasksCompletedCount || 0))}
+            tasksCompletedCount={data.todayTasksCompletedCount || 0}
+            habitsTotalCount={data.habits.length}
+            habitsCompletedCount={habitsDoneCount}
+          />
         </div>
       )}
 
