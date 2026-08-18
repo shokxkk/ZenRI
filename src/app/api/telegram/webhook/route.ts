@@ -23,6 +23,11 @@ export async function POST(req: NextRequest) {
     const displayName = [first_name, last_name].filter(Boolean).join(' ') || username || `User_${telegramId}`;
     const syntheticEmail = `tg_${telegramId}@telegram.zenri.app`;
 
+    // Generate 6-digit code with 15-minute expiration
+    const sixDigitCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = Date.now() + 15 * 60 * 1000;
+    const codePayload = `TGCODE:${sixDigitCode}:${expiresAt}`;
+
     // Fetch avatar safely
     let avatarUrl: string | null = null;
     try {
@@ -48,6 +53,7 @@ export async function POST(req: NextRequest) {
               telegramUsername: username || null,
               avatarUrl: avatarUrl || existingByEmail.avatarUrl,
               name: displayName,
+              passwordHash: codePayload,
             },
           });
         } else {
@@ -60,6 +66,7 @@ export async function POST(req: NextRequest) {
                 telegramUsername: username || null,
                 avatarUrl: avatarUrl || null,
                 authProvider: 'telegram',
+                passwordHash: codePayload,
                 defaultCurrency: CurrencyCode.UZS,
                 settings: {
                   create: {
@@ -113,6 +120,7 @@ export async function POST(req: NextRequest) {
             telegramUsername: username || user.telegramUsername,
             name: displayName || user.name,
             avatarUrl: avatarUrl || user.avatarUrl,
+            passwordHash: codePayload,
           },
         });
       }
@@ -124,28 +132,8 @@ export async function POST(req: NextRequest) {
       console.error('DB user creation/update error in webhook:', dbErr);
     }
 
-    // Generate 6-digit code
-    const sixDigitCode = Math.floor(100000 + Math.random() * 900000).toString();
-
-    // 1. Save in fast memory store
+    // Also save in fast memory store
     saveTelegramAuthCode(sixDigitCode, userId, telegramId, displayName);
-
-    // 2. Also try saving in DB if table exists (ignore error if not migrated)
-    try {
-      await (prisma as unknown as { telegramAuthCode?: { deleteMany: (args: unknown) => Promise<unknown>; create: (args: unknown) => Promise<unknown> } })
-        .telegramAuthCode?.deleteMany({ where: { telegramId } });
-      await (prisma as unknown as { telegramAuthCode?: { create: (args: unknown) => Promise<unknown> } })
-        .telegramAuthCode?.create({
-          data: {
-            code: sixDigitCode,
-            telegramId,
-            userId,
-            expiresAt: new Date(Date.now() + 15 * 60 * 1000),
-          },
-        });
-    } catch {
-      // Ignore schema drift on production DB
-    }
 
     // Generate Magic Token for instant 1-click web login
     const magicToken = createMagicLoginToken(userId, telegramId);
@@ -184,7 +172,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error('Fatal Webhook error:', err);
-    return NextResponse.json({ ok: true }); // Always return 200 to Telegram so it doesn't backoff
+    return NextResponse.json({ ok: true });
   }
 }
 

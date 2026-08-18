@@ -136,60 +136,48 @@ export async function verifyTelegramSixDigitCode(code: string) {
     return { success: false, error: 'Введите 6-значный цифровой код из Telegram' };
   }
 
-  // 1. Check in-memory code store
-  const { getTelegramAuthCode } = await import('@/lib/telegramBot');
-  const memoryRecord = getTelegramAuthCode(cleanCode);
+  // 1. Direct database check from User record (works across all serverless instances)
+  let user = await prisma.user.findFirst({
+    where: {
+      passwordHash: {
+        startsWith: `TGCODE:${cleanCode}:`,
+      },
+    },
+    select: { id: true, name: true, email: true, avatarUrl: true, passwordHash: true },
+  });
 
-  let userId = memoryRecord?.userId;
-
-  // 2. Fallback to DB check if not found in memory
-  if (!userId) {
-    try {
-      const authRecord = await (prisma as unknown as { telegramAuthCode?: { findFirst: (args: unknown) => Promise<{ id: string; userId: string } | null>; update: (args: unknown) => Promise<unknown> } })
-        .telegramAuthCode?.findFirst({
-          where: {
-            code: cleanCode,
-            used: false,
-            expiresAt: { gt: new Date() },
-          },
-          orderBy: { createdAt: 'desc' },
-        });
-
-      if (authRecord) {
-        userId = authRecord.userId;
-        await (prisma as unknown as { telegramAuthCode?: { update: (args: unknown) => Promise<unknown> } })
-          .telegramAuthCode?.update({
-            where: { id: authRecord.id },
-            data: { used: true },
-          });
-      }
-    } catch {
-      // Ignore DB schema mismatch
+  // 2. Fallback to memory store if DB query was empty
+  if (!user) {
+    const { getTelegramAuthCode } = await import('@/lib/telegramBot');
+    const memoryRecord = getTelegramAuthCode(cleanCode);
+    if (memoryRecord?.userId) {
+      user = await prisma.user.findFirst({
+        where: { OR: [{ id: memoryRecord.userId }, { telegramId: memoryRecord.telegramId }] },
+        select: { id: true, name: true, email: true, avatarUrl: true, passwordHash: true },
+      });
     }
   }
 
-  if (!userId) {
+  if (!user) {
     return {
       success: false,
       error: 'Неверный или устаревший код. Откройте @zenriauthefication_bot и нажмите Start.',
     };
   }
 
-  let user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { id: true, name: true, email: true, avatarUrl: true },
-  });
+  // Check code expiration if present in passwordHash
+  if (user.passwordHash?.startsWith('TGCODE:')) {
+    const parts = user.passwordHash.split(':');
+    const expiresAt = parseInt(parts[2] || '0', 10);
+    if (expiresAt > 0 && Date.now() > expiresAt) {
+      return { success: false, error: 'Срок действия кода истёк. Запросите новый код в боте.' };
+    }
 
-  if (!user) {
-    // If user id was a telegramId fallback
-    user = await prisma.user.findFirst({
-      where: { OR: [{ id: userId }, { telegramId: userId }] },
-      select: { id: true, name: true, email: true, avatarUrl: true },
+    // Clear code after successful verification
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { passwordHash: null },
     });
-  }
-
-  if (!user) {
-    return { success: false, error: 'Пользователь не найден. Запросите новый код в боте.' };
   }
 
   return {
@@ -202,6 +190,7 @@ export async function verifyTelegramSixDigitCode(code: string) {
     },
   };
 }
+
 
 
 
