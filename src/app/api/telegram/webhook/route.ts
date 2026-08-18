@@ -114,38 +114,50 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    // Invalidate old codes and generate fresh 6-digit Auth Code
+    await prisma.telegramAuthCode.deleteMany({
+      where: { telegramId },
+    });
+
+    const sixDigitCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+    await prisma.telegramAuthCode.create({
+      data: {
+        code: sixDigitCode,
+        telegramId,
+        userId: user.id,
+        expiresAt,
+      },
+    });
+
     // Generate Magic Token for instant 1-click web login
     const magicToken = createMagicLoginToken(user.id, telegramId);
     const loginUrl = `https://www.zenri.uz/auth/telegram-callback?token=${magicToken}`;
 
-    // Reply to user in Telegram
+    // Reply to user in Telegram with 6-digit Code + 1-Click Button
     const welcomeText =
       `👋 Здравствуйте, <b>${displayName}</b>!\n\n` +
-      `✨ Добро пожаловать в <b>ZenRI Life OS</b> — вашу единую систему управления жизнью, финансами, целями и привычками.\n\n` +
-      `🔒 <b>Ваш аккаунт успешно создан и активирован:</b>\n` +
-      `• 👤 Имя: <b>${user.name}</b>\n` +
-      `• 🆔 Telegram ID: <code>${telegramId}</code>\n` +
-      `• 💰 Валюта: <b>${user.defaultCurrency}</b>\n\n` +
-      `👇 <i>Нажмите на кнопку ниже для мгновенного входа в личный кабинет:</i>`;
+      `✨ Добро пожаловать в <b>ZenRI Life OS</b>.\n\n` +
+      `🔑 <b>Ваш 6-значный код для входа на сайт:</b>\n\n` +
+      `👉 <code>${sixDigitCode}</code> 👈\n\n` +
+      `<i>(Нажмите на код чтобы скопировать. Введите его на сайте www.zenri.uz — номер телефона вводить не нужно!)</i>\n\n` +
+      `⏱ Код действует 10 минут.\n` +
+      `───────────────\n` +
+      `Или нажмите кнопку ниже для входа в 1 клик:`;
 
     const replyMarkup = {
       inline_keyboard: [
         [
           {
-            text: '🚀 Войти в личный кабинет ZenRI',
+            text: '🚀 Войти в личный кабинет (в 1 клик)',
             url: loginUrl,
           },
         ],
         [
           {
-            text: '📱 Открыть ZenRI Web App',
+            text: '📱 Открыть Web App',
             web_app: { url: 'https://www.zenri.uz/dashboard' },
-          },
-        ],
-        [
-          {
-            text: '🌐 Открыть сайт zenri.uz',
-            url: 'https://www.zenri.uz',
           },
         ],
       ],
@@ -160,7 +172,6 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// Support GET for testing health
 export async function GET() {
   return NextResponse.json({ status: 'active', service: 'ZenRI Telegram Bot Webhook' });
 }

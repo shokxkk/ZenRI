@@ -129,3 +129,53 @@ export async function verifyTelegramMagicToken(token: string) {
   };
 }
 
+export async function verifyTelegramSixDigitCode(code: string) {
+  const cleanCode = code.replace(/\D/g, '').trim();
+
+  if (cleanCode.length !== 6) {
+    return { success: false, error: 'Введите 6-значный цифровой код из Telegram' };
+  }
+
+  const authRecord = await prisma.telegramAuthCode.findFirst({
+    where: {
+      code: cleanCode,
+      used: false,
+      expiresAt: { gt: new Date() },
+    },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  if (!authRecord) {
+    return {
+      success: false,
+      error: 'Неверный или устаревший код. Откройте @zenriauthefication_bot и получите новый код.',
+    };
+  }
+
+  // Mark code as used
+  await prisma.telegramAuthCode.update({
+    where: { id: authRecord.id },
+    data: { used: true },
+  });
+
+  const user = await prisma.user.findUnique({
+    where: { id: authRecord.userId },
+    select: { id: true, name: true, email: true, avatarUrl: true },
+  });
+
+  if (!user) {
+    return { success: false, error: 'Пользователь не найден' };
+  }
+
+  return {
+    success: true,
+    user: {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      avatarUrl: user.avatarUrl,
+    },
+  };
+}
+
+

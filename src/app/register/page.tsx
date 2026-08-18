@@ -4,8 +4,9 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { ZenLogo } from '@/components/ui/ZenLogo';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
+import { TelegramCodeAuth } from '@/components/ui/TelegramCodeAuth';
 import { TelegramLoginButton } from '@/components/ui/TelegramLoginButton';
-import { Send, ShieldCheck, Sparkles, User, CheckCircle2, Lock } from 'lucide-react';
+import { Send, ShieldCheck, CheckCircle2 } from 'lucide-react';
 
 const TG_BOT_USERNAME = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME || 'zenriauthefication_bot';
 
@@ -42,7 +43,7 @@ export default function RegisterPage() {
             <div className="space-y-1.5 text-center">
               <h1 className="text-2xl font-black text-white">Регистрация в ZenRI</h1>
               <p className="text-xs text-slate-400 leading-relaxed">
-                Регистрация новых пользователей происходит <b>исключительно через Telegram</b>. Никаких лишних паролей — всё в 1 клик.
+                Регистрация происходит <b>через Telegram-бота</b>. Получите 6-значный код в боте и введите его ниже — номер телефона вводить не нужно.
               </p>
             </div>
 
@@ -53,34 +54,33 @@ export default function RegisterPage() {
             )}
 
             {/* Telegram Perks */}
-            <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-2.5">
-              <div className="flex items-center gap-2.5 text-xs text-slate-200">
-                <CheckCircle2 size={16} className="text-emerald-400 flex-shrink-0" />
-                <span>Автоматическое имя и аватарка из профиля</span>
+            <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10 space-y-2">
+              <div className="flex items-center gap-2 text-xs text-slate-200">
+                <CheckCircle2 size={15} className="text-emerald-400 flex-shrink-0" />
+                <span>Автоматическое имя и аватарка из Telegram</span>
               </div>
-              <div className="flex items-center gap-2.5 text-xs text-slate-200">
-                <CheckCircle2 size={16} className="text-[#00C2FF] flex-shrink-0" />
-                <span>Мгновенный и безопасный вход в 1 клик</span>
-              </div>
-              <div className="flex items-center gap-2.5 text-xs text-slate-200">
-                <CheckCircle2 size={16} className="text-[#8B5CF6] flex-shrink-0" />
-                <span>Полная изоляция и приватность ваших данных</span>
+              <div className="flex items-center gap-2 text-xs text-slate-200">
+                <CheckCircle2 size={15} className="text-[#00C2FF] flex-shrink-0" />
+                <span>Вход по быстрому 6-значному коду из бота</span>
               </div>
             </div>
 
-            {/* Telegram Login Button Component */}
-            <div className="space-y-3">
-              <TelegramLoginButton
-                botUsername={TG_BOT_USERNAME}
-                onError={setError}
-                onLoading={setLoading}
-              />
+            {/* 6-Digit Code Auth Box */}
+            <TelegramCodeAuth
+              botUsername={TG_BOT_USERNAME}
+              onSuccess={() => {}}
+            />
 
-              {loading && (
-                <p className="text-xs text-[#229ED9] text-center font-bold animate-pulse">
-                  Создание вашего аккаунта...
-                </p>
-              )}
+            {/* Alternative: Widget button */}
+            <div className="pt-2 border-t border-white/10 space-y-2 text-center">
+              <span className="text-[10px] uppercase font-bold text-slate-500">или через виджет Telegram</span>
+              <div className="flex justify-center">
+                <TelegramLoginButton
+                  botUsername={TG_BOT_USERNAME}
+                  onError={setError}
+                  onLoading={setLoading}
+                />
+              </div>
             </div>
 
             <div className="flex items-center justify-center gap-2 text-[10px] text-slate-500">
@@ -90,7 +90,7 @@ export default function RegisterPage() {
 
             <div className="pt-2 border-t border-white/10 text-center">
               <p className="text-xs text-slate-400">
-                Уже зарегистрированы?{' '}
+                Уже есть аккаунт?{' '}
                 <Link href="/login" className="text-[#00C2FF] font-extrabold hover:underline">
                   Войти в аккаунт
                 </Link>

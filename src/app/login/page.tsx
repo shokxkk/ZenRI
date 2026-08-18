@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { ZenLogo } from '@/components/ui/ZenLogo';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { TelegramLoginButton } from '@/components/ui/TelegramLoginButton';
+import { TelegramCodeAuth } from '@/components/ui/TelegramCodeAuth';
 import {
   Mic,
   Hourglass,
@@ -18,6 +19,8 @@ import {
   Star,
   CheckCircle2,
   Send,
+  QrCode,
+  KeyRound,
 } from 'lucide-react';
 
 const FEATURES = [
@@ -311,23 +314,26 @@ export default function LoginPage() {
               </form>
             ) : (
               <div className="space-y-4">
-                <p className="text-xs text-slate-400 text-center leading-relaxed">
-                  Нажмите кнопку ниже и авторизуйтесь через Telegram — мгновенно и без пароля
-                </p>
-                <div className="flex justify-center">
-                  <TelegramLoginButton
-                    botUsername={TG_BOT_USERNAME}
-                    onError={setError}
-                    onLoading={setLoading}
-                  />
+                {/* 6-Digit Code Auth (No phone number required) */}
+                <TelegramCodeAuth
+                  botUsername={TG_BOT_USERNAME}
+                  onSuccess={() => {}}
+                />
+
+                {/* Alternative: Widget button */}
+                <div className="pt-2 border-t border-white/10 space-y-2 text-center">
+                  <span className="text-[10px] uppercase font-bold text-slate-500">или через виджет</span>
+                  <div className="flex justify-center">
+                    <TelegramLoginButton
+                      botUsername={TG_BOT_USERNAME}
+                      onError={setError}
+                      onLoading={setLoading}
+                    />
+                  </div>
                 </div>
-                {loading && (
-                  <p className="text-xs text-[#229ED9] text-center font-bold animate-pulse">
-                    Авторизация через Telegram...
-                  </p>
-                )}
               </div>
             )}
+
 
             <div className="pt-2 border-t border-white/10 text-center">
               <p className="text-xs text-slate-400">

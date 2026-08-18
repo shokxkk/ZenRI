@@ -352,3 +352,17 @@ model AIMessage {
   isConfirmed    Boolean?
   createdAt      DateTime       @default(now())
 }
+
+model TelegramAuthCode {
+  id         String   @id @default(uuid())
+  code       String   // 6-digit code e.g. "482910"
+  telegramId String
+  userId     String
+  expiresAt  DateTime
+  used       Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  @@index([code])
+  @@index([telegramId])
+}
+
