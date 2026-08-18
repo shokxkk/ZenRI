@@ -175,7 +175,7 @@ export default function LandingPage() {
   ];
 
   const STATS = [
-    { value: '+500 000 ₽', label: 'AI прогноз дохода' },
+    { value: '+500 000 сум', label: 'AI прогноз дохода' },
     { value: '98%', label: 'Точность анализа' },
     { value: '2 мин', label: 'Экономия в день' },
     { value: '24/7', label: 'Ваш ассистент' },
