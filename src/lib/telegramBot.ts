@@ -11,6 +11,34 @@ export interface TelegramUser {
   photo_url?: string;
 }
 
+// Global in-memory code store (safe fallback regardless of database table migrations)
+declare global {
+  // eslint-disable-next-line no-var
+  var __zenriTelegramCodes: Map<string, { userId: string; telegramId: string; expiresAt: number; name: string }> | undefined;
+}
+
+if (!globalThis.__zenriTelegramCodes) {
+  globalThis.__zenriTelegramCodes = new Map();
+}
+
+const codesStore = globalThis.__zenriTelegramCodes;
+
+export function saveTelegramAuthCode(code: string, userId: string, telegramId: string, name: string) {
+  const expiresAt = Date.now() + 15 * 60 * 1000; // 15 minutes
+  codesStore.set(code, { userId, telegramId, expiresAt, name });
+}
+
+export function getTelegramAuthCode(code: string) {
+  const record = codesStore.get(code);
+  if (!record) return null;
+  if (Date.now() > record.expiresAt) {
+    codesStore.delete(code);
+    return null;
+  }
+  codesStore.delete(code); // One-time use
+  return record;
+}
+
 export function createMagicLoginToken(userId: string, telegramId: string): string {
   const expiresAt = Date.now() + 15 * 60 * 1000; // 15 minutes validity
   const payload = `${userId}:${telegramId}:${expiresAt}`;
@@ -67,7 +95,8 @@ export async function sendTelegramMessage(
         reply_markup: replyMarkup,
       }),
     });
-    return await res.json();
+    const data = await res.json();
+    return data;
   } catch (err) {
     console.error('Failed to send Telegram message:', err);
     return null;

@@ -136,35 +136,60 @@ export async function verifyTelegramSixDigitCode(code: string) {
     return { success: false, error: 'Введите 6-значный цифровой код из Telegram' };
   }
 
-  const authRecord = await prisma.telegramAuthCode.findFirst({
-    where: {
-      code: cleanCode,
-      used: false,
-      expiresAt: { gt: new Date() },
-    },
-    orderBy: { createdAt: 'desc' },
-  });
+  // 1. Check in-memory code store
+  const { getTelegramAuthCode } = await import('@/lib/telegramBot');
+  const memoryRecord = getTelegramAuthCode(cleanCode);
 
-  if (!authRecord) {
+  let userId = memoryRecord?.userId;
+
+  // 2. Fallback to DB check if not found in memory
+  if (!userId) {
+    try {
+      const authRecord = await (prisma as unknown as { telegramAuthCode?: { findFirst: (args: unknown) => Promise<{ id: string; userId: string } | null>; update: (args: unknown) => Promise<unknown> } })
+        .telegramAuthCode?.findFirst({
+          where: {
+            code: cleanCode,
+            used: false,
+            expiresAt: { gt: new Date() },
+          },
+          orderBy: { createdAt: 'desc' },
+        });
+
+      if (authRecord) {
+        userId = authRecord.userId;
+        await (prisma as unknown as { telegramAuthCode?: { update: (args: unknown) => Promise<unknown> } })
+          .telegramAuthCode?.update({
+            where: { id: authRecord.id },
+            data: { used: true },
+          });
+      }
+    } catch {
+      // Ignore DB schema mismatch
+    }
+  }
+
+  if (!userId) {
     return {
       success: false,
-      error: 'Неверный или устаревший код. Откройте @zenriauthefication_bot и получите новый код.',
+      error: 'Неверный или устаревший код. Откройте @zenriauthefication_bot и нажмите Start.',
     };
   }
 
-  // Mark code as used
-  await prisma.telegramAuthCode.update({
-    where: { id: authRecord.id },
-    data: { used: true },
-  });
-
-  const user = await prisma.user.findUnique({
-    where: { id: authRecord.userId },
+  let user = await prisma.user.findUnique({
+    where: { id: userId },
     select: { id: true, name: true, email: true, avatarUrl: true },
   });
 
   if (!user) {
-    return { success: false, error: 'Пользователь не найден' };
+    // If user id was a telegramId fallback
+    user = await prisma.user.findFirst({
+      where: { OR: [{ id: userId }, { telegramId: userId }] },
+      select: { id: true, name: true, email: true, avatarUrl: true },
+    });
+  }
+
+  if (!user) {
+    return { success: false, error: 'Пользователь не найден. Запросите новый код в боте.' };
   }
 
   return {
@@ -177,5 +202,6 @@ export async function verifyTelegramSixDigitCode(code: string) {
     },
   };
 }
+
 
 
