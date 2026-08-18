@@ -2,173 +2,411 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { TelegramCodeAuth } from '@/components/ui/TelegramCodeAuth';
+import { signIn } from 'next-auth/react';
+import { verifyTelegramSixDigitCode } from '@/app/actions/authActions';
 import {
-  Mic, BookOpen, Target, Sparkles, ShieldCheck, Brain, Smartphone, Headphones,
-  ChevronDown, Star, Menu, X
+  Activity,
+  BookOpen,
+  Target,
+  Sparkles,
+  ShieldCheck,
+  Brain,
+  Smartphone,
+  Headphones,
+  PlusCircle,
+  Star,
+  Send,
+  ExternalLink,
+  KeyRound,
+  Loader2,
+  CheckCircle2,
+  AlertCircle,
 } from 'lucide-react';
 
 const TG_BOT_USERNAME = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME || 'zenriauthefication_bot';
 
-// ─── Star field canvas ────────────────────────────────────────────────────────
-function StarField() {
+// ─── High-Tech Cosmic Space Background with Earth Horizon & Shooting Stars ───
+function CosmicCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const resize = () => {
+    let animId: number;
+
+    const handleResize = () => {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
     };
-    resize();
-    window.addEventListener('resize', resize);
+    handleResize();
+    window.addEventListener('resize', handleResize);
 
-    // Generate stars
-    const stars: { x: number; y: number; r: number; o: number; speed: number }[] = [];
-    for (let i = 0; i < 220; i++) {
-      stars.push({
-        x: Math.random() * canvas.width,
-        y: Math.random() * canvas.height,
-        r: Math.random() * 1.5 + 0.3,
-        o: Math.random() * 0.7 + 0.3,
-        speed: Math.random() * 0.3 + 0.05,
-      });
-    }
+    // Stars data
+    const starCount = 180;
+    const stars = Array.from({ length: starCount }, () => ({
+      x: Math.random() * window.innerWidth,
+      y: Math.random() * window.innerHeight,
+      radius: Math.random() * 1.6 + 0.3,
+      alpha: Math.random() * 0.8 + 0.2,
+      pulseSpeed: Math.random() * 0.02 + 0.005,
+      pulseOffset: Math.random() * Math.PI * 2,
+    }));
 
     // Shooting stars
-    const shoots: { x: number; y: number; len: number; speed: number; opacity: number; angle: number; active: boolean }[] = [];
-    for (let i = 0; i < 4; i++) {
-      shoots.push({ x: 0, y: 0, len: 0, speed: 0, opacity: 0, angle: 0, active: false });
+    interface Meteor {
+      x: number;
+      y: number;
+      len: number;
+      speed: number;
+      angle: number;
+      opacity: number;
+      active: boolean;
     }
-    const launchShoot = (s: typeof shoots[0]) => {
-      s.x = Math.random() * canvas.width * 0.7 + 100;
-      s.y = Math.random() * canvas.height * 0.4;
-      s.len = Math.random() * 120 + 60;
-      s.speed = Math.random() * 8 + 6;
-      s.opacity = 1;
-      s.angle = Math.PI / 5 + (Math.random() - 0.5) * 0.3;
-      s.active = true;
-    };
-    shoots.forEach((s) => { setTimeout(() => launchShoot(s), Math.random() * 4000); });
-    setInterval(() => {
-      shoots.forEach((s) => { if (!s.active && Math.random() < 0.15) launchShoot(s); });
-    }, 800);
 
-    let animFrame: number;
-    const draw = () => {
+    const meteors: Meteor[] = Array.from({ length: 3 }, () => ({
+      x: 0,
+      y: 0,
+      len: 0,
+      speed: 0,
+      angle: 0,
+      opacity: 0,
+      active: false,
+    }));
+
+    const triggerMeteor = (m: Meteor) => {
+      m.x = Math.random() * canvas.width * 0.8 + canvas.width * 0.1;
+      m.y = Math.random() * canvas.height * 0.35;
+      m.len = Math.random() * 140 + 70;
+      m.speed = Math.random() * 7 + 6;
+      m.angle = Math.PI / 5 + (Math.random() - 0.5) * 0.15; // ~36 deg
+      m.opacity = 1;
+      m.active = true;
+    };
+
+    // Initial triggers
+    meteors.forEach((m, idx) => {
+      setTimeout(() => triggerMeteor(m), idx * 2500 + 500);
+    });
+
+    const meteorInterval = setInterval(() => {
+      const inactive = meteors.find((m) => !m.active);
+      if (inactive) triggerMeteor(inactive);
+    }, 3200);
+
+    let time = 0;
+    const render = () => {
+      time += 0.02;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // Draw stars with twinkle
-      stars.forEach((s) => {
-        s.o = 0.3 + 0.7 * (0.5 + 0.5 * Math.sin(Date.now() * s.speed * 0.002 + s.x));
+      // 1. Twinkling Stars
+      for (const s of stars) {
+        const currentAlpha = s.alpha * (0.5 + 0.5 * Math.sin(time * s.pulseSpeed * 60 + s.pulseOffset));
+        ctx.fillStyle = `rgba(220, 235, 255, ${currentAlpha})`;
         ctx.beginPath();
-        ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(200,220,255,${s.o})`;
+        ctx.arc(s.x, s.y, s.radius, 0, Math.PI * 2);
         ctx.fill();
-      });
+      }
 
-      // Draw shooting stars
-      shoots.forEach((s) => {
-        if (!s.active) return;
+      // 2. Shooting Stars (Meteors)
+      for (const m of meteors) {
+        if (!m.active) continue;
+
         ctx.save();
-        ctx.globalAlpha = s.opacity;
-        const grad = ctx.createLinearGradient(s.x, s.y, s.x - s.len * Math.cos(s.angle), s.y - s.len * Math.sin(s.angle));
-        grad.addColorStop(0, 'rgba(150,200,255,1)');
-        grad.addColorStop(1, 'rgba(150,200,255,0)');
+        const startX = m.x;
+        const startY = m.y;
+        const endX = m.x - m.len * Math.cos(m.angle);
+        const endY = m.y - m.len * Math.sin(m.angle);
+
+        const grad = ctx.createLinearGradient(startX, startY, endX, endY);
+        grad.addColorStop(0, `rgba(255, 255, 255, ${m.opacity})`);
+        grad.addColorStop(0.25, `rgba(56, 189, 248, ${m.opacity * 0.9})`);
+        grad.addColorStop(1, 'rgba(0, 102, 255, 0)');
+
         ctx.strokeStyle = grad;
         ctx.lineWidth = 2;
+        ctx.lineCap = 'round';
         ctx.beginPath();
-        ctx.moveTo(s.x, s.y);
-        ctx.lineTo(s.x - s.len * Math.cos(s.angle), s.y - s.len * Math.sin(s.angle));
+        ctx.moveTo(startX, startY);
+        ctx.lineTo(endX, endY);
         ctx.stroke();
-        ctx.restore();
-        s.x += s.speed * Math.cos(s.angle);
-        s.y += s.speed * Math.sin(s.angle);
-        s.opacity -= 0.025;
-        if (s.opacity <= 0) s.active = false;
-      });
 
-      animFrame = requestAnimationFrame(draw);
+        // Head flare dot
+        ctx.fillStyle = `rgba(255, 255, 255, ${m.opacity})`;
+        ctx.beginPath();
+        ctx.arc(startX, startY, 2, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.restore();
+
+        m.x += m.speed * Math.cos(m.angle);
+        m.y += m.speed * Math.sin(m.angle);
+        m.opacity -= 0.02;
+        if (m.opacity <= 0) {
+          m.active = false;
+        }
+      }
+
+      animId = requestAnimationFrame(render);
     };
-    draw();
-    return () => { cancelAnimationFrame(animFrame); window.removeEventListener('resize', resize); };
+
+    render();
+
+    return () => {
+      cancelAnimationFrame(animId);
+      clearInterval(meteorInterval);
+      window.removeEventListener('resize', handleResize);
+    };
   }, []);
-  return <canvas ref={canvasRef} className="absolute inset-0 w-full h-full pointer-events-none" />;
+
+  return <canvas ref={canvasRef} className="absolute inset-0 w-full h-full pointer-events-none z-0" />;
 }
 
-// ─── Orbital Logo ─────────────────────────────────────────────────────────────
-function OrbitalLogo() {
+// ─── 3D Glowing Galaxy Planet with Stylized "7." Logo ────────────────────────
+function CentralOrbitalGalaxy() {
   return (
-    <div className="relative flex items-center justify-center select-none" style={{ width: 480, height: 480 }}>
-      {/* Outer glow planet haze */}
-      <div className="absolute inset-0 rounded-full"
-        style={{ background: 'radial-gradient(ellipse at 50% 80%, rgba(0,102,255,0.35) 0%, transparent 70%)' }} />
-
-      {/* Orbit rings */}
-      {[{ w: 380, h: 110, top: '52%', rot: -25, dur: '18s', opacity: 0.25 },
-        { w: 440, h: 130, top: '54%', rot: -20, dur: '26s', opacity: 0.15 },
-        { w: 320, h: 90, top: '50%', rot: -28, dur: '12s', opacity: 0.18 },
-      ].map((ring, i) => (
-        <div key={i} className="absolute left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border border-blue-400 pointer-events-none animate-spin-slow"
-          style={{
-            width: ring.w, height: ring.h,
-            top: ring.top,
-            transform: `translateX(-50%) translateY(-50%) rotateX(${ring.rot}deg)`,
-            borderColor: `rgba(96,165,250,${ring.opacity})`,
-            animationDuration: ring.dur,
-            perspective: '800px',
-          }}
-        />
-      ))}
-
-      {/* Planet surface glow at bottom */}
-      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 w-64 h-16 rounded-full pointer-events-none"
-        style={{ background: 'radial-gradient(ellipse, rgba(0,80,255,0.55) 0%, transparent 80%)', filter: 'blur(18px)' }} />
-
-      {/* Core glow sphere */}
-      <div className="absolute w-72 h-72 rounded-full pointer-events-none"
+    <div className="relative flex items-center justify-center pointer-events-none select-none w-[340px] h-[340px] lg:w-[460px] lg:h-[460px]">
+      {/* Outer ambient radiant galaxy haze */}
+      <div
+        className="absolute inset-0 rounded-full"
         style={{
-          background: 'radial-gradient(circle at 38% 38%, rgba(80,160,255,0.18) 0%, rgba(0,40,120,0.35) 60%, rgba(0,0,30,0.5) 100%)',
-          boxShadow: '0 0 80px 20px rgba(0,80,255,0.25), 0 0 160px 40px rgba(0,40,200,0.12)',
+          background: 'radial-gradient(circle, rgba(0, 102, 255, 0.25) 0%, rgba(139, 92, 246, 0.15) 45%, transparent 70%)',
+          filter: 'blur(40px)',
         }}
       />
 
-      {/* Logo Text */}
-      <div className="relative z-10 flex flex-col items-center" style={{ filter: 'drop-shadow(0 0 32px rgba(60,140,255,0.9))' }}>
-        <span className="text-[90px] font-black leading-none tracking-tight text-white" style={{
-          background: 'linear-gradient(135deg, #60A5FA 0%, #3B82F6 40%, #1D4ED8 100%)',
-          WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-          textShadow: 'none',
-        }}>
-          7.
-        </span>
+      {/* Orbit 1: Tilted Blue Particle Ring */}
+      <div
+        className="absolute rounded-full border border-sky-400/40 animate-orbit-cw"
+        style={{
+          width: '105%',
+          height: '42%',
+          transform: 'rotate(-24deg)',
+          boxShadow: '0 0 25px rgba(56, 189, 248, 0.3), inset 0 0 20px rgba(56, 189, 248, 0.2)',
+        }}
+      >
+        {/* Orbiting celestial node */}
+        <div
+          className="absolute -top-1.5 left-1/4 w-3.5 h-3.5 rounded-full bg-sky-300 shadow-glow"
+          style={{
+            boxShadow: '0 0 14px 4px rgba(56, 189, 248, 0.9), 0 0 4px #fff',
+          }}
+        />
       </div>
 
-      {/* Orbiting dot 1 */}
-      <div className="absolute pointer-events-none animate-orbit-1"
-        style={{ width: 380, height: 110, top: '52%', left: '50%', transform: 'translate(-50%, -50%) rotateX(-25deg)', transformStyle: 'preserve-3d' }}>
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3 h-3 rounded-full bg-blue-400 shadow-lg" style={{ boxShadow: '0 0 12px 4px rgba(96,165,250,0.8)' }} />
+      {/* Orbit 2: Tilted Violet/Purple Nebula Ring */}
+      <div
+        className="absolute rounded-full border border-purple-500/40 animate-orbit-ccw"
+        style={{
+          width: '95%',
+          height: '36%',
+          transform: 'rotate(28deg)',
+          boxShadow: '0 0 30px rgba(168, 85, 247, 0.35)',
+        }}
+      >
+        {/* Orbiting purple node */}
+        <div
+          className="absolute -bottom-1.5 right-1/3 w-3 h-3 rounded-full bg-purple-300"
+          style={{
+            boxShadow: '0 0 12px 3px rgba(192, 132, 252, 0.9)',
+          }}
+        />
       </div>
-      {/* Orbiting dot 2 */}
-      <div className="absolute pointer-events-none animate-orbit-2"
-        style={{ width: 320, height: 90, top: '50%', left: '50%', transform: 'translate(-50%, -50%) rotateX(-28deg)', transformStyle: 'preserve-3d' }}>
-        <div className="absolute bottom-0 right-1/4 w-2 h-2 rounded-full bg-cyan-300" style={{ boxShadow: '0 0 8px 3px rgba(103,232,249,0.8)' }} />
+
+      {/* Orbit 3: Thin cyan particle trajectory */}
+      <div
+        className="absolute rounded-full border border-dashed border-cyan-400/30 animate-orbit-cw"
+        style={{
+          width: '115%',
+          height: '48%',
+          transform: 'rotate(-12deg)',
+          animationDuration: '28s',
+        }}
+      />
+
+      {/* Center Planet Core with rich radial sphere lighting */}
+      <div
+        className="relative flex items-center justify-center rounded-full w-48 h-48 lg:w-60 lg:h-60"
+        style={{
+          background: 'radial-gradient(circle at 35% 35%, #1e3a8a 0%, #0c1838 50%, #030712 100%)',
+          boxShadow: '0 0 60px 15px rgba(0, 102, 255, 0.4), inset 0 0 40px rgba(56, 189, 248, 0.35)',
+          border: '1px solid rgba(56, 189, 248, 0.3)',
+        }}
+      >
+        {/* Soft core glow */}
+        <div className="absolute inset-0 rounded-full bg-cyan-400/10 blur-xl" />
+
+        {/* Precise Stylized "7." Logo Icon */}
+        <div className="relative z-10 flex items-center justify-center transform scale-110 lg:scale-125">
+          <svg width="110" height="110" viewBox="0 0 110 110" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="zenLogoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#38BDF8" />
+                <stop offset="50%" stopColor="#0070F3" />
+                <stop offset="100%" stopColor="#0055FF" />
+              </linearGradient>
+              <filter id="logoGlow" x="-20%" y="-20%" width="140%" height="140%">
+                <feDropShadow dx="0" dy="0" stdDeviation="6" floodColor="#38BDF8" floodOpacity="0.8" />
+              </filter>
+            </defs>
+            {/* The 7 shape */}
+            <path
+              d="M 22 24 C 22 19 26 15 31 15 L 86 15 C 91 15 95 19 93.5 24.5 L 68 82 C 65.5 87.5 59 90 53.5 87 C 48 84 46.5 77.5 49 72 L 69.5 27 L 31 27 C 26 27 22 23 22 24 Z"
+              fill="url(#zenLogoGrad)"
+              filter="url(#logoGlow)"
+            />
+            {/* The Dot */}
+            <circle cx="86" cy="78" r="11" fill="url(#zenLogoGrad)" filter="url(#logoGlow)" />
+          </svg>
+        </div>
       </div>
     </div>
   );
 }
 
-// ─── Main Login / Landing Page ───────────────────────────────────────────────
-export default function LoginPage() {
-  const [menuOpen, setMenuOpen] = useState(false);
+// ─── Pure Telegram Authentication Form Component ─────────────────────────────
+function InlineTelegramAuth() {
+  const [code, setCode] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  const NAV_LINKS = ['Возможности', 'Тарифы', 'О нас', 'Блог', 'Контакты'];
+  const handleVerify = async (codeToVerify: string) => {
+    const clean = codeToVerify.replace(/\D/g, '').trim();
+    if (clean.length !== 6) {
+      setError('Введите полный 6-значный код');
+      return;
+    }
 
+    setLoading(true);
+    setError('');
+
+    try {
+      const res = await verifyTelegramSixDigitCode(clean);
+      if (!res.success || !res.user) {
+        setError(res.error || 'Неверный код. Запросите новый в Telegram-боте.');
+        setLoading(false);
+        return;
+      }
+
+      setSuccess(true);
+
+      const signInRes = await signIn('telegram', {
+        userId: res.user.id,
+        redirect: false,
+      });
+
+      if (signInRes?.error) {
+        setError('Ошибка создания сессии');
+        setLoading(false);
+      } else {
+        window.location.href = '/dashboard';
+      }
+    } catch {
+      setError('Ошибка подключения к серверу');
+      setLoading(false);
+    }
+  };
+
+  const handleCodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value.replace(/\D/g, '').slice(0, 6);
+    setCode(val);
+    setError('');
+
+    if (val.length === 6) {
+      handleVerify(val);
+    }
+  };
+
+  return (
+    <div className="w-full space-y-4">
+      {/* Step 1: Open Bot Button */}
+      <div className="space-y-1.5">
+        <label className="block text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+          ШАГ 1: ПОЛУЧИТЕ КОД В TELEGRAM
+        </label>
+        <a
+          href={`https://t.me/${TG_BOT_USERNAME}?start=getcode`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-[#0088CC] via-[#2563EB] to-[#7C3AED] hover:opacity-95 text-white font-extrabold text-xs shadow-glow flex items-center justify-center gap-2 transition-all active:scale-95 group"
+        >
+          <Send size={15} className="fill-white flex-shrink-0" />
+          <span className="truncate">Открыть @{TG_BOT_USERNAME} → код придёт автоматически</span>
+          <ExternalLink size={13} className="opacity-80 ml-auto flex-shrink-0" />
+        </a>
+      </div>
+
+      {/* Step 2: Enter 6-digit Code */}
+      <div className="space-y-2">
+        <label className="block text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+          ШАГ 2: ВВЕДИТЕ 6 ЦИФР ИЗ СООБЩЕНИЯ
+        </label>
+
+        <div className="relative">
+          <input
+            ref={inputRef}
+            type="text"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            maxLength={6}
+            value={code}
+            onChange={handleCodeChange}
+            disabled={loading || success}
+            placeholder="•  •  •  •  •  •"
+            className="w-full py-3.5 px-4 rounded-2xl bg-[#081026] border border-blue-500/30 text-center text-xl font-mono font-black tracking-[0.35em] text-white focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-500/40 transition-all placeholder:text-slate-600 shadow-inner"
+          />
+          <div className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none">
+            <KeyRound size={17} />
+          </div>
+        </div>
+
+        {error && (
+          <div className="p-3 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-400 text-xs font-bold text-center flex items-center justify-center gap-1.5">
+            <AlertCircle size={14} className="flex-shrink-0" />
+            <span>{error}</span>
+          </div>
+        )}
+
+        {success && (
+          <div className="p-3 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs font-bold text-center flex items-center justify-center gap-1.5 animate-pulse">
+            <CheckCircle2 size={15} />
+            <span>Код принят! Входим в личный кабинет...</span>
+          </div>
+        )}
+
+        {/* Gradient Action Button */}
+        <button
+          type="button"
+          onClick={() => handleVerify(code)}
+          disabled={loading || success || code.length !== 6}
+          className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-[#7C3AED] via-[#3B82F6] to-[#0088CC] hover:brightness-110 text-white font-black text-xs transition-all shadow-lg active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+        >
+          {loading ? (
+            <>
+              <Loader2 size={15} className="animate-spin text-white" />
+              <span>Проверка кода...</span>
+            </>
+          ) : (
+            <span>Подтвердить и войти в ZenRI</span>
+          )}
+        </button>
+      </div>
+
+      <p className="text-[11px] text-slate-400 text-center leading-relaxed pt-1">
+        💡 Номер телефона вводить <b>не нужно</b>. Бот выдаст код сразу при нажатии Start.
+      </p>
+    </div>
+  );
+}
+
+// ─── Main Landing / Login Page ───────────────────────────────────────────────
+export default function LandingLoginPage() {
   const FEATURES = [
-    { icon: Mic, title: 'Умный учёт финансов', desc: 'Голос + AI аналитика', color: '#3B82F6' },
+    { icon: Activity, title: 'Умный учёт финансов', desc: 'Голос + AI аналитика', color: '#3B82F6' },
     { icon: BookOpen, title: 'Трекер книг и привычек', desc: 'Развивайтесь ежедневно', color: '#8B5CF6' },
     { icon: Target, title: 'Цели и задачи', desc: 'Фокус на важном', color: '#F59E0B' },
     { icon: Sparkles, title: 'AI-ассистент', desc: 'Ваш личный помощник', color: '#10B981' },
@@ -188,246 +426,239 @@ export default function LoginPage() {
     { icon: Headphones, title: 'Поддержка 24/7', desc: 'Мы всегда рядом' },
   ];
 
-  const AVATARS = [
-    'https://api.dicebear.com/7.x/avataaars/svg?seed=1',
-    'https://api.dicebear.com/7.x/avataaars/svg?seed=2',
-    'https://api.dicebear.com/7.x/avataaars/svg?seed=3',
-    'https://api.dicebear.com/7.x/avataaars/svg?seed=4',
-    'https://api.dicebear.com/7.x/avataaars/svg?seed=5',
-  ];
-
   return (
-    <div className="min-h-screen bg-[#030812] text-white overflow-x-hidden">
-      {/* ─── Animated global styles ─── */}
+    <div className="min-h-screen bg-[#02050E] text-white overflow-x-hidden relative flex flex-col justify-between selection:bg-blue-600 selection:text-white">
+      {/* Global Dynamic Styles */}
       <style>{`
-        @keyframes spin-slow { to { transform: translateX(-50%) translateY(-50%) rotateX(-25deg) rotate(360deg); } }
-        @keyframes orbit-1 { to { transform: translate(-50%, -50%) rotateX(-25deg) rotate(360deg); } }
-        @keyframes orbit-2 { to { transform: translate(-50%, -50%) rotateX(-28deg) rotate(-360deg); } }
-        @keyframes float { 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-18px); } }
-        @keyframes glow-pulse { 0%,100%{ opacity:0.6; } 50%{ opacity:1; } }
-        @keyframes gradient-shift { 0%{ background-position:0% 50%; } 50%{ background-position:100% 50%; } 100%{ background-position:0% 50%; } }
-        @keyframes fadeInUp { from{ opacity:0; transform:translateY(30px); } to{ opacity:1; transform:translateY(0); } }
-        .animate-spin-slow { animation: spin-slow 18s linear infinite; }
-        .animate-orbit-1 { animation: orbit-1 14s linear infinite; }
-        .animate-orbit-2 { animation: orbit-2 10s linear infinite; }
-        .animate-float { animation: float 6s ease-in-out infinite; }
-        .animate-glow { animation: glow-pulse 3s ease-in-out infinite; }
-        .animate-fadein-up { animation: fadeInUp 0.7s ease-out forwards; }
-        .hero-text-gradient {
-          background: linear-gradient(135deg, #60A5FA, #3B82F6, #8B5CF6);
-          background-size: 200% 200%;
+        @keyframes orbitCw {
+          from { transform: rotate(-24deg) rotate(0deg); }
+          to { transform: rotate(-24deg) rotate(360deg); }
+        }
+        @keyframes orbitCcw {
+          from { transform: rotate(28deg) rotate(0deg); }
+          to { transform: rotate(28deg) rotate(-360deg); }
+        }
+        @keyframes floatGentle {
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(-12px); }
+        }
+        .animate-orbit-cw {
+          animation: orbitCw 20s linear infinite;
+        }
+        .animate-orbit-ccw {
+          animation: orbitCcw 16s linear infinite;
+        }
+        .animate-float-gentle {
+          animation: floatGentle 6s ease-in-out infinite;
+        }
+        .hero-cyan-gradient {
+          background: linear-gradient(135deg, #38BDF8 0%, #60A5FA 50%, #818CF8 100%);
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
-          animation: gradient-shift 4s ease infinite;
         }
-        .glass-card {
-          background: rgba(10,20,50,0.75);
-          backdrop-filter: blur(20px);
-          -webkit-backdrop-filter: blur(20px);
-        }
-        .btn-glow:hover { box-shadow: 0 0 30px rgba(59,130,246,0.5); }
       `}</style>
 
-      {/* ─── BACKGROUND GLOWS ─── */}
-      <div className="fixed inset-0 pointer-events-none z-0">
-        <div className="absolute top-[-5%] left-[10%] w-[600px] h-[600px] rounded-full animate-glow"
-          style={{ background: 'radial-gradient(circle, rgba(29,78,216,0.22) 0%, transparent 70%)', filter: 'blur(60px)' }} />
-        <div className="absolute top-[10%] right-[-5%] w-[500px] h-[500px] rounded-full animate-glow"
-          style={{ background: 'radial-gradient(circle, rgba(139,92,246,0.18) 0%, transparent 70%)', filter: 'blur(70px)', animationDelay: '1.5s' }} />
-        <div className="absolute bottom-[-10%] left-[30%] w-[700px] h-[400px] rounded-full"
-          style={{ background: 'radial-gradient(ellipse, rgba(0,60,200,0.3) 0%, transparent 80%)', filter: 'blur(80px)' }} />
-        <StarField />
+      {/* ─── Layer 0: Canvas with Stars & Meteors ─── */}
+      <CosmicCanvas />
+
+      {/* ─── Layer 1: Ambient Glowing Planet Horizon Arc at Bottom ─── */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
+        {/* Deep blue atmospheric dome */}
+        <div
+          className="absolute -bottom-48 left-1/2 -translate-x-1/2 w-[1100px] h-[550px] rounded-[100%] pointer-events-none"
+          style={{
+            background: 'radial-gradient(ellipse at 50% 60%, rgba(0, 102, 255, 0.45) 0%, rgba(14, 165, 233, 0.25) 30%, rgba(124, 58, 237, 0.12) 60%, transparent 80%)',
+            filter: 'blur(60px)',
+          }}
+        />
+        {/* Bright blue horizon line flare */}
+        <div
+          className="absolute bottom-28 left-1/2 -translate-x-1/2 w-[700px] h-1.5 rounded-full pointer-events-none"
+          style={{
+            background: 'linear-gradient(90deg, transparent 0%, rgba(56, 189, 248, 0.8) 30%, #ffffff 50%, rgba(56, 189, 248, 0.8) 70%, transparent 100%)',
+            boxShadow: '0 0 45px 12px rgba(56, 189, 248, 0.9), 0 0 100px 30px rgba(0, 102, 255, 0.5)',
+          }}
+        />
       </div>
 
-      {/* ─── NAVBAR ─── */}
-      <nav className="relative z-30 flex items-center justify-between px-6 lg:px-12 py-4 border-b border-white/8 glass-card sticky top-0">
+      {/* ─── NAVBAR (Clean: No extra text links, only Logo & Status) ─── */}
+      <header className="relative z-20 flex items-center justify-between px-6 lg:px-14 py-5 border-b border-white/5 backdrop-blur-md bg-[#02050E]/60">
         {/* Logo */}
-        <div className="flex items-center gap-2.5 flex-shrink-0">
-          <div className="w-8 h-8 rounded-xl flex items-center justify-center font-black text-lg text-white"
-            style={{ background: 'linear-gradient(135deg, #3B82F6, #1D4ED8)' }}>
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#0066FF] to-[#38BDF8] flex items-center justify-center text-white font-black text-sm shadow-glow">
             7.
           </div>
-          <span className="font-black text-lg text-white tracking-tight">ZenRI</span>
+          <span className="font-extrabold text-lg text-white tracking-tight">ZenRI</span>
         </div>
 
-        {/* Desktop Nav */}
-        <div className="hidden md:flex items-center gap-8">
-          {NAV_LINKS.map((link) => (
-            <a key={link} href="#" className="text-sm text-slate-400 hover:text-white transition-colors font-medium">
-              {link}
-            </a>
-          ))}
-        </div>
-
-        {/* Right side */}
-        <div className="hidden md:flex items-center gap-3">
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/15 border border-emerald-500/30">
+        {/* Right Status Badge & Login Anchor */}
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
             <span className="text-xs font-bold text-emerald-400">Система активна</span>
           </div>
-          <a href="#login-form"
-            className="px-5 py-2 rounded-xl bg-white text-slate-900 font-extrabold text-sm hover:bg-slate-100 transition-colors btn-glow">
+
+          <a
+            href="#auth-card"
+            className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/15 text-white text-xs font-extrabold transition-all"
+          >
             Войти в аккаунт
           </a>
         </div>
+      </header>
 
-        {/* Mobile Menu Button */}
-        <button onClick={() => setMenuOpen(!menuOpen)} className="md:hidden p-2 text-slate-400 hover:text-white">
-          {menuOpen ? <X size={22} /> : <Menu size={22} />}
-        </button>
-      </nav>
+      {/* ─── MAIN HERO SECTION (3 Columns: Left Info | Center Planet Logo | Right Auth Card) ─── */}
+      <main className="relative z-10 flex-1 max-w-[1440px] w-full mx-auto px-6 lg:px-12 py-8 lg:py-12 flex items-center">
+        <div className="w-full grid grid-cols-1 lg:grid-cols-[1.1fr_1.1fr_1fr] gap-8 lg:gap-6 items-center">
 
-      {/* Mobile Menu */}
-      {menuOpen && (
-        <div className="relative z-20 md:hidden glass-card border-b border-white/10 px-6 py-4 space-y-3">
-          {NAV_LINKS.map((link) => (
-            <a key={link} href="#" className="block text-sm text-slate-300 hover:text-white py-1.5 font-medium">{link}</a>
-          ))}
-          <a href="#login-form" className="block w-full text-center px-4 py-2.5 rounded-xl bg-blue-600 text-white font-bold text-sm mt-2">
-            Войти в аккаунт
-          </a>
-        </div>
-      )}
-
-      {/* ─── HERO SECTION ─── */}
-      <section className="relative z-10 min-h-[calc(100vh-68px)] flex items-center">
-        <div className="w-full max-w-[1400px] mx-auto px-6 lg:px-12 py-12 grid lg:grid-cols-[1fr_520px_380px] gap-8 xl:gap-12 items-center">
-
-          {/* LEFT — Hero Text + Features */}
-          <div className="space-y-8 animate-fadein-up">
-            {/* Badge */}
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border text-xs font-bold"
-              style={{ background: 'rgba(59,130,246,0.1)', borderColor: 'rgba(59,130,246,0.35)', color: '#93C5FD' }}>
-              <Sparkles size={13} />
-              ZenRI Life OS — Ваша система управления жизнью
+          {/* ═══ COLUMN 1: LEFT HERO CONTENT ═══ */}
+          <div className="space-y-6">
+            {/* Top pill badge */}
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/30 text-xs font-bold text-blue-300">
+              <Sparkles size={13} className="text-blue-400" />
+              <span>ZenRI Life OS — Ваша система управления жизнью</span>
             </div>
 
-            {/* Heading */}
-            <div className="space-y-2">
-              <h1 className="text-5xl xl:text-6xl font-black leading-[1.05] tracking-tight">
-                Управляйте<br />жизнью и<br />
-                <span className="hero-text-gradient">финансами</span><br />
+            {/* Big Headline */}
+            <div className="space-y-1">
+              <h1 className="text-4xl lg:text-5xl xl:text-6xl font-black leading-[1.08] tracking-tight">
+                Управляйте<br />
+                жизнью и<br />
+                <span className="hero-cyan-gradient">финансами</span><br />
                 в один клик
               </h1>
-              <p className="text-slate-400 text-base leading-relaxed max-w-sm pt-2">
-                Голосовой ввод расходов, учёт времени,<br />
-                ИИ-прогноз накоплений и привычек<br />
+              <p className="text-sm text-slate-400 leading-relaxed max-w-md pt-2">
+                Голосовой ввод расходов, учёт времени,<br className="hidden sm:block" />
+                ИИ-прогноз накоплений и привычек<br className="hidden sm:block" />
                 в одном умном пространстве.
               </p>
             </div>
 
-            {/* Feature Cards */}
-            <div className="grid grid-cols-2 gap-3 max-w-sm">
+            {/* 4 Feature Cards (2x2) */}
+            <div className="grid grid-cols-2 gap-2.5 max-w-md">
               {FEATURES.map((f) => {
                 const Icon = f.icon;
                 return (
-                  <div key={f.title}
-                    className="flex items-center gap-2.5 p-3 rounded-2xl border border-white/8 hover:border-blue-500/30 transition-all group cursor-default"
-                    style={{ background: 'rgba(10,20,50,0.6)' }}>
-                    <div className="w-7 h-7 rounded-xl flex items-center justify-center flex-shrink-0 transition-transform group-hover:scale-110"
-                      style={{ background: `${f.color}22`, color: f.color }}>
+                  <div
+                    key={f.title}
+                    className="flex items-center gap-2.5 p-3 rounded-2xl bg-[#070D1E]/80 border border-white/10 hover:border-blue-500/40 transition-all"
+                  >
+                    <div
+                      className="w-7 h-7 rounded-xl flex items-center justify-center flex-shrink-0"
+                      style={{ background: `${f.color}20`, color: f.color }}
+                    >
                       <Icon size={15} />
                     </div>
-                    <div>
-                      <p className="text-xs font-bold text-white leading-tight">{f.title}</p>
-                      <p className="text-[10px] text-slate-400">{f.desc}</p>
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold text-white leading-tight truncate">{f.title}</p>
+                      <p className="text-[10px] text-slate-400 truncate">{f.desc}</p>
                     </div>
                   </div>
                 );
               })}
             </div>
 
-            {/* Stats */}
-            <div className="grid grid-cols-4 gap-4 max-w-sm pt-2">
+            {/* Stats Row (4 stats in sum) */}
+            <div className="grid grid-cols-4 gap-2 max-w-md pt-1">
               {STATS.map((s) => (
-                <div key={s.value} className="space-y-0.5">
-                  <p className="text-lg font-black text-white leading-none">{s.value}</p>
+                <div key={s.label} className="space-y-0.5">
+                  <p className="text-sm lg:text-base font-black text-white leading-none whitespace-nowrap">{s.value}</p>
                   <p className="text-[10px] text-slate-400 font-medium leading-tight">{s.label}</p>
                 </div>
               ))}
             </div>
 
-            {/* Social proof */}
+            {/* Social Trust & Rating */}
             <div className="flex items-center gap-3 pt-1">
-              <div className="flex -space-x-2.5">
-                {AVATARS.map((src, i) => (
-                  <div key={i} className="w-8 h-8 rounded-full border-2 border-[#030812] overflow-hidden bg-blue-900 flex items-center justify-center text-xs font-bold">
-                    <span>{['А','М','Д','С','К'][i]}</span>
+              <div className="flex -space-x-2">
+                {['#3B82F6', '#8B5CF6', '#10B981', '#F59E0B', '#EC4899'].map((col, idx) => (
+                  <div
+                    key={idx}
+                    className="w-7 h-7 rounded-full border-2 border-[#02050E] flex items-center justify-center text-[10px] font-bold text-white shadow-sm"
+                    style={{ background: col }}
+                  >
+                    {['А', 'М', 'Д', 'С', 'К'][idx]}
                   </div>
                 ))}
-                <div className="w-8 h-8 rounded-full border-2 border-[#030812] bg-blue-900/60 flex items-center justify-center text-[9px] font-black text-blue-300">
+                <div className="w-7 h-7 rounded-full border-2 border-[#02050E] bg-blue-900/80 flex items-center justify-center text-[9px] font-black text-blue-300">
                   +12K
                 </div>
               </div>
+
               <div>
                 <p className="text-[11px] text-slate-400 font-medium">Нам доверяют тысячи пользователей</p>
-                <div className="flex items-center gap-1 mt-0.5">
-                  <p className="text-xs font-bold text-white">4.9 из 5</p>
+                <div className="flex items-center gap-1.5 mt-0.5">
+                  <span className="text-xs font-bold text-white">4.9 из 5</span>
                   <div className="flex gap-0.5">
-                    {[1,2,3,4,5].map((i) => (
-                      <Star key={i} size={10} className="text-amber-400 fill-amber-400" />
+                    {[1, 2, 3, 4, 5].map((i) => (
+                      <Star key={i} size={11} className="text-amber-400 fill-amber-400" />
                     ))}
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Scroll hint */}
-            <div className="flex items-center gap-2 text-slate-500 text-xs pt-2">
-              <div className="w-6 h-6 rounded-full border border-slate-700 flex items-center justify-center animate-bounce">
-                <ChevronDown size={12} />
-              </div>
+            {/* Bottom scroll hint */}
+            <div className="flex items-center gap-2 text-slate-500 text-xs pt-1">
+              <PlusCircle size={14} className="text-slate-600" />
               <span>Прокрутите вниз</span>
             </div>
           </div>
 
-          {/* CENTER — Orbital Logo */}
-          <div className="hidden lg:flex items-center justify-center animate-float" style={{ animationDuration: '7s' }}>
-            <OrbitalLogo />
+          {/* ═══ COLUMN 2: CENTER GALAXY LOGO ═══ */}
+          <div className="flex items-center justify-center animate-float-gentle py-4 lg:py-0">
+            <CentralOrbitalGalaxy />
           </div>
 
-          {/* RIGHT — Login Card */}
-          <div id="login-form" className="animate-fadein-up" style={{ animationDelay: '0.2s' }}>
-            <div className="p-7 rounded-3xl border relative overflow-hidden"
+          {/* ═══ COLUMN 3: RIGHT AUTH CARD ═══ */}
+          <div id="auth-card" className="w-full max-w-md mx-auto">
+            <div
+              className="p-7 sm:p-8 rounded-3xl border relative overflow-hidden backdrop-blur-2xl shadow-2xl space-y-5"
               style={{
-                background: 'rgba(8,16,42,0.88)',
-                backdropFilter: 'blur(24px)',
-                borderColor: 'rgba(255,255,255,0.12)',
-                boxShadow: '0 30px 80px -10px rgba(0,0,0,0.7), 0 0 60px rgba(59,130,246,0.12)',
-              }}>
-              {/* Card inner glow */}
-              <div className="absolute top-0 right-0 w-40 h-40 rounded-full pointer-events-none"
-                style={{ background: 'radial-gradient(circle, rgba(34,158,217,0.12) 0%, transparent 70%)', filter: 'blur(20px)' }} />
+                background: 'rgba(7, 14, 34, 0.85)',
+                borderColor: 'rgba(59, 130, 246, 0.3)',
+                boxShadow: '0 25px 60px -10px rgba(0, 0, 0, 0.8), 0 0 50px rgba(0, 102, 255, 0.18)',
+              }}
+            >
+              {/* Card top radial accent */}
+              <div
+                className="absolute top-0 right-0 w-36 h-36 rounded-full pointer-events-none"
+                style={{
+                  background: 'radial-gradient(circle, rgba(34, 158, 217, 0.18) 0%, transparent 70%)',
+                  filter: 'blur(20px)',
+                }}
+              />
 
-              {/* Telegram badge */}
-              <div className="flex justify-center mb-5 relative z-10">
-                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold"
-                  style={{ background: 'rgba(34,158,217,0.15)', border: '1px solid rgba(34,158,217,0.35)', color: '#54C8F0' }}>
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z" />
-                  </svg>
-                  Вход через Telegram
+              {/* Telegram Badge */}
+              <div className="flex justify-center relative z-10">
+                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#229ED9]/15 border border-[#229ED9]/35 text-xs font-bold text-[#54C8F0]">
+                  <Send size={12} className="fill-[#54C8F0]" />
+                  <span>Вход через Telegram</span>
                 </div>
               </div>
 
-              <div className="text-center mb-6 relative z-10">
-                <h2 className="text-xl font-black text-white">Войти в ZenRI</h2>
-                <p className="text-[11px] text-slate-400 mt-1 font-medium">Без пароля. Без номера телефона. Просто Telegram.</p>
+              {/* Card Title */}
+              <div className="text-center space-y-1 relative z-10">
+                <h2 className="text-2xl font-black text-white">Войти в ZenRI</h2>
+                <p className="text-[11px] text-slate-400 font-medium">Без пароля. Без номера телефона. Просто Telegram.</p>
               </div>
 
+              {/* Form Content */}
               <div className="relative z-10">
-                <TelegramCodeAuth botUsername={TG_BOT_USERNAME} onSuccess={() => {}} />
+                <InlineTelegramAuth />
               </div>
 
-              <div className="flex items-center justify-center gap-2 mt-4 text-[10px] text-slate-500 relative z-10">
+              {/* Security Shield */}
+              <div className="flex items-center justify-center gap-2 text-[10px] text-slate-500 pt-1 relative z-10">
                 <ShieldCheck size={12} className="text-emerald-400" />
                 <span>Данные зашифрованы и защищены</span>
               </div>
 
-              <div className="border-t border-white/8 mt-5 pt-4 text-center relative z-10">
+              {/* Register link */}
+              <div className="pt-2 border-t border-white/10 text-center relative z-10">
                 <p className="text-xs text-slate-400">
                   Нет аккаунта?{' '}
-                  <Link href="/register" className="font-extrabold text-[#54C8F0] hover:underline">
+                  <Link href="/register" className="text-[#38BDF8] font-extrabold hover:underline">
                     Зарегистрироваться
                   </Link>
                 </p>
@@ -435,27 +666,27 @@ export default function LoginPage() {
             </div>
           </div>
         </div>
-      </section>
+      </main>
 
-      {/* ─── BOTTOM FEATURE BAR ─── */}
-      <div className="relative z-10 border-t border-white/8 glass-card">
-        <div className="max-w-[1400px] mx-auto px-6 lg:px-12 py-6 grid grid-cols-2 md:grid-cols-4 gap-6">
+      {/* ─── BOTTOM 4-FEATURE FROSTED BAR ─── */}
+      <footer className="relative z-20 border-t border-white/10 backdrop-blur-xl bg-[#050C1F]/80">
+        <div className="max-w-[1440px] mx-auto px-6 lg:px-14 py-5 grid grid-cols-2 md:grid-cols-4 gap-6">
           {BOTTOM_FEATURES.map((f) => {
             const Icon = f.icon;
             return (
               <div key={f.title} className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-blue-500/15 text-blue-400 flex items-center justify-center flex-shrink-0">
+                <div className="w-9 h-9 rounded-xl bg-blue-500/15 border border-blue-500/20 text-blue-400 flex items-center justify-center flex-shrink-0">
                   <Icon size={18} />
                 </div>
                 <div>
-                  <p className="text-xs font-bold text-white">{f.title}</p>
-                  <p className="text-[10px] text-slate-400">{f.desc}</p>
+                  <p className="text-xs font-bold text-white leading-tight">{f.title}</p>
+                  <p className="text-[10px] text-slate-400 mt-0.5">{f.desc}</p>
                 </div>
               </div>
             );
           })}
         </div>
-      </div>
+      </footer>
     </div>
   );
 }
