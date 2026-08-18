@@ -30,10 +30,9 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'No Telegram ID provided' }, { status: 400 });
     }
 
-    const botToken = process.env.TELEGRAM_BOT_TOKEN;
+    const botToken = process.env.TELEGRAM_BOT_TOKEN || '8797376988:AAEJJbESQHyr5apAbhOlLm3mKq1FX3OC2sw';
     if (!botToken) {
-      // If no bot token configured yet, return error but don't crash
-      return NextResponse.json({ error: 'Telegram bot not configured. Add TELEGRAM_BOT_TOKEN to .env' }, { status: 503 });
+      return NextResponse.json({ error: 'Telegram bot not configured.' }, { status: 503 });
     }
 
     // Verify data freshness (max 10 minutes old)

@@ -5,51 +5,13 @@ import Link from 'next/link';
 import { ZenLogo } from '@/components/ui/ZenLogo';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { TelegramLoginButton } from '@/components/ui/TelegramLoginButton';
-import { registerUser } from '@/app/actions/authActions';
-import { signIn } from 'next-auth/react';
-import { ShieldCheck, Eye, EyeOff, Send, Mail } from 'lucide-react';
+import { Send, ShieldCheck, Sparkles, User, CheckCircle2, Lock } from 'lucide-react';
 
 const TG_BOT_USERNAME = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME || 'zenriauthefication_bot';
 
 export default function RegisterPage() {
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [authMode, setAuthMode] = useState<'email' | 'telegram'>('email');
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
-
-    if (password !== confirmPassword) {
-      setError('Пароли не совпадают');
-      setLoading(false);
-      return;
-    }
-
-    const res = await registerUser({ name, email, password, confirmPassword });
-    if (!res.success) {
-      setError(res.error || 'Ошибка при регистрации');
-      setLoading(false);
-    } else {
-      const signRes = await signIn('credentials', {
-        email,
-        password,
-        redirect: false,
-      });
-
-      if (signRes?.error) {
-        window.location.href = '/login';
-      } else {
-        window.location.href = '/dashboard';
-      }
-    }
-  };
 
   return (
     <div className="min-h-screen bg-slate-950 text-white relative overflow-hidden flex flex-col justify-between selection:bg-[#0066FF] selection:text-white">
@@ -68,35 +30,20 @@ export default function RegisterPage() {
         <div className="w-full max-w-md">
           {/* Card */}
           <div className="p-8 rounded-3xl bg-slate-900/90 border border-white/15 backdrop-blur-2xl shadow-2xl space-y-6">
-            <div className="space-y-1 text-center">
-              <h1 className="text-2xl font-black text-white">Регистрация в ZenRI</h1>
-              <p className="text-xs text-slate-400">Создайте личное пространство управления жизнью и финансами</p>
+            
+            {/* Header Badge */}
+            <div className="flex justify-center">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#229ED9]/15 border border-[#229ED9]/30 text-xs font-bold text-[#54C8F0]">
+                <Send size={13} />
+                <span>Регистрация только через Telegram</span>
+              </div>
             </div>
 
-            {/* Auth Mode Tabs */}
-            <div className="grid grid-cols-2 gap-2 p-1 bg-slate-800/80 rounded-2xl">
-              <button
-                onClick={() => { setAuthMode('email'); setError(''); }}
-                className={`py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
-                  authMode === 'email'
-                    ? 'bg-white text-slate-900 shadow-md'
-                    : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                <Mail size={13} />
-                Email
-              </button>
-              <button
-                onClick={() => { setAuthMode('telegram'); setError(''); }}
-                className={`py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
-                  authMode === 'telegram'
-                    ? 'bg-[#229ED9] text-white shadow-md'
-                    : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                <Send size={13} />
-                Telegram
-              </button>
+            <div className="space-y-1.5 text-center">
+              <h1 className="text-2xl font-black text-white">Регистрация в ZenRI</h1>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Регистрация новых пользователей происходит <b>исключительно через Telegram</b>. Никаких лишних паролей — всё в 1 клик.
+              </p>
             </div>
 
             {error && (
@@ -105,105 +52,47 @@ export default function RegisterPage() {
               </div>
             )}
 
-            {authMode === 'email' ? (
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1.5">Ваше имя *</label>
-                  <input
-                    type="text"
-                    required
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="w-full px-4 py-3 rounded-2xl bg-slate-950/80 border border-white/10 text-xs font-bold text-white focus:outline-none focus:border-[#0066FF] transition-all"
-                    placeholder="Шохжахон"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1.5">Email *</label>
-                  <input
-                    type="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="w-full px-4 py-3 rounded-2xl bg-slate-950/80 border border-white/10 text-xs font-bold text-white focus:outline-none focus:border-[#0066FF] transition-all"
-                    placeholder="name@example.com"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1.5">Пароль *</label>
-                  <div className="relative">
-                    <input
-                      type={showPassword ? 'text' : 'password'}
-                      required
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="w-full px-4 py-3 pr-10 rounded-2xl bg-slate-950/80 border border-white/10 text-xs font-bold text-white focus:outline-none focus:border-[#0066FF] transition-all"
-                      placeholder="Мин. 6 символов"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-3 text-slate-400 hover:text-white transition-colors"
-                    >
-                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                    </button>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1.5">Подтверждение пароля *</label>
-                  <input
-                    type="password"
-                    required
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="w-full px-4 py-3 rounded-2xl bg-slate-950/80 border border-white/10 text-xs font-bold text-white focus:outline-none focus:border-[#0066FF] transition-all"
-                    placeholder="Повторите пароль"
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full py-3.5 px-4 rounded-2xl bg-[#0066FF] hover:bg-[#0052CC] text-white font-extrabold text-xs transition-all shadow-glow active:scale-95 disabled:opacity-50"
-                >
-                  {loading ? 'Создание аккаунта...' : 'Создать аккаунт'}
-                </button>
-              </form>
-            ) : (
-              <div className="space-y-5">
-                <div className="p-4 rounded-2xl bg-[#229ED9]/10 border border-[#229ED9]/30 text-xs text-slate-300 leading-relaxed">
-                  <p className="font-bold text-[#54C8F0] mb-1.5 flex items-center gap-1.5">
-                    <Send size={13} /> Регистрация через Telegram
-                  </p>
-                  <p>Нажмите кнопку ниже. Telegram автоматически создаст ваш аккаунт с именем и аватаркой из Telegram — без пароля и email.</p>
-                </div>
-                <div className="flex justify-center">
-                  <TelegramLoginButton
-                    botUsername={TG_BOT_USERNAME}
-                    onError={setError}
-                    onLoading={setLoading}
-                  />
-                </div>
-                {loading && (
-                  <p className="text-xs text-[#229ED9] text-center font-bold animate-pulse">
-                    Создание аккаунта через Telegram...
-                  </p>
-                )}
-                <div className="flex items-center gap-2 text-[10px] text-slate-500">
-                  <ShieldCheck size={12} className="text-emerald-500" />
-                  <span>Данные хранятся только у вас. Telegram не имеет доступа к финансам.</span>
-                </div>
+            {/* Telegram Perks */}
+            <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-2.5">
+              <div className="flex items-center gap-2.5 text-xs text-slate-200">
+                <CheckCircle2 size={16} className="text-emerald-400 flex-shrink-0" />
+                <span>Автоматическое имя и аватарка из профиля</span>
               </div>
-            )}
+              <div className="flex items-center gap-2.5 text-xs text-slate-200">
+                <CheckCircle2 size={16} className="text-[#00C2FF] flex-shrink-0" />
+                <span>Мгновенный и безопасный вход в 1 клик</span>
+              </div>
+              <div className="flex items-center gap-2.5 text-xs text-slate-200">
+                <CheckCircle2 size={16} className="text-[#8B5CF6] flex-shrink-0" />
+                <span>Полная изоляция и приватность ваших данных</span>
+              </div>
+            </div>
+
+            {/* Telegram Login Button Component */}
+            <div className="space-y-3">
+              <TelegramLoginButton
+                botUsername={TG_BOT_USERNAME}
+                onError={setError}
+                onLoading={setLoading}
+              />
+
+              {loading && (
+                <p className="text-xs text-[#229ED9] text-center font-bold animate-pulse">
+                  Создание вашего аккаунта...
+                </p>
+              )}
+            </div>
+
+            <div className="flex items-center justify-center gap-2 text-[10px] text-slate-500">
+              <ShieldCheck size={13} className="text-emerald-500" />
+              <span>Ваши финансовые данные конфиденциальны и зашифрованы</span>
+            </div>
 
             <div className="pt-2 border-t border-white/10 text-center">
               <p className="text-xs text-slate-400">
-                Уже есть аккаунт?{' '}
+                Уже зарегистрированы?{' '}
                 <Link href="/login" className="text-[#00C2FF] font-extrabold hover:underline">
-                  Войти
+                  Войти в аккаунт
                 </Link>
               </p>
             </div>

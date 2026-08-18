@@ -68,7 +68,7 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState(0);
-  const [authMode, setAuthMode] = useState<'email' | 'telegram'>('email');
+  const [authMode, setAuthMode] = useState<'telegram' | 'email'>('telegram');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -238,16 +238,6 @@ export default function LoginPage() {
             {/* Auth Mode Toggle */}
             <div className="grid grid-cols-2 gap-2 p-1 bg-slate-800/80 rounded-2xl">
               <button
-                onClick={() => { setAuthMode('email'); setError(''); }}
-                className={`py-2.5 rounded-xl text-xs font-bold transition-all ${
-                  authMode === 'email'
-                    ? 'bg-white text-slate-900 shadow-md'
-                    : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                📧 Email
-              </button>
-              <button
                 onClick={() => { setAuthMode('telegram'); setError(''); }}
                 className={`py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
                   authMode === 'telegram'
@@ -257,6 +247,16 @@ export default function LoginPage() {
               >
                 <Send size={13} />
                 Telegram
+              </button>
+              <button
+                onClick={() => { setAuthMode('email'); setError(''); }}
+                className={`py-2.5 rounded-xl text-xs font-bold transition-all ${
+                  authMode === 'email'
+                    ? 'bg-white text-slate-900 shadow-md'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                📧 Email
               </button>
             </div>
 
