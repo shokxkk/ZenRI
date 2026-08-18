@@ -100,3 +100,32 @@ export async function registerUser(formData: {
     return { success: false, error: 'Произошла ошибка при регистрации. Попробуйте позже.' };
   }
 }
+
+export async function verifyTelegramMagicToken(token: string) {
+  const { verifyMagicLoginToken } = await import('@/lib/telegramBot');
+  const result = verifyMagicLoginToken(token);
+
+  if (!result.valid || !result.userId) {
+    return { success: false, error: 'Ссылка для входа устарела или недействительна. Запросите новую ссылку в боте.' };
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id: result.userId },
+    select: { id: true, name: true, email: true, avatarUrl: true },
+  });
+
+  if (!user) {
+    return { success: false, error: 'Пользователь не найден' };
+  }
+
+  return {
+    success: true,
+    user: {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      avatarUrl: user.avatarUrl,
+    },
+  };
+}
+
