@@ -41,6 +41,7 @@ export function VoiceAssistant({ size = 'sm' }: VoiceAssistantProps) {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [selectedAccountId, setSelectedAccountId] = useState<string>('');
   const [recordingTime, setRecordingTime] = useState(0);
+  const [voiceLang, setVoiceLang] = useState<'ru' | 'uz'>('ru');
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -118,7 +119,7 @@ export function VoiceAssistant({ size = 'sm' }: VoiceAssistantProps) {
 
           const formData = new FormData();
           formData.append('audio', wavBlob, 'voice.wav');
-          formData.append('language', 'ru');
+          formData.append('language', voiceLang);
 
           const res = await fetch('/api/voice/transcribe', {
             method: 'POST',
@@ -169,7 +170,7 @@ export function VoiceAssistant({ size = 'sm' }: VoiceAssistantProps) {
       setState('error');
       setErrorMsg('Нет доступа к микрофону. Разрешите использование микрофона в браузере.');
     }
-  }, [stopRecording]);
+  }, [stopRecording, voiceLang]);
 
   const handleConfirm = async () => {
     const amountNum = parseFloat(confirmAmount.replace(/\s+/g, ''));
@@ -504,7 +505,7 @@ export function VoiceAssistant({ size = 'sm' }: VoiceAssistantProps) {
           disabled={state === 'processing' || state === 'success'}
           title="Удерживайте для записи"
           className={`
-            relative flex items-center gap-2.5 px-5 py-2.5 rounded-2xl
+            relative flex items-center gap-2.5 px-4 py-2.5 rounded-2xl
             font-semibold text-sm transition-all duration-200 select-none
             ${state === 'idle'
               ? 'bg-gradient-to-r from-violet-600/90 to-blue-600/90 hover:from-violet-500 hover:to-blue-500 text-white shadow-lg shadow-violet-500/25 hover:shadow-violet-500/40 hover:scale-[1.03]'
@@ -573,6 +574,24 @@ export function VoiceAssistant({ size = 'sm' }: VoiceAssistantProps) {
 
         {/* Overlay card portal */}
         {renderCard()}
+
+        {/* Language Switcher — small pill next to button */}
+        <div className="flex items-center gap-0.5 ml-1">
+          {(['ru', 'uz'] as const).map((lang) => (
+            <button
+              key={lang}
+              onClick={() => setVoiceLang(lang)}
+              title={lang === 'ru' ? 'Русский' : 'Ўзбекча'}
+              className={`px-2 py-1 rounded-lg text-[10px] font-extrabold transition-all ${
+                voiceLang === lang
+                  ? 'bg-violet-600 text-white'
+                  : 'bg-white/10 text-zinc-400 hover:text-white'
+              }`}
+            >
+              {lang === 'ru' ? '🇷🇺' : '🇺🇿'}
+            </button>
+          ))}
+        </div>
       </>
     );
   }

@@ -74,13 +74,13 @@ export function TelegramCodeAuth({ botUsername = 'zenriauthefication_bot', onSuc
           Шаг 1: Получите код в Telegram
         </label>
         <a
-          href={`https://t.me/${botUsername}`}
+          href={`https://t.me/${botUsername}?start=getcode`}
           target="_blank"
           rel="noopener noreferrer"
           className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-[#229ED9] to-[#0066FF] hover:opacity-95 text-white font-extrabold text-xs shadow-glow flex items-center justify-center gap-2 transition-all active:scale-95"
         >
           <Send size={15} className="fill-white" />
-          <span>Нажать Start в @{botUsername}</span>
+          <span>Открыть @{botUsername} → код придёт автоматически</span>
           <ExternalLink size={13} className="opacity-80 ml-auto" />
         </a>
       </div>

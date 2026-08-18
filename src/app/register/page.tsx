@@ -1,18 +1,16 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import Link from 'next/link';
 import { ZenLogo } from '@/components/ui/ZenLogo';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { TelegramCodeAuth } from '@/components/ui/TelegramCodeAuth';
-import { TelegramLoginButton } from '@/components/ui/TelegramLoginButton';
-import { Send, ShieldCheck, CheckCircle2 } from 'lucide-react';
+import { Send, ShieldCheck } from 'lucide-react';
+
 
 const TG_BOT_USERNAME = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME || 'zenriauthefication_bot';
 
 export default function RegisterPage() {
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
 
   return (
     <div className="min-h-screen bg-slate-950 text-white relative overflow-hidden flex flex-col justify-between selection:bg-[#0066FF] selection:text-white">
@@ -47,41 +45,11 @@ export default function RegisterPage() {
               </p>
             </div>
 
-            {error && (
-              <div className="p-3 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-400 text-xs font-bold text-center">
-                {error}
-              </div>
-            )}
-
-            {/* Telegram Perks */}
-            <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10 space-y-2">
-              <div className="flex items-center gap-2 text-xs text-slate-200">
-                <CheckCircle2 size={15} className="text-emerald-400 flex-shrink-0" />
-                <span>Автоматическое имя и аватарка из Telegram</span>
-              </div>
-              <div className="flex items-center gap-2 text-xs text-slate-200">
-                <CheckCircle2 size={15} className="text-[#00C2FF] flex-shrink-0" />
-                <span>Вход по быстрому 6-значному коду из бота</span>
-              </div>
-            </div>
-
             {/* 6-Digit Code Auth Box */}
             <TelegramCodeAuth
               botUsername={TG_BOT_USERNAME}
               onSuccess={() => {}}
             />
-
-            {/* Alternative: Widget button */}
-            <div className="pt-2 border-t border-white/10 space-y-2 text-center">
-              <span className="text-[10px] uppercase font-bold text-slate-500">или через виджет Telegram</span>
-              <div className="flex justify-center">
-                <TelegramLoginButton
-                  botUsername={TG_BOT_USERNAME}
-                  onError={setError}
-                  onLoading={setLoading}
-                />
-              </div>
-            </div>
 
             <div className="flex items-center justify-center gap-2 text-[10px] text-slate-500">
               <ShieldCheck size={13} className="text-emerald-500" />

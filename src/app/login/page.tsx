@@ -1,353 +1,111 @@
 'use client';
 
-import React, { useState } from 'react';
-import { signIn } from 'next-auth/react';
+import React from 'react';
 import Link from 'next/link';
 import { ZenLogo } from '@/components/ui/ZenLogo';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
-import { TelegramLoginButton } from '@/components/ui/TelegramLoginButton';
 import { TelegramCodeAuth } from '@/components/ui/TelegramCodeAuth';
-import {
-  Mic,
-  Hourglass,
-  Sparkles,
-  Wallet,
-  Zap,
-  ArrowRight,
-  Eye,
-  EyeOff,
-  Star,
-  CheckCircle2,
-  Send,
-  QrCode,
-  KeyRound,
-} from 'lucide-react';
-
-const FEATURES = [
-  {
-    id: 'voice',
-    icon: Mic,
-    badge: 'Голосовой ввод ИИ',
-    color: '#0066FF',
-    title: 'Мгновенный ввод расходов голосом',
-    desc: 'Скажите «50 000 сум такси» или «500 000 доход фриланс». Нейросеть распознает сумму, категорию и моментально внесёт в учёт.',
-    image: '/images/feature_voice.png',
-  },
-  {
-    id: 'lifetime',
-    icon: Hourglass,
-    badge: 'Стоимость Времени',
-    color: '#8B5CF6',
-    title: 'Учёт часов вашей жизни (4000 Weeks)',
-    desc: 'Узнайте стоимость 1 часа работы и переводите любые покупки из сум в часы вашей единственной жизни.',
-    image: '/images/feature_time.png',
-  },
-  {
-    id: 'predict',
-    icon: Sparkles,
-    badge: 'Умный прогноз ИИ',
-    color: '#EC4899',
-    title: 'AI Прогноз тренда & Скоринг целей',
-    desc: 'Нейросеть рассчитывает накопительный потенциал на 3, 6, 12 месяцев и скоринг достижения любой вашей мечты.',
-    image: '/images/feature_predict.png',
-  },
-  {
-    id: 'brands',
-    icon: Wallet,
-    badge: 'Мульти-счета',
-    color: '#10B981',
-    title: 'Карты Uzcard, Humo, Visa & Коммуналка',
-    desc: 'Единый центр учёта балансов банковских карт, наличных денег, кредитов и коммунальных лицевых счетов.',
-    image: '/images/feature_cards.png',
-  },
-];
+import { Send, ShieldCheck, CheckCircle2, Sparkles } from 'lucide-react';
 
 const TG_BOT_USERNAME = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME || 'zenriauthefication_bot';
 
+const FEATURES = [
+  { icon: '🧠', text: 'Умный учёт финансов' },
+  { icon: '📚', text: 'Трекер книг и привычек' },
+  { icon: '🎯', text: 'Цели и задачи' },
+  { icon: '🤖', text: 'AI-ассистент' },
+];
+
 export default function LoginPage() {
-  const [email, setEmail] = useState('demo@zenri.app');
-  const [password, setPassword] = useState('password123');
-  const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState(0);
-  const [authMode, setAuthMode] = useState<'telegram' | 'email'>('telegram');
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
-
-    const res = await signIn('credentials', {
-      email,
-      password,
-      redirect: false,
-    });
-
-    if (res?.error) {
-      setError('Неверный email или пароль');
-      setLoading(false);
-    } else {
-      window.location.href = '/dashboard';
-    }
-  };
-
-  const handleQuickDemoLogin = async () => {
-    setLoading(true);
-    setError('');
-    const res = await signIn('credentials', {
-      email: 'demo@zenri.app',
-      password: 'password123',
-      redirect: false,
-    });
-
-    if (res?.error) {
-      setError('Не удалось войти в демо-режим');
-      setLoading(false);
-    } else {
-      window.location.href = '/dashboard';
-    }
-  };
-
-  const currentFeature = FEATURES[activeTab];
-  const ActiveIcon = currentFeature.icon;
-
   return (
     <div className="min-h-screen bg-slate-950 text-white relative overflow-hidden flex flex-col justify-between selection:bg-[#0066FF] selection:text-white">
-      {/* Background Radial Glow Mesh */}
-      <div className="absolute top-[-10%] left-[-10%] w-[600px] h-[600px] rounded-full bg-[#0066FF]/20 blur-[150px] animate-ambient-1 pointer-events-none" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[600px] h-[600px] rounded-full bg-[#8B5CF6]/20 blur-[150px] animate-ambient-2 pointer-events-none" />
-      <div className="absolute top-[35%] left-[35%] w-[450px] h-[450px] rounded-full bg-[#EC4899]/15 blur-[150px] animate-ambient-3 pointer-events-none" />
+      {/* Background Glows */}
+      <div className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] rounded-full bg-[#0066FF]/20 blur-[130px] animate-pulse pointer-events-none" />
+      <div className="absolute bottom-[-10%] left-[-10%] w-[500px] h-[500px] rounded-full bg-[#8B5CF6]/15 blur-[130px] pointer-events-none" />
 
-      {/* Top Navbar */}
-      <header className="relative z-20 px-6 lg:px-12 py-5 flex items-center justify-between border-b border-white/10 backdrop-blur-xl bg-slate-950/70">
+      {/* Header */}
+      <header className="relative z-20 px-6 lg:px-12 py-5 flex items-center justify-between border-b border-white/10 backdrop-blur-md bg-slate-950/60">
         <ZenLogo size="md" />
-        <div className="flex items-center gap-4">
-          <div className="hidden sm:flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs font-semibold text-slate-300">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span>Система активна и готова к работе</span>
-          </div>
-          <ThemeToggle />
-        </div>
+        <ThemeToggle />
       </header>
 
-      {/* Main Showcase & Login Grid */}
-      <main className="relative z-20 flex-1 max-w-7xl w-full mx-auto px-6 lg:px-12 py-8 lg:py-12 grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
-        {/* Left Column: Startup Showcase (7 cols) */}
-        <div className="lg:col-span-7 space-y-8">
-          {/* Badge */}
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gradient-to-r from-[#0066FF]/20 via-[#8B5CF6]/20 to-[#EC4899]/20 border border-[#0066FF]/40 text-xs font-bold text-slate-200 shadow-glow">
-            <Sparkles size={14} className="text-[#00C2FF]" />
-            <span>Ежедневный центр управления жизнью и финансами</span>
-          </div>
+      {/* Main */}
+      <main className="relative z-20 flex-1 w-full mx-auto px-4 py-8 lg:py-12 flex items-center justify-center">
+        <div className="w-full max-w-5xl grid lg:grid-cols-2 gap-10 items-center">
 
-          {/* Headline */}
-          <div className="space-y-3">
-            <h1 className="text-3xl sm:text-5xl font-black tracking-tight leading-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-slate-100 to-slate-400">
-              Управляйте жизнью и финансами в один клик.
+          {/* Left - Hero Text */}
+          <div className="space-y-6 hidden lg:block">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#0066FF]/15 border border-[#0066FF]/30 text-xs font-bold text-[#60A5FA]">
+              <Sparkles size={13} />
+              <span>ZenRI Life OS — Ваша система управления жизнью</span>
+            </div>
+            <h1 className="text-4xl font-black leading-tight text-white">
+              Управляйте жизнью<br />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#0066FF] to-[#00C2FF]">и финансами в один клик</span>
             </h1>
-            <p className="text-sm sm:text-base text-slate-400 font-medium leading-relaxed max-w-xl">
-              Голосовой ввод расходов, учет стоимости времени жизни, ИИ прогноз накоплений и привычки в одном интерфейсе.
+            <p className="text-sm text-slate-400 leading-relaxed">
+              Голосовой ввод расходов, учёт стоимости времени, ИИ прогноз накоплений и привычки в одном интерфейсе.
             </p>
-          </div>
-
-          {/* Feature Selector Tabs */}
-          <div className="space-y-4">
-            <div className="flex flex-wrap gap-2">
-              {FEATURES.map((feat, idx) => {
-                const Icon = feat.icon;
-                const isActive = activeTab === idx;
-                return (
-                  <button
-                    key={feat.id}
-                    onClick={() => setActiveTab(idx)}
-                    className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-bold transition-all ${
-                      isActive
-                        ? 'bg-[#0066FF] text-white shadow-glow scale-105'
-                        : 'bg-white/5 hover:bg-white/10 text-slate-400 border border-white/5'
-                    }`}
-                  >
-                    <Icon size={15} />
-                    <span>{feat.badge}</span>
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Feature Showcase Card */}
-            <div className="p-6 rounded-3xl bg-slate-900/85 border border-white/15 backdrop-blur-2xl relative overflow-hidden transition-all duration-300 grid sm:grid-cols-12 gap-6 items-center shadow-2xl group">
-              <div className="sm:col-span-6 space-y-3 relative z-10">
-                <span className="text-[10px] font-black uppercase tracking-wider text-[#00C2FF] flex items-center gap-1">
-                  <Star size={11} className="text-amber-400 fill-amber-400" /> Ключевая функция
-                </span>
-                <h3 className="text-xl font-extrabold text-white leading-snug">{currentFeature.title}</h3>
-                <p className="text-xs text-slate-300 leading-relaxed font-medium">{currentFeature.desc}</p>
-                <div className="pt-2 flex items-center gap-2 text-xs font-bold text-emerald-400">
-                  <CheckCircle2 size={15} />
-                  <span>Работает моментально</span>
+            <div className="grid grid-cols-2 gap-3">
+              {FEATURES.map((f) => (
+                <div key={f.text} className="flex items-center gap-2 p-3 rounded-2xl bg-white/5 border border-white/10 text-xs text-slate-300">
+                  <span>{f.icon}</span>
+                  <span className="font-medium">{f.text}</span>
                 </div>
-              </div>
-
-              <div className="sm:col-span-6 relative flex items-center justify-center">
-                <div
-                  className="absolute inset-0 rounded-full blur-2xl opacity-40 pointer-events-none"
-                  style={{ backgroundColor: currentFeature.color }}
-                />
-                <img
-                  src={currentFeature.image}
-                  alt={currentFeature.title}
-                  className="w-full h-48 object-cover rounded-2xl border border-white/10 relative z-10 transform group-hover:scale-105 transition-transform duration-500 shadow-2xl"
-                />
-              </div>
+              ))}
             </div>
           </div>
 
-          {/* Metrics */}
-          <div className="grid grid-cols-3 gap-3 pt-2">
-            <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10 text-center">
-              <p className="text-xl font-black text-white">Быстро</p>
-              <p className="text-[10px] text-slate-400 font-bold">Голосовой ввод операций</p>
-            </div>
-            <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10 text-center">
-              <p className="text-xl font-black text-[#00C2FF]">100%</p>
-              <p className="text-[10px] text-slate-400 font-bold">Приватность данных</p>
-            </div>
-            <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10 text-center">
-              <p className="text-xl font-black text-emerald-400">Умно</p>
-              <p className="text-[10px] text-slate-400 font-bold">ИИ Аналитика целей</p>
-            </div>
-          </div>
-        </div>
+          {/* Right - Login Card */}
+          <div className="w-full max-w-md mx-auto">
+            <div className="p-8 rounded-3xl bg-slate-900/90 border border-white/15 backdrop-blur-2xl shadow-2xl space-y-6 relative overflow-hidden">
+              {/* Glow inside card */}
+              <div className="absolute top-0 right-0 w-32 h-32 bg-[#229ED9]/10 rounded-full blur-2xl pointer-events-none" />
 
-        {/* Right Column: Login Card (5 cols) */}
-        <div className="lg:col-span-5 w-full">
-          <div className="p-8 rounded-3xl bg-slate-900/90 border border-white/15 backdrop-blur-2xl shadow-2xl space-y-6 relative overflow-hidden">
-            <div className="space-y-1 text-center">
-              <h2 className="text-2xl font-black text-white">Вход в аккаунт</h2>
-              <p className="text-xs text-slate-400 font-medium">Введите данные для доступа к вашему пространству ZenRI</p>
-            </div>
-
-            {/* Quick Demo Login */}
-            <button
-              onClick={handleQuickDemoLogin}
-              disabled={loading}
-              className="w-full py-4 px-4 rounded-2xl bg-gradient-to-r from-[#0066FF] via-[#7C3AED] to-[#EC4899] hover:opacity-95 text-white font-extrabold text-xs shadow-glow transition-all active:scale-95 flex items-center justify-center gap-2 group"
-            >
-              <Zap size={16} className="fill-white" />
-              <span>Войти в 1 клик (Демо-режим)</span>
-              <ArrowRight size={15} className="group-hover:translate-x-1 transition-transform" />
-            </button>
-
-            {/* Auth Mode Toggle */}
-            <div className="grid grid-cols-2 gap-2 p-1 bg-slate-800/80 rounded-2xl">
-              <button
-                onClick={() => { setAuthMode('telegram'); setError(''); }}
-                className={`py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
-                  authMode === 'telegram'
-                    ? 'bg-[#229ED9] text-white shadow-md'
-                    : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                <Send size={13} />
-                Telegram
-              </button>
-              <button
-                onClick={() => { setAuthMode('email'); setError(''); }}
-                className={`py-2.5 rounded-xl text-xs font-bold transition-all ${
-                  authMode === 'email'
-                    ? 'bg-white text-slate-900 shadow-md'
-                    : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                📧 Email
-              </button>
-            </div>
-
-            {error && (
-              <div className="p-3 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-400 text-xs font-bold text-center">
-                {error}
-              </div>
-            )}
-
-            {authMode === 'email' ? (
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1.5">Электронная почта *</label>
-                  <input
-                    type="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="w-full px-4 py-3.5 rounded-2xl bg-slate-950/80 border border-white/10 text-xs font-bold text-white focus:outline-none focus:border-[#0066FF] transition-all"
-                    placeholder="demo@zenri.app"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1.5">Пароль *</label>
-                  <div className="relative">
-                    <input
-                      type={showPassword ? 'text' : 'password'}
-                      required
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="w-full px-4 py-3.5 pr-10 rounded-2xl bg-slate-950/80 border border-white/10 text-xs font-bold text-white focus:outline-none focus:border-[#0066FF] transition-all"
-                      placeholder="••••••••"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3.5 top-3.5 text-slate-400 hover:text-white transition-colors"
-                    >
-                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                    </button>
+              <div className="relative space-y-1.5 text-center">
+                <div className="flex justify-center mb-3">
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#229ED9]/15 border border-[#229ED9]/30 text-xs font-bold text-[#54C8F0]">
+                    <Send size={12} />
+                    <span>Вход через Telegram</span>
                   </div>
                 </div>
-
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full py-4 px-4 rounded-2xl bg-white hover:bg-slate-200 text-slate-950 font-black text-xs transition-all shadow-lg active:scale-95 disabled:opacity-50"
-                >
-                  {loading ? 'Вход в аккаунт...' : 'Войти в аккаунт'}
-                </button>
-              </form>
-            ) : (
-              <div className="space-y-4">
-                {/* 6-Digit Code Auth (No phone number required) */}
-                <TelegramCodeAuth
-                  botUsername={TG_BOT_USERNAME}
-                  onSuccess={() => {}}
-                />
-
-                {/* Alternative: Widget button */}
-                <div className="pt-2 border-t border-white/10 space-y-2 text-center">
-                  <span className="text-[10px] uppercase font-bold text-slate-500">или через виджет</span>
-                  <div className="flex justify-center">
-                    <TelegramLoginButton
-                      botUsername={TG_BOT_USERNAME}
-                      onError={setError}
-                      onLoading={setLoading}
-                    />
-                  </div>
-                </div>
+                <h2 className="text-xl font-black text-white">Войти в ZenRI</h2>
+                <p className="text-[11px] text-slate-400 font-medium">Без пароля. Без номера телефона. Просто Telegram.</p>
               </div>
-            )}
 
+              <TelegramCodeAuth botUsername={TG_BOT_USERNAME} onSuccess={() => {}} />
 
-            <div className="pt-2 border-t border-white/10 text-center">
-              <p className="text-xs text-slate-400">
-                Ещё нет аккаунта?{' '}
-                <Link href="/register" className="text-[#00C2FF] font-extrabold hover:underline">
-                  Зарегистрироваться
-                </Link>
-              </p>
+              <div className="flex items-center justify-center gap-2 text-[10px] text-slate-500 pt-1">
+                <ShieldCheck size={12} className="text-emerald-500" />
+                <span>Данные зашифрованы и защищены</span>
+              </div>
+
+              <div className="pt-2 border-t border-white/10 text-center">
+                <p className="text-xs text-slate-400">
+                  Нет аккаунта?{' '}
+                  <Link href="/register" className="text-[#00C2FF] font-extrabold hover:underline">
+                    Зарегистрироваться
+                  </Link>
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-4 grid grid-cols-3 gap-2">
+              {[
+                { icon: '⚡', label: 'Мгновенный вход' },
+                { icon: '🔒', label: 'Нет паролей' },
+                { icon: '📱', label: 'Через Telegram' },
+              ].map((item) => (
+                <div key={item.label} className="text-center p-2 rounded-xl bg-white/5 border border-white/10">
+                  <div className="text-lg">{item.icon}</div>
+                  <div className="text-[10px] text-slate-400 font-medium mt-0.5">{item.label}</div>
+                </div>
+              ))}
             </div>
           </div>
         </div>
       </main>
 
-      {/* Footer */}
       <footer className="relative z-20 px-6 lg:px-12 py-4 border-t border-white/5 bg-slate-950/80 text-center text-xs text-slate-500">
         © 2026 ZenRI Life OS. Все права защищены.
       </footer>

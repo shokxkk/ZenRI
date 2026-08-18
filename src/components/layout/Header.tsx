@@ -5,7 +5,7 @@ import { ZenLogo } from '@/components/ui/ZenLogo';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { VoiceAssistant } from '@/components/ui/VoiceAssistant';
 import { useSession } from 'next-auth/react';
-import { User as UserIcon, Bell, Plus } from 'lucide-react';
+import { User as UserIcon, Plus } from 'lucide-react';
 
 interface HeaderProps {
   onOpenQuickAdd: () => void;
@@ -36,14 +36,6 @@ export const Header: React.FC<HeaderProps> = ({ onOpenQuickAdd }) => {
 
       {/* Right Controls */}
       <div className="flex items-center gap-2 flex-shrink-0">
-        {/* Notification Bell */}
-        <button
-          className="relative p-2 rounded-xl text-zen-400 hover:text-zen-900 dark:hover:text-zen-100 bg-zen-100 dark:bg-[#131C2E] transition-colors"
-          title="Уведомления"
-        >
-          <Bell size={18} />
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#0066FF] animate-pulse" />
-        </button>
 
         {/* Theme Toggle */}
         <ThemeToggle />

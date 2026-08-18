@@ -12,21 +12,14 @@ import {
   ShoppingBag,
   Trash2,
   Edit2,
-  Bookmark,
-  Star,
   Play,
   Pause,
   RotateCcw,
-  Check,
   X,
   Shuffle,
-  ChevronRight,
-  TrendingUp,
-  Award,
   Layers,
   Lightbulb,
-  ArrowRight,
-  Filter,
+  Wand2,
 } from 'lucide-react';
 import { soundFx } from '@/lib/soundEffects';
 import { addTransaction } from '@/app/actions/financeActions';
@@ -165,7 +158,9 @@ export function BooksClient({
   const router = useRouter();
   const [books, setBooks] = useState<BookItem[]>([]);
   const [loaded, setLoaded] = useState(false);
-  const [activeTab, setActiveTab] = useState<'READING' | 'LIBRARY' | 'WISHLIST' | 'TIMER' | 'STATS'>('READING');
+  const [activeTab, setActiveTab] = useState<'READING' | 'LIBRARY' | 'WISHLIST' | 'TIMER'>('READING');
+  const [aiRec, setAiRec] = useState<{ title: string; author: string; reason: string } | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
 
@@ -425,6 +420,28 @@ export function BooksClient({
     setRandomPick(candidates[idx]);
   };
 
+  // AI Book Recommendation (smart random pick with motivating tip)
+  const AI_REASONS = [
+    'Эта книга изменит ваш взгляд на время и продуктивность. Идеальное чтение для роста.',
+    'Автор раскрывает секреты, которые применяют лучшие лидеры мира. Мощная книга.',
+    'Простые принципы, которые работают в реальной жизни. Начните прямо сегодня!',
+    'Книга отвечает на вопросы, которые вы давно задавали себе. Очень своевременно.',
+    'Эту книгу рекомендуют 9 из 10 успешных предпринимателей. Самое время прочитать!',
+  ];
+
+  const handleAiRecommend = () => {
+    setAiLoading(true);
+    const all = books.filter((b) => b.status !== 'WISHLIST');
+    const candidates = all.length > 0 ? all : DEFAULT_BOOKS;
+    setTimeout(() => {
+      const pick = candidates[Math.floor(Math.random() * candidates.length)];
+      const reason = AI_REASONS[Math.floor(Math.random() * AI_REASONS.length)];
+      setAiRec({ title: pick.title, author: pick.author, reason });
+      setAiLoading(false);
+      soundFx.playIncomeSound();
+    }, 1200);
+  };
+
   // Complete Reading Timer Session
   const handleSaveTimerSession = () => {
     const pages = Number(timerPagesRead) || 5;
@@ -512,14 +529,57 @@ export function BooksClient({
         </p>
       </div>
 
+      {/* AI Recommendation Banner */}
+      <div className="p-4 rounded-2xl bg-gradient-to-r from-violet-900/50 via-indigo-900/50 to-blue-900/40 border border-violet-500/30 flex flex-col sm:flex-row items-center gap-3">
+        <div className="flex items-center gap-3 flex-1">
+          <button
+            onClick={handleAiRecommend}
+            disabled={aiLoading}
+            className={`relative w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 transition-all active:scale-95 ${
+              aiLoading
+                ? 'bg-violet-600/50 cursor-wait'
+                : 'bg-gradient-to-tr from-violet-600 to-blue-500 hover:from-violet-500 hover:to-blue-400 shadow-lg shadow-violet-500/40 hover:scale-105'
+            }`}
+          >
+            {aiLoading ? (
+              <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            ) : (
+              <Wand2 size={22} className="text-white" />
+            )}
+            {!aiLoading && (
+              <span className="absolute inset-0 rounded-2xl bg-violet-400/20 animate-ping opacity-60 pointer-events-none" />
+            )}
+          </button>
+          {aiRec ? (
+            <div className="flex-1 min-w-0">
+              <p className="text-[10px] text-violet-300 font-bold uppercase tracking-wider">🤖 AI рекомендует</p>
+              <p className="text-sm font-extrabold text-white truncate">{aiRec.title}</p>
+              <p className="text-[11px] text-slate-400 truncate">{aiRec.author} — {aiRec.reason}</p>
+            </div>
+          ) : (
+            <div className="flex-1">
+              <p className="text-xs font-extrabold text-white">🤖 AI посоветует книгу</p>
+              <p className="text-[11px] text-slate-400">Нажмите на шар — получите умную рекомендацию</p>
+            </div>
+          )}
+        </div>
+        {aiRec && (
+          <button
+            onClick={() => setAiRec(null)}
+            className="p-1.5 text-slate-400 hover:text-white flex-shrink-0"
+          >
+            <X size={14} />
+          </button>
+        )}
+      </div>
+
       {/* Tabs Bar */}
       <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
         {[
-          { key: 'READING', label: `Читаю сейчас (${currentlyReading.length})`, icon: BookOpen },
-          { key: 'LIBRARY', label: `Моя библиотека (${myLibrary.length})`, icon: Layers },
-          { key: 'WISHLIST', label: `Хочу купить (${wishlistBooks.length})`, icon: ShoppingBag },
-          { key: 'TIMER', label: '⏱️ Фокус-таймер', icon: Clock },
-          { key: 'STATS', label: 'Статистика', icon: TrendingUp },
+          { key: 'READING', label: `Читаю (${currentlyReading.length})`, icon: BookOpen },
+          { key: 'LIBRARY', label: `Библиотека (${myLibrary.length})`, icon: Layers },
+          { key: 'WISHLIST', label: `Вишлист (${wishlistBooks.length})`, icon: ShoppingBag },
+          { key: 'TIMER', label: '⏱️ Таймер', icon: Clock },
         ].map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.key;
@@ -1113,57 +1173,7 @@ export function BooksClient({
         </div>
       )}
 
-      {/* TAB 5: СТАТИСТИКА & УРОВЕНЬ МУДРОСТИ */}
-      {activeTab === 'STATS' && (
-        <div className="space-y-6">
-          {/* Summary Stat Cards */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <div className="p-5 rounded-3xl bg-white dark:bg-[#131C2E] border border-zen-200 dark:border-zen-800 shadow-sm space-y-1">
-              <span className="text-[11px] text-zen-400 font-semibold uppercase">Всего страниц</span>
-              <p className="text-2xl font-black text-zen-900 dark:text-zen-100">{totalPagesReadCount}</p>
-              <p className="text-[10px] text-emerald-500 font-bold">~{Math.round(totalPagesReadCount / 300)} книг эквивалентно</p>
-            </div>
 
-            <div className="p-5 rounded-3xl bg-white dark:bg-[#131C2E] border border-zen-200 dark:border-zen-800 shadow-sm space-y-1">
-              <span className="text-[11px] text-zen-400 font-semibold uppercase">Прочитано книг</span>
-              <p className="text-2xl font-black text-emerald-500">{finishedBooks.length}</p>
-              <p className="text-[10px] text-zen-400 font-medium">в библиотеке ZenRI</p>
-            </div>
-
-            <div className="p-5 rounded-3xl bg-white dark:bg-[#131C2E] border border-zen-200 dark:border-zen-800 shadow-sm space-y-1">
-              <span className="text-[11px] text-zen-400 font-semibold uppercase">Стрик чтения</span>
-              <p className="text-2xl font-black text-amber-500">{streakDays} дн.</p>
-              <p className="text-[10px] text-amber-500 font-bold">🔥 Отличный темп</p>
-            </div>
-
-            <div className="p-5 rounded-3xl bg-white dark:bg-[#131C2E] border border-zen-200 dark:border-zen-800 shadow-sm space-y-1">
-              <span className="text-[11px] text-zen-400 font-semibold uppercase">Сегодня прочитано</span>
-              <p className="text-2xl font-black text-[#0066FF]">{pagesReadToday} стр</p>
-              <p className="text-[10px] text-zen-400 font-medium">Цель: {dailyGoalPages} стр/день</p>
-            </div>
-          </div>
-
-          {/* Reader Level Gamification */}
-          <div className="p-6 rounded-3xl bg-gradient-to-br from-indigo-900/40 via-[#131C2E] to-[#0F1E36] border border-indigo-500/30 text-white space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-2xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center flex-shrink-0">
-                <Award size={26} />
-              </div>
-              <div>
-                <span className="text-[10px] uppercase font-bold tracking-wider text-indigo-400">Геймификация</span>
-                <h3 className="text-lg font-black">
-                  Уровень: {finishedBooks.length >= 10 ? '👑 Мастер Мудрости' : finishedBooks.length >= 4 ? '🥇 Мыслитель' : '🥈 Книжный энтузиаст'}
-                </h3>
-              </div>
-            </div>
-
-            <p className="text-xs text-zen-300 leading-relaxed max-w-2xl">
-              Каждая прочитанная страница формирует нейронные связи и стратегическое мышление. До следующего ранга осталось прочитать{' '}
-              <span className="font-bold text-white">{Math.max(1, 5 - finishedBooks.length)} книги</span>.
-            </p>
-          </div>
-        </div>
-      )}
 
       {/* --- INLINE ADD BOOK FORM --- */}
       {showAddForm && (
