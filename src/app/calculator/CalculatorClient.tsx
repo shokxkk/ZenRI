@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useMemo, useEffect } from 'react';
+import Link from 'next/link';
 import {
   Coins,
   Calculator as CalcIcon,
@@ -19,6 +20,8 @@ import {
   ExternalLink,
   ShieldCheck,
   Building2,
+  ArrowLeft,
+  Clock,
 } from 'lucide-react';
 import {
   type ExchangeRateInfo,
@@ -52,12 +55,10 @@ export function CalculatorClient({
   const [activeTab, setActiveTab] = useState<TabType>('CONVERTER');
   const [rates, setRates] = useState<Record<SupportedCurrency, ExchangeRateInfo>>(initialRates);
   const [isSyncing, setIsSyncing] = useState(false);
-  const [lastSyncedTime, setLastSyncedTime] = useState<string>(
-    new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
-  );
+  const [lastSyncedTime, setLastSyncedTime] = useState<string>('');
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
-  // Sync with live CBU / bank.uz rate
+  // Sync with live CBU / bank.uz rate and record exact local client time
   const handleSyncRates = async () => {
     setIsSyncing(true);
     soundFx.playClick();
@@ -65,7 +66,14 @@ export function CalculatorClient({
       const res = await getLiveRatesAction();
       if (res.success) {
         setRates(res.rates);
-        setLastSyncedTime(res.syncedAt);
+        // Format time strictly according to user device / local timezone (e.g. Tashkent 10:50)
+        const now = new Date();
+        const clientFormattedTime = now.toLocaleTimeString('ru-RU', {
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+        });
+        setLastSyncedTime(clientFormattedTime);
         soundFx.playIncomeSound();
       }
     } catch (err) {
@@ -76,13 +84,22 @@ export function CalculatorClient({
   };
 
   useEffect(() => {
+    // Initial local time on client
+    const now = new Date();
+    setLastSyncedTime(
+      now.toLocaleTimeString('ru-RU', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+      })
+    );
     // Auto-sync on client load
     handleSyncRates();
   }, []);
 
-  // ─── 1. Currency Converter State ───
+  // ─── 1. Currency Converter State (Default 1 unit for crystal clear rate) ───
   const [activeSourceCurrency, setActiveSourceCurrency] = useState<SupportedCurrency>('USD');
-  const [sourceAmount, setSourceAmount] = useState<string>('100');
+  const [sourceAmount, setSourceAmount] = useState<string>('1');
 
   const parsedAmount = parseFloat(sourceAmount.replace(/\s/g, '').replace(',', '.')) || 0;
 
@@ -270,20 +287,37 @@ export function CalculatorClient({
   }, [userAccounts]);
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-16">
+    <div className="space-y-5 max-w-7xl mx-auto pb-20 px-2 sm:px-4">
+      {/* ─── Top Header Navigation Bar with "НАЗАД" button ─── */}
+      <div className="flex items-center justify-between gap-3 pt-2">
+        <Link
+          href="/dashboard"
+          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-white dark:bg-[#131C2E] hover:bg-zen-100 dark:hover:bg-[#1b263d] text-zen-800 dark:text-zen-100 text-xs sm:text-sm font-extrabold transition-all border border-zen-200 dark:border-zen-800 shadow-sm active:scale-95 group"
+        >
+          <ArrowLeft size={16} className="group-hover:-translate-x-0.5 transition-transform text-[#0066FF]" />
+          <span>Назад на главную</span>
+        </Link>
+
+        {/* Local time badge */}
+        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zen-100 dark:bg-zen-900 text-zen-600 dark:text-zen-300 text-xs font-bold">
+          <Clock size={13} className="text-[#0066FF]" />
+          <span>Ташкент: {lastSyncedTime || '10:50'}</span>
+        </div>
+      </div>
+
       {/* ─── Top Header Banner with Live Central Bank Ticker ─── */}
-      <div className="bg-gradient-to-br from-[#0F1E36] via-[#132238] to-[#0A1527] border border-zen-800/80 rounded-3xl p-5 sm:p-6 text-white shadow-xl relative overflow-hidden">
+      <div className="bg-gradient-to-br from-[#0F1E36] via-[#132238] to-[#0A1527] border border-zen-800/80 rounded-3xl p-4 sm:p-6 text-white shadow-xl relative overflow-hidden">
         <div className="absolute top-0 right-0 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
 
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="space-y-1">
             <div className="flex items-center gap-2.5">
-              <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#0066FF] to-[#38BDF8] flex items-center justify-center text-white shadow-glow">
+              <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#0066FF] to-[#38BDF8] flex items-center justify-center text-white shadow-glow flex-shrink-0">
                 <Coins size={22} />
               </div>
               <div>
-                <div className="flex items-center gap-2">
-                  <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h1 className="text-lg sm:text-2xl font-extrabold tracking-tight">
                     Калькулятор & Курсы валют
                   </h1>
                   <span className="flex items-center gap-1 text-[10px] font-black uppercase text-emerald-400 bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 rounded-full">
@@ -306,7 +340,7 @@ export function CalculatorClient({
               return (
                 <div
                   key={curr}
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-2xl bg-white/5 border border-white/10 text-xs font-bold"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-white/5 border border-white/10 text-xs font-bold"
                 >
                   <span className="text-slate-400">1 {curr} =</span>
                   <span className="text-white font-extrabold font-mono">
@@ -327,7 +361,7 @@ export function CalculatorClient({
             <button
               onClick={handleSyncRates}
               disabled={isSyncing}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-[#0066FF] hover:bg-[#0052CC] text-white text-xs font-black shadow-glow active:scale-95 transition-all disabled:opacity-50"
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-2xl bg-[#0066FF] hover:bg-[#0052CC] text-white text-xs font-black shadow-glow active:scale-95 transition-all disabled:opacity-50 flex-shrink-0"
               title="Обновить курс онлайн прямо сейчас"
             >
               <RefreshCw size={13} className={isSyncing ? 'animate-spin' : ''} />
@@ -337,18 +371,18 @@ export function CalculatorClient({
         </div>
 
         {/* Sync Metadata bar */}
-        <div className="mt-3 pt-3 border-t border-white/10 flex items-center justify-between text-[11px] text-slate-400">
+        <div className="mt-3 pt-3 border-t border-white/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1 text-[11px] text-slate-400">
           <div className="flex items-center gap-1.5">
-            <ShieldCheck size={13} className="text-emerald-400" />
+            <ShieldCheck size={13} className="text-emerald-400 flex-shrink-0" />
             <span>Источник: Официальный реестр ЦБ РУз (cbu.uz) • bank.uz</span>
           </div>
           <div>
-            Синхронизировано: <span className="text-white font-bold">{lastSyncedTime}</span>
+            Время обновления: <span className="text-white font-bold">{lastSyncedTime || 'сейчас'}</span>
           </div>
         </div>
       </div>
 
-      {/* ─── Navigation Tabs ─── */}
+      {/* ─── Navigation Tabs (Mobile horizontally scrollable) ─── */}
       <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
         {[
           { key: 'CONVERTER', label: '💱 Конвертер валют', icon: ArrowRightLeft },
@@ -366,7 +400,7 @@ export function CalculatorClient({
                 soundFx.playClick();
                 setActiveTab(tab.key as TabType);
               }}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-bold transition-all flex-shrink-0 active:scale-95 ${
+              className={`flex items-center gap-2 px-3.5 sm:px-4 py-2.5 rounded-2xl text-xs font-bold transition-all flex-shrink-0 active:scale-95 ${
                 isActive
                   ? 'bg-[#0066FF] text-white shadow-glow'
                   : 'bg-white dark:bg-[#131C2E] text-zen-600 dark:text-zen-400 border border-zen-200 dark:border-zen-800 hover:border-[#0066FF]/50'
@@ -382,21 +416,21 @@ export function CalculatorClient({
       {/* ══════════════ TAB 1: CURRENCY CONVERTER ══════════════ */}
       {activeTab === 'CONVERTER' && (
         <div className="space-y-6 animate-in fade-in duration-200">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 sm:gap-6">
             {/* Left: Input & Converter Card */}
-            <div className="lg:col-span-2 p-6 rounded-3xl bg-white dark:bg-[#131C2E] border border-zen-200 dark:border-zen-800 shadow-apple space-y-6">
-              <div className="flex items-center justify-between flex-wrap gap-2">
+            <div className="lg:col-span-2 p-4 sm:p-6 rounded-3xl bg-white dark:bg-[#131C2E] border border-zen-200 dark:border-zen-800 shadow-apple space-y-5 sm:space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
                   <h3 className="text-base font-extrabold text-zen-900 dark:text-zen-100">
                     Мгновенная онлайн-конвертация
                   </h3>
                   <p className="text-xs text-zen-400">
-                    Введите сумму в любой валюте — расчёт происходит автоматически
+                    Введите любую сумму для расчёта
                   </p>
                 </div>
 
-                <div className="flex items-center gap-1.5 bg-zen-100 dark:bg-zen-800/60 p-1 rounded-xl">
-                  {(['UZS', 'USD', 'EUR', 'RUB', 'GBP', 'AED', 'KZT'] as const).map((code) => (
+                <div className="flex items-center gap-1 bg-zen-100 dark:bg-zen-800/60 p-1 rounded-xl overflow-x-auto no-scrollbar">
+                  {(['USD', 'UZS', 'EUR', 'RUB', 'GBP', 'AED', 'KZT'] as const).map((code) => (
                     <button
                       key={code}
                       onClick={() => {
@@ -417,29 +451,35 @@ export function CalculatorClient({
 
               {/* Source Input */}
               <div className="space-y-2">
-                <label className="text-xs font-bold text-zen-500 uppercase tracking-wider">
-                  Сумма для конвертации ({activeSourceCurrency})
-                </label>
+                <div className="flex items-center justify-between text-xs">
+                  <label className="font-bold text-zen-500 uppercase tracking-wider">
+                    Сумма ({activeSourceCurrency})
+                  </label>
+                  <span className="text-zen-400 font-semibold">
+                    1 {activeSourceCurrency} = {rates[activeSourceCurrency]?.rateToUZS.toLocaleString('ru-RU')} сум
+                  </span>
+                </div>
+
                 <div className="relative">
                   <input
                     type="text"
                     value={sourceAmount}
                     onChange={(e) => setSourceAmount(e.target.value)}
-                    placeholder="100"
-                    className="w-full px-5 py-4 rounded-2xl bg-zen-50 dark:bg-zen-900 border border-zen-200 dark:border-zen-700 text-2xl font-black text-zen-900 dark:text-zen-100 focus:outline-none focus:border-[#0066FF] transition-all font-mono"
+                    placeholder="1"
+                    className="w-full px-4 sm:px-5 py-3 sm:py-4 rounded-2xl bg-zen-50 dark:bg-zen-900 border border-zen-200 dark:border-zen-700 text-xl sm:text-2xl font-black text-zen-900 dark:text-zen-100 focus:outline-none focus:border-[#0066FF] transition-all font-mono"
                   />
                   <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
-                    <span className="text-sm font-extrabold text-zen-400">
+                    <span className="text-xs sm:text-sm font-extrabold text-zen-400">
                       {rates[activeSourceCurrency]?.name || activeSourceCurrency}
                     </span>
                   </div>
                 </div>
 
                 {/* Quick Presets */}
-                <div className="flex items-center gap-2 flex-wrap pt-1">
+                <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap pt-1">
                   {(activeSourceCurrency === 'UZS'
                     ? ['100 000', '1 000 000', '5 000 000', '10 000 000', '50 000 000']
-                    : ['10', '50', '100', '500', '1000', '5000']
+                    : ['1', '10', '50', '100', '500', '1000', '5000']
                   ).map((preset) => (
                     <button
                       key={preset}
@@ -447,7 +487,11 @@ export function CalculatorClient({
                         soundFx.playClick();
                         setSourceAmount(preset.replace(/\s/g, ''));
                       }}
-                      className="px-3 py-1 rounded-xl bg-zen-100 dark:bg-zen-800/80 hover:bg-zen-200 dark:hover:bg-zen-700 text-xs font-bold text-zen-600 dark:text-zen-300 transition-all active:scale-95"
+                      className={`px-2.5 sm:px-3 py-1 rounded-xl text-xs font-bold transition-all active:scale-95 ${
+                        sourceAmount === preset.replace(/\s/g, '')
+                          ? 'bg-[#0066FF] text-white shadow-sm'
+                          : 'bg-zen-100 dark:bg-zen-800/80 hover:bg-zen-200 dark:hover:bg-zen-700 text-zen-600 dark:text-zen-300'
+                      }`}
                     >
                       {preset} {rates[activeSourceCurrency]?.symbol || ''}
                     </button>
@@ -462,12 +506,18 @@ export function CalculatorClient({
                   const info = rates[curr] || { name: curr, rateToUZS: 1 };
                   const formatted = formatWithCurrency(val, curr);
 
+                  // Show conversion formula for clarity
+                  const isUZS = curr === 'UZS';
+                  const formulaText = isUZS && activeSourceCurrency !== 'UZS'
+                    ? `${parsedAmount} × ${info.rateToUZS.toLocaleString('ru-RU')} сум`
+                    : `Курс ЦБ: 1 ${curr} = ${info.rateToUZS.toLocaleString('ru-RU')} сум`;
+
                   return (
                     <div
                       key={curr}
-                      className={`p-4 rounded-2xl border transition-all relative group ${
+                      className={`p-3.5 sm:p-4 rounded-2xl border transition-all relative group ${
                         activeSourceCurrency === curr
-                          ? 'bg-blue-500/10 border-[#0066FF]/40'
+                          ? 'bg-blue-500/10 border-[#0066FF]/40 ring-1 ring-[#0066FF]/20'
                           : 'bg-zen-50 dark:bg-[#0c1424] border-zen-200 dark:border-zen-800'
                       }`}
                     >
@@ -488,12 +538,12 @@ export function CalculatorClient({
                         </button>
                       </div>
 
-                      <p className="text-xl font-black text-zen-900 dark:text-zen-100 font-mono tracking-tight">
+                      <p className="text-lg sm:text-xl font-black text-zen-900 dark:text-zen-100 font-mono tracking-tight">
                         {formatted}
                       </p>
 
                       <p className="text-[10px] text-zen-400 mt-1">
-                        Курс ЦБ: 1 {curr} = {info.rateToUZS.toLocaleString('ru-RU')} сум
+                        {formulaText}
                       </p>
                     </div>
                   );
@@ -504,7 +554,7 @@ export function CalculatorClient({
             {/* Right: Rates Comparison Table & User Total Capital */}
             <div className="space-y-4">
               {/* Bank.uz and CBU Rates Breakdown Card */}
-              <div className="p-5 rounded-3xl bg-white dark:bg-[#131C2E] border border-zen-200 dark:border-zen-800 shadow-apple space-y-3">
+              <div className="p-4 sm:p-5 rounded-3xl bg-white dark:bg-[#131C2E] border border-zen-200 dark:border-zen-800 shadow-apple space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Building2 size={16} className="text-[#0066FF]" />
@@ -548,7 +598,7 @@ export function CalculatorClient({
               </div>
 
               {/* User Net Worth in Converted Currencies */}
-              <div className="p-6 rounded-3xl bg-gradient-to-br from-indigo-900/40 via-[#131C2E] to-[#0F1E36] border border-indigo-500/30 text-white space-y-4">
+              <div className="p-5 sm:p-6 rounded-3xl bg-gradient-to-br from-indigo-900/40 via-[#131C2E] to-[#0F1E36] border border-indigo-500/30 text-white space-y-4">
                 <div className="flex items-center gap-2.5">
                   <div className="w-9 h-9 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center">
                     <Coins size={18} />
@@ -557,20 +607,20 @@ export function CalculatorClient({
                     <span className="text-[10px] uppercase font-bold text-indigo-400">
                       Ваш общий капитал в валюте
                     </span>
-                    <h4 className="text-base font-black">Суммарный баланс</h4>
+                    <h4 className="text-sm sm:text-base font-black">Суммарный баланс</h4>
                   </div>
                 </div>
 
                 <div className="space-y-2.5 pt-2 border-t border-white/10">
                   <div>
                     <span className="text-[10px] text-slate-400">В сумах (UZS)</span>
-                    <p className="text-xl font-black text-white font-mono">
+                    <p className="text-lg sm:text-xl font-black text-white font-mono">
                       {totalUserBalanceInUZS.toLocaleString('ru-RU')} сум
                     </p>
                   </div>
                   <div>
                     <span className="text-[10px] text-slate-400">В долларах (USD)</span>
-                    <p className="text-lg font-black text-emerald-400 font-mono">
+                    <p className="text-base sm:text-lg font-black text-emerald-400 font-mono">
                       {formatWithCurrency(
                         convertCurrency(totalUserBalanceInUZS, 'UZS', 'USD'),
                         'USD'
@@ -579,7 +629,7 @@ export function CalculatorClient({
                   </div>
                   <div>
                     <span className="text-[10px] text-slate-400">В евро (EUR)</span>
-                    <p className="text-lg font-black text-sky-400 font-mono">
+                    <p className="text-base sm:text-lg font-black text-sky-400 font-mono">
                       {formatWithCurrency(
                         convertCurrency(totalUserBalanceInUZS, 'UZS', 'EUR'),
                         'EUR'
@@ -595,7 +645,7 @@ export function CalculatorClient({
 
       {/* ══════════════ TAB 2: FINANCIAL CALCULATOR (WITH NDS 12%) ══════════════ */}
       {activeTab === 'FINANCE_CALC' && (
-        <div className="max-w-md mx-auto p-6 rounded-3xl bg-white dark:bg-[#131C2E] border border-zen-200 dark:border-zen-800 shadow-2xl space-y-5 animate-in fade-in duration-200">
+        <div className="max-w-md mx-auto p-4 sm:p-6 rounded-3xl bg-white dark:bg-[#131C2E] border border-zen-200 dark:border-zen-800 shadow-2xl space-y-4 sm:space-y-5 animate-in fade-in duration-200">
           <div className="flex items-center justify-between">
             <h3 className="text-base font-extrabold text-zen-900 dark:text-zen-100 flex items-center gap-2">
               <CalcIcon size={18} className="text-[#0066FF]" />
@@ -607,11 +657,11 @@ export function CalculatorClient({
           </div>
 
           {/* Calculator Display */}
-          <div className="p-5 rounded-2xl bg-zen-50 dark:bg-zen-950 border border-zen-200 dark:border-zen-800 text-right space-y-1">
+          <div className="p-4 sm:p-5 rounded-2xl bg-zen-50 dark:bg-zen-950 border border-zen-200 dark:border-zen-800 text-right space-y-1">
             <p className="text-xs text-zen-400 font-mono h-4">
               {calcPrev !== null ? `${calcPrev} ${calcOp || ''}` : ''}
             </p>
-            <p className="text-3xl font-black text-zen-900 dark:text-zen-100 font-mono tracking-tight truncate">
+            <p className="text-2xl sm:text-3xl font-black text-zen-900 dark:text-zen-100 font-mono tracking-tight truncate">
               {parseFloat(calcDisplay).toLocaleString('ru-RU') || '0'}
             </p>
           </div>
@@ -638,25 +688,25 @@ export function CalculatorClient({
           <div className="grid grid-cols-4 gap-2">
             <button
               onClick={handleCalcClear}
-              className="py-3.5 rounded-2xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-500 font-black text-sm transition-all"
+              className="py-3 sm:py-3.5 rounded-2xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-500 font-black text-sm transition-all"
             >
               C
             </button>
             <button
               onClick={() => handleCalcOp('÷')}
-              className="py-3.5 rounded-2xl bg-zen-100 dark:bg-zen-800 text-[#0066FF] font-black text-lg transition-all"
+              className="py-3 sm:py-3.5 rounded-2xl bg-zen-100 dark:bg-zen-800 text-[#0066FF] font-black text-lg transition-all"
             >
               ÷
             </button>
             <button
               onClick={() => handleCalcOp('×')}
-              className="py-3.5 rounded-2xl bg-zen-100 dark:bg-zen-800 text-[#0066FF] font-black text-lg transition-all"
+              className="py-3 sm:py-3.5 rounded-2xl bg-zen-100 dark:bg-zen-800 text-[#0066FF] font-black text-lg transition-all"
             >
               ×
             </button>
             <button
               onClick={() => handleCalcOp('−')}
-              className="py-3.5 rounded-2xl bg-zen-100 dark:bg-zen-800 text-[#0066FF] font-black text-lg transition-all"
+              className="py-3 sm:py-3.5 rounded-2xl bg-zen-100 dark:bg-zen-800 text-[#0066FF] font-black text-lg transition-all"
             >
               −
             </button>
@@ -665,14 +715,14 @@ export function CalculatorClient({
               <button
                 key={d}
                 onClick={() => handleCalcNumber(d)}
-                className="py-3.5 rounded-2xl bg-zen-50 dark:bg-zen-900 hover:bg-zen-100 dark:hover:bg-zen-800 text-zen-900 dark:text-zen-100 font-bold text-base transition-all active:scale-95"
+                className="py-3 sm:py-3.5 rounded-2xl bg-zen-50 dark:bg-zen-900 hover:bg-zen-100 dark:hover:bg-zen-800 text-zen-900 dark:text-zen-100 font-bold text-base transition-all active:scale-95"
               >
                 {d}
               </button>
             ))}
             <button
               onClick={() => handleCalcOp('+')}
-              className="py-3.5 rounded-2xl bg-zen-100 dark:bg-zen-800 text-[#0066FF] font-black text-lg transition-all"
+              className="py-3 sm:py-3.5 rounded-2xl bg-zen-100 dark:bg-zen-800 text-[#0066FF] font-black text-lg transition-all"
             >
               +
             </button>
@@ -681,14 +731,14 @@ export function CalculatorClient({
               <button
                 key={d}
                 onClick={() => handleCalcNumber(d)}
-                className="py-3.5 rounded-2xl bg-zen-50 dark:bg-zen-900 hover:bg-zen-100 dark:hover:bg-zen-800 text-zen-900 dark:text-zen-100 font-bold text-base transition-all active:scale-95"
+                className="py-3 sm:py-3.5 rounded-2xl bg-zen-50 dark:bg-zen-900 hover:bg-zen-100 dark:hover:bg-zen-800 text-zen-900 dark:text-zen-100 font-bold text-base transition-all active:scale-95"
               >
                 {d}
               </button>
             ))}
             <button
               onClick={() => handleCalcNumber('000')}
-              className="py-3.5 rounded-2xl bg-zen-100 dark:bg-zen-800 text-zen-700 dark:text-zen-300 font-black text-xs transition-all"
+              className="py-3 sm:py-3.5 rounded-2xl bg-zen-100 dark:bg-zen-800 text-zen-700 dark:text-zen-300 font-black text-xs transition-all"
             >
               000
             </button>
@@ -697,27 +747,27 @@ export function CalculatorClient({
               <button
                 key={d}
                 onClick={() => handleCalcNumber(d)}
-                className="py-3.5 rounded-2xl bg-zen-50 dark:bg-zen-900 hover:bg-zen-100 dark:hover:bg-zen-800 text-zen-900 dark:text-zen-100 font-bold text-base transition-all active:scale-95"
+                className="py-3 sm:py-3.5 rounded-2xl bg-zen-50 dark:bg-zen-900 hover:bg-zen-100 dark:hover:bg-zen-800 text-zen-900 dark:text-zen-100 font-bold text-base transition-all active:scale-95"
               >
                 {d}
               </button>
             ))}
             <button
               onClick={handleCalcEqual}
-              className="row-span-2 py-3.5 rounded-2xl bg-[#0066FF] hover:bg-[#0052CC] text-white font-black text-xl shadow-glow transition-all flex items-center justify-center"
+              className="row-span-2 py-3 sm:py-3.5 rounded-2xl bg-[#0066FF] hover:bg-[#0052CC] text-white font-black text-xl shadow-glow transition-all flex items-center justify-center"
             >
               =
             </button>
 
             <button
               onClick={() => handleCalcNumber('0')}
-              className="col-span-2 py-3.5 rounded-2xl bg-zen-50 dark:bg-zen-900 hover:bg-zen-100 dark:hover:bg-zen-800 text-zen-900 dark:text-zen-100 font-bold text-base transition-all"
+              className="col-span-2 py-3 sm:py-3.5 rounded-2xl bg-zen-50 dark:bg-zen-900 hover:bg-zen-100 dark:hover:bg-zen-800 text-zen-900 dark:text-zen-100 font-bold text-base transition-all"
             >
               0
             </button>
             <button
               onClick={() => handleCalcNumber('.')}
-              className="py-3.5 rounded-2xl bg-zen-50 dark:bg-zen-900 hover:bg-zen-100 dark:hover:bg-zen-800 text-zen-900 dark:text-zen-100 font-bold text-base transition-all"
+              className="py-3 sm:py-3.5 rounded-2xl bg-zen-50 dark:bg-zen-900 hover:bg-zen-100 dark:hover:bg-zen-800 text-zen-900 dark:text-zen-100 font-bold text-base transition-all"
             >
               .
             </button>
@@ -727,9 +777,9 @@ export function CalculatorClient({
 
       {/* ══════════════ TAB 3: DEPOSIT & COMPOUND INTEREST ══════════════ */}
       {activeTab === 'DEPOSIT' && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-in fade-in duration-200">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 sm:gap-6 animate-in fade-in duration-200">
           {/* Inputs */}
-          <div className="p-6 rounded-3xl bg-white dark:bg-[#131C2E] border border-zen-200 dark:border-zen-800 shadow-apple space-y-4">
+          <div className="p-4 sm:p-6 rounded-3xl bg-white dark:bg-[#131C2E] border border-zen-200 dark:border-zen-800 shadow-apple space-y-4">
             <h3 className="text-base font-extrabold text-zen-900 dark:text-zen-100 flex items-center gap-2">
               <PiggyBank size={18} className="text-emerald-500" />
               Калькулятор вкладов и сложного процента
@@ -791,28 +841,28 @@ export function CalculatorClient({
           </div>
 
           {/* Results Card */}
-          <div className="p-6 rounded-3xl bg-gradient-to-br from-emerald-950/60 via-[#131C2E] to-[#0A1527] border border-emerald-500/30 text-white space-y-5 flex flex-col justify-between">
+          <div className="p-5 sm:p-6 rounded-3xl bg-gradient-to-br from-emerald-950/60 via-[#131C2E] to-[#0A1527] border border-emerald-500/30 text-white space-y-4 sm:space-y-5 flex flex-col justify-between">
             <div>
               <span className="text-[10px] uppercase font-bold text-emerald-400">
                 Результат сложного процента
               </span>
               <h4 className="text-xs text-slate-400">Итоговый капитал через {depMonths} мес.</h4>
-              <p className="text-3xl font-black text-emerald-400 font-mono mt-1">
+              <p className="text-2xl sm:text-3xl font-black text-emerald-400 font-mono mt-1">
                 {depositResults.finalBalance.toLocaleString('ru-RU')} сум
               </p>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 pt-4 border-t border-white/10">
+            <div className="grid grid-cols-2 gap-3 pt-3 border-t border-white/10">
               <div className="p-3 rounded-2xl bg-white/5 space-y-0.5">
                 <span className="text-[10px] text-slate-400">Ваши вложения</span>
-                <p className="text-base font-extrabold text-white">
+                <p className="text-sm sm:text-base font-extrabold text-white">
                   {depositResults.totalInvested.toLocaleString('ru-RU')} сум
                 </p>
               </div>
 
               <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 space-y-0.5">
                 <span className="text-[10px] text-emerald-400 font-bold">Чистая прибыль (%)</span>
-                <p className="text-base font-black text-emerald-300">
+                <p className="text-sm sm:text-base font-black text-emerald-300">
                   +{depositResults.totalInterest.toLocaleString('ru-RU')} сум
                 </p>
               </div>
@@ -827,8 +877,8 @@ export function CalculatorClient({
 
       {/* ══════════════ TAB 4: LOAN CALCULATOR ══════════════ */}
       {activeTab === 'LOAN' && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-in fade-in duration-200">
-          <div className="p-6 rounded-3xl bg-white dark:bg-[#131C2E] border border-zen-200 dark:border-zen-800 shadow-apple space-y-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 sm:gap-6 animate-in fade-in duration-200">
+          <div className="p-4 sm:p-6 rounded-3xl bg-white dark:bg-[#131C2E] border border-zen-200 dark:border-zen-800 shadow-apple space-y-4">
             <h3 className="text-base font-extrabold text-zen-900 dark:text-zen-100 flex items-center gap-2">
               <Landmark size={18} className="text-blue-500" />
               Калькулятор кредита и рассрочки
@@ -876,28 +926,28 @@ export function CalculatorClient({
           </div>
 
           {/* Results Card */}
-          <div className="p-6 rounded-3xl bg-gradient-to-br from-blue-950/60 via-[#131C2E] to-[#0A1527] border border-blue-500/30 text-white space-y-5 flex flex-col justify-between">
+          <div className="p-5 sm:p-6 rounded-3xl bg-gradient-to-br from-blue-950/60 via-[#131C2E] to-[#0A1527] border border-blue-500/30 text-white space-y-4 sm:space-y-5 flex flex-col justify-between">
             <div>
               <span className="text-[10px] uppercase font-bold text-blue-400">
                 Аннуитетный расчёт
               </span>
               <h4 className="text-xs text-slate-400">Ежемесячный платёж</h4>
-              <p className="text-3xl font-black text-blue-400 font-mono mt-1">
+              <p className="text-2xl sm:text-3xl font-black text-blue-400 font-mono mt-1">
                 {loanResults.monthlyPayment.toLocaleString('ru-RU')} сум / мес
               </p>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 pt-4 border-t border-white/10">
+            <div className="grid grid-cols-2 gap-3 pt-3 border-t border-white/10">
               <div className="p-3 rounded-2xl bg-white/5 space-y-0.5">
                 <span className="text-[10px] text-slate-400">Всего выплат банку</span>
-                <p className="text-base font-extrabold text-white">
+                <p className="text-sm sm:text-base font-extrabold text-white">
                   {loanResults.totalPayment.toLocaleString('ru-RU')} сум
                 </p>
               </div>
 
               <div className="p-3 rounded-2xl bg-rose-500/10 border border-rose-500/20 space-y-0.5">
                 <span className="text-[10px] text-rose-400 font-bold">Переплата (проценты)</span>
-                <p className="text-base font-black text-rose-300">
+                <p className="text-sm sm:text-base font-black text-rose-300">
                   {loanResults.overpayment.toLocaleString('ru-RU')} сум
                 </p>
               </div>
@@ -908,8 +958,8 @@ export function CalculatorClient({
 
       {/* ══════════════ TAB 5: SAVINGS GOAL PLANNER ══════════════ */}
       {activeTab === 'SAVINGS_GOAL' && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-in fade-in duration-200">
-          <div className="p-6 rounded-3xl bg-white dark:bg-[#131C2E] border border-zen-200 dark:border-zen-800 shadow-apple space-y-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 sm:gap-6 animate-in fade-in duration-200">
+          <div className="p-4 sm:p-6 rounded-3xl bg-white dark:bg-[#131C2E] border border-zen-200 dark:border-zen-800 shadow-apple space-y-4">
             <h3 className="text-base font-extrabold text-zen-900 dark:text-zen-100 flex items-center gap-2">
               <Target size={18} className="text-amber-500" />
               План достижения финансовой цели
@@ -942,28 +992,28 @@ export function CalculatorClient({
             </div>
           </div>
 
-          <div className="p-6 rounded-3xl bg-gradient-to-br from-amber-950/60 via-[#131C2E] to-[#0A1527] border border-amber-500/30 text-white space-y-5 flex flex-col justify-between">
+          <div className="p-5 sm:p-6 rounded-3xl bg-gradient-to-br from-amber-950/60 via-[#131C2E] to-[#0A1527] border border-amber-500/30 text-white space-y-4 sm:space-y-5 flex flex-col justify-between">
             <div>
               <span className="text-[10px] uppercase font-bold text-amber-400">
                 Необходимый темп накоплений
               </span>
               <h4 className="text-xs text-slate-400">Сколько откладывать в месяц</h4>
-              <p className="text-3xl font-black text-amber-400 font-mono mt-1">
+              <p className="text-2xl sm:text-3xl font-black text-amber-400 font-mono mt-1">
                 {goalResults.perMonth.toLocaleString('ru-RU')} сум / мес
               </p>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 pt-4 border-t border-white/10">
+            <div className="grid grid-cols-2 gap-3 pt-3 border-t border-white/10">
               <div className="p-3 rounded-2xl bg-white/5 space-y-0.5">
                 <span className="text-[10px] text-slate-400">В неделю</span>
-                <p className="text-base font-extrabold text-white">
+                <p className="text-sm sm:text-base font-extrabold text-white">
                   ~{goalResults.perWeek.toLocaleString('ru-RU')} сум
                 </p>
               </div>
 
               <div className="p-3 rounded-2xl bg-white/5 space-y-0.5">
                 <span className="text-[10px] text-slate-400">В день</span>
-                <p className="text-base font-extrabold text-white">
+                <p className="text-sm sm:text-base font-extrabold text-white">
                   ~{goalResults.perDay.toLocaleString('ru-RU')} сум
                 </p>
               </div>
