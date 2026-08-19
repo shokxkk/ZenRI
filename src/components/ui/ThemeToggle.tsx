@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { Sun, Moon } from 'lucide-react';
+import { soundFx } from '@/lib/soundEffects';
 
 export const ThemeToggle: React.FC = () => {
   const [darkMode, setDarkMode] = useState(false);
@@ -26,10 +27,12 @@ export const ThemeToggle: React.FC = () => {
       document.documentElement.classList.remove('dark');
       localStorage.setItem('theme', 'light');
       setDarkMode(false);
+      soundFx.playToggleOff();
     } else {
       document.documentElement.classList.add('dark');
       localStorage.setItem('theme', 'dark');
       setDarkMode(true);
+      soundFx.playToggleOn();
     }
   };
 

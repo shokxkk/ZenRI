@@ -1,17 +1,32 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
 import { BottomNav } from './BottomNav';
 import { useLanguage } from '@/components/ui/LanguageProvider';
+import { soundFx } from '@/lib/soundEffects';
 
 export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [quickAddOpen, setQuickAddOpen] = useState(false);
   const { t } = useLanguage();
 
+  // App open sound on mount
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      soundFx.playAppOpen();
+    }, 400);
+    return () => clearTimeout(timer);
+  }, []);
+
   const handleOpenQuickAdd = () => {
+    soundFx.playModalOpen();
     setQuickAddOpen(true);
+  };
+
+  const handleCloseQuickAdd = () => {
+    soundFx.playModalClose();
+    setQuickAddOpen(false);
   };
 
   return (
@@ -52,7 +67,7 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
         <div
           className="fixed inset-0 bg-black/60 backdrop-blur-md z-50 flex items-end sm:items-center justify-center p-4"
           style={{ paddingBottom: 'calc(1rem + env(safe-area-inset-bottom))' }}
-          onClick={() => setQuickAddOpen(false)}
+          onClick={handleCloseQuickAdd}
         >
           <div
             className="bg-white dark:bg-[#131C2E] rounded-3xl p-6 w-full max-w-lg border border-zen-200 dark:border-zen-800 shadow-2xl animate-in zoom-in-95 duration-150"
@@ -61,7 +76,10 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-bold text-zen-900 dark:text-zen-100">{t('quick_add_title')}</h3>
               <button
-                onClick={() => setQuickAddOpen(false)}
+                onClick={() => {
+                soundFx.playClick();
+                handleCloseQuickAdd();
+              }}
                 className="w-8 h-8 flex items-center justify-center rounded-full text-zen-400 hover:text-zen-600 dark:hover:text-zen-200 bg-zen-100 dark:bg-zen-800 transition-colors"
               >
                 ✕

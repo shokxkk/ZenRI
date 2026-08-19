@@ -63,6 +63,7 @@ export function CalculatorClient({
     setIsSyncing(true);
     soundFx.playClick();
     try {
+      soundFx.playSync();
       const res = await getLiveRatesAction();
       if (res.success) {
         setRates(res.rates);
@@ -126,7 +127,7 @@ export function CalculatorClient({
   }, [parsedAmount, activeSourceCurrency, rates]);
 
   const handleCopy = (text: string, key: string) => {
-    soundFx.playClick();
+    soundFx.playCopy();
     navigator.clipboard.writeText(text);
     setCopiedKey(key);
     setTimeout(() => setCopiedKey(null), 2000);
