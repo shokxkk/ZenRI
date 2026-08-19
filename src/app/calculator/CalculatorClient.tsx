@@ -290,19 +290,19 @@ export function CalculatorClient({
   return (
     <div className="space-y-5 max-w-7xl mx-auto pb-20 px-2 sm:px-4">
       {/* ─── Top Header Navigation Bar with "НАЗАД" button ─── */}
-      <div className="flex items-center justify-between gap-3 pt-2">
+      <div className="flex items-center justify-between gap-3 pt-1 pb-1">
         <Link
           href="/dashboard"
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-white dark:bg-[#131C2E] hover:bg-zen-100 dark:hover:bg-[#1b263d] text-zen-800 dark:text-zen-100 text-xs sm:text-sm font-extrabold transition-all border border-zen-200 dark:border-zen-800 shadow-sm active:scale-95 group"
+          className="inline-flex items-center gap-2 px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-2xl bg-white dark:bg-[#131C2E] hover:bg-zen-100 dark:hover:bg-[#1b263d] text-zen-800 dark:text-zen-100 text-xs sm:text-sm font-extrabold transition-all border border-zen-200 dark:border-zen-800 shadow-sm active:scale-95 group"
         >
           <ArrowLeft size={16} className="group-hover:-translate-x-0.5 transition-transform text-[#0066FF]" />
           <span>Назад на главную</span>
         </Link>
 
         {/* Local time badge */}
-        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zen-100 dark:bg-zen-900 text-zen-600 dark:text-zen-300 text-xs font-bold">
+        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zen-100 dark:bg-zen-900 text-zen-600 dark:text-zen-300 text-xs font-bold border border-zen-200/60 dark:border-zen-800/60">
           <Clock size={13} className="text-[#0066FF]" />
-          <span>Ташкент: {lastSyncedTime || '10:50'}</span>
+          <span>Ташкент: {lastSyncedTime || '12:00'}</span>
         </div>
       </div>
 

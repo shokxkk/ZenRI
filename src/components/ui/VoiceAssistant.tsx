@@ -543,10 +543,10 @@ export function VoiceAssistant({ size = 'sm' }: VoiceAssistantProps) {
           disabled={state === 'processing' || state === 'success'}
           title="Удерживайте для записи"
           className={`
-            relative flex items-center gap-2.5 px-4 py-2.5 rounded-2xl
-            font-semibold text-sm transition-all duration-200 select-none
+            relative flex items-center gap-1.5 sm:gap-2.5 px-2.5 py-1.5 sm:px-4 sm:py-2 rounded-2xl
+            font-semibold text-xs sm:text-sm transition-all duration-200 select-none flex-shrink-0
             ${state === 'idle'
-              ? 'bg-gradient-to-r from-violet-600/90 to-blue-600/90 hover:from-violet-500 hover:to-blue-500 text-white shadow-lg shadow-violet-500/25 hover:shadow-violet-500/40 hover:scale-[1.03]'
+              ? 'bg-gradient-to-r from-violet-600/90 to-blue-600/90 hover:from-violet-500 hover:to-blue-500 text-white shadow-md shadow-violet-500/25 hover:shadow-violet-500/40 hover:scale-[1.02]'
               : ''}
             ${state === 'recording'
               ? 'bg-red-500 text-white shadow-xl shadow-red-500/50 scale-105'
@@ -577,20 +577,29 @@ export function VoiceAssistant({ size = 'sm' }: VoiceAssistantProps) {
           {/* Icon */}
           <span className="flex-shrink-0 relative z-10">
             {state === 'processing' ? (
-              <Loader2 size={20} className="animate-spin" />
+              <Loader2 size={16} className="animate-spin" />
             ) : state === 'recording' ? (
-              <MicOff size={20} />
+              <MicOff size={16} />
             ) : state === 'success' ? (
-              <CheckCircle2 size={20} />
+              <CheckCircle2 size={16} />
             ) : state === 'error' ? (
-              <AlertCircle size={20} />
+              <AlertCircle size={16} />
             ) : (
-              <Mic size={20} />
+              <Mic size={16} />
             )}
           </span>
 
-          {/* Label */}
-          <span className="relative z-10 whitespace-nowrap">{getLabel()}</span>
+          {/* Label: compact on mobile, full on desktop */}
+          <span className="relative z-10 whitespace-nowrap font-bold text-xs sm:text-sm">
+            {state === 'idle' ? (
+              <>
+                <span className="hidden sm:inline">Голосовой ввод</span>
+                <span className="sm:hidden">Голос</span>
+              </>
+            ) : (
+              getLabel()
+            )}
+          </span>
 
           {/* Waveform animation while recording */}
           {state === 'recording' && (
@@ -613,32 +622,32 @@ export function VoiceAssistant({ size = 'sm' }: VoiceAssistantProps) {
         {/* Overlay card portal */}
         {renderCard()}
 
-        {/* Language Switcher — small pill with clean SVG flags next to button */}
-        <div className="flex items-center gap-1 ml-1 bg-black/40 dark:bg-[#070D1E] p-1 rounded-2xl border border-white/10 shadow-sm">
+        {/* Language Switcher — responsive small pill with clean SVG flags next to button */}
+        <div className="flex items-center gap-0.5 sm:gap-1 ml-0.5 sm:ml-1 bg-black/40 dark:bg-[#070D1E] p-0.5 sm:p-1 rounded-2xl border border-white/10 shadow-sm flex-shrink-0">
           <button
             type="button"
             onClick={() => setVoiceLang('uz')}
             title="O'zbek tili (Ўзбекча)"
-            className={`flex items-center gap-1.5 px-2 py-1 rounded-xl text-[11px] font-extrabold transition-all active:scale-95 ${
+            className={`flex items-center gap-1 px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-xl text-[10px] sm:text-[11px] font-extrabold transition-all active:scale-95 ${
               voiceLang === 'uz'
                 ? 'bg-[#1EB53A]/25 text-emerald-300 border border-emerald-400/50 shadow-glow'
                 : 'text-zinc-400 hover:text-white hover:bg-white/5 border border-transparent'
             }`}
           >
-            <FlagUzbekistan className="w-4 h-2.5" />
+            <FlagUzbekistan className="w-3.5 h-2 sm:w-4 sm:h-2.5" />
             <span>UZ</span>
           </button>
           <button
             type="button"
             onClick={() => setVoiceLang('ru')}
             title="Русский язык"
-            className={`flex items-center gap-1.5 px-2 py-1 rounded-xl text-[11px] font-extrabold transition-all active:scale-95 ${
+            className={`flex items-center gap-1 px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-xl text-[10px] sm:text-[11px] font-extrabold transition-all active:scale-95 ${
               voiceLang === 'ru'
                 ? 'bg-blue-600/30 text-blue-300 border border-blue-400/50 shadow-glow'
                 : 'text-zinc-400 hover:text-white hover:bg-white/5 border border-transparent'
             }`}
           >
-            <FlagRussia className="w-4 h-2.5" />
+            <FlagRussia className="w-3.5 h-2 sm:w-4 sm:h-2.5" />
             <span>RU</span>
           </button>
         </div>

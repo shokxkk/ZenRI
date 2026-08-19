@@ -18,8 +18,11 @@ import {
   Calculator,
   Settings,
   X,
+  Volume2,
+  VolumeX,
 } from 'lucide-react';
 import { useLanguage } from '@/components/ui/LanguageProvider';
+import { soundFx } from '@/lib/soundEffects';
 
 interface BottomNavProps {
   onOpenQuickAdd: () => void;
@@ -28,7 +31,18 @@ interface BottomNavProps {
 export const BottomNav: React.FC<BottomNavProps> = ({ onOpenQuickAdd }) => {
   const pathname = usePathname();
   const [showMoreMenu, setShowMoreMenu] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
   const { t } = useLanguage();
+
+  React.useEffect(() => {
+    setIsMuted(soundFx.getMuted());
+  }, []);
+
+  const handleToggleMute = () => {
+    const newMuted = soundFx.toggleMute();
+    setIsMuted(newMuted);
+    if (!newMuted) soundFx.playClick();
+  };
 
   const allItems = [
     { href: '/dashboard', labelKey: 'nav_today' as const, icon: LayoutDashboard },
@@ -62,12 +76,26 @@ export const BottomNav: React.FC<BottomNavProps> = ({ onOpenQuickAdd }) => {
 
             <div className="flex items-center justify-between mb-4 pb-3 border-b border-zen-100 dark:border-zen-800/60">
               <span className="font-bold text-zen-900 dark:text-zen-100 text-sm">{t('nav_all_sections')}</span>
-              <button
-                onClick={() => setShowMoreMenu(false)}
-                className="w-8 h-8 rounded-full text-zen-400 hover:text-zen-600 dark:hover:text-zen-200 bg-zen-100 dark:bg-zen-800 flex items-center justify-center"
-              >
-                <X size={16} />
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleToggleMute}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all active:scale-95 ${
+                    isMuted
+                      ? 'text-rose-500 bg-rose-500/15 border border-rose-500/30'
+                      : 'text-[#0066FF] bg-[#0066FF]/10 border border-[#0066FF]/25'
+                  }`}
+                  title={isMuted ? 'Включить звук' : 'Выключить звук'}
+                >
+                  {isMuted ? <VolumeX size={15} /> : <Volume2 size={15} />}
+                  <span>{isMuted ? 'Без звука' : 'Звук вкл'}</span>
+                </button>
+                <button
+                  onClick={() => setShowMoreMenu(false)}
+                  className="w-8 h-8 rounded-full text-zen-400 hover:text-zen-600 dark:hover:text-zen-200 bg-zen-100 dark:bg-zen-800 flex items-center justify-center"
+                >
+                  <X size={16} />
+                </button>
+              </div>
             </div>
 
             <div className="grid grid-cols-3 gap-3">

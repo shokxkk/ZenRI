@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
 import { fetchLiveExchangeRates } from '@/lib/currencyRates';
 import { CalculatorClient } from './CalculatorClient';
+import { AppShell } from '@/components/layout/AppShell';
 
 export const metadata = {
   title: 'Калькулятор & Курсы валют — ZenRI',
@@ -38,17 +39,19 @@ export default async function CalculatorPage() {
   ]);
 
   return (
-    <CalculatorClient
-      initialRates={rates}
-      userCurrency={user?.defaultCurrency || 'UZS'}
-      userAccounts={
-        user?.accounts.map((a) => ({
-          id: a.id,
-          name: a.name,
-          currentBalance: Number(a.currentBalance),
-          currency: a.currency,
-        })) || []
-      }
-    />
+    <AppShell>
+      <CalculatorClient
+        initialRates={rates}
+        userCurrency={user?.defaultCurrency || 'UZS'}
+        userAccounts={
+          user?.accounts.map((a) => ({
+            id: a.id,
+            name: a.name,
+            currentBalance: Number(a.currentBalance),
+            currency: a.currency,
+          })) || []
+        }
+      />
+    </AppShell>
   );
 }

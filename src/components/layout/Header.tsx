@@ -39,12 +39,12 @@ export const Header: React.FC<HeaderProps> = ({ onOpenQuickAdd }) => {
   };
 
   return (
-    <header className="h-[calc(4.5rem+env(safe-area-inset-top))] pt-[env(safe-area-inset-top)] px-4 md:px-6 bg-white/90 dark:bg-[#0A0F1D]/90 apple-glass border-b border-zen-200 dark:border-zen-800/80 flex items-center justify-between sticky top-0 z-20 transition-colors gap-3">
+    <header className="h-[calc(4rem+env(safe-area-inset-top))] sm:h-[calc(4.5rem+env(safe-area-inset-top))] pt-[env(safe-area-inset-top)] px-2.5 sm:px-4 md:px-6 bg-white/90 dark:bg-[#0A0F1D]/90 apple-glass border-b border-zen-200 dark:border-zen-800/80 flex items-center justify-between sticky top-0 z-20 transition-colors gap-1.5 sm:gap-3">
 
       {/* Left — Logo / Greeting */}
-      <div className="flex items-center gap-2 flex-shrink-0">
+      <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
         {/* Mobile logo */}
-        <div className="md:hidden">
+        <div className="md:hidden flex-shrink-0">
           <ZenLogo size="sm" />
         </div>
         {/* Desktop greeting */}
@@ -53,25 +53,26 @@ export const Header: React.FC<HeaderProps> = ({ onOpenQuickAdd }) => {
         </span>
       </div>
 
-      {/* CENTER — Voice Assistant (prominent, always visible) */}
-      <div className="flex-1 flex items-center justify-center">
+      {/* CENTER — Voice Assistant (prominent, responsive) */}
+      <div className="flex-1 flex items-center justify-center min-w-0 px-0.5 sm:px-1">
         <VoiceAssistant size="lg" />
       </div>
 
       {/* Right Controls */}
-      <div className="flex items-center gap-2 flex-shrink-0">
+      <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
 
-        {/* Sound Mute Toggle */}
+        {/* Sound Mute Toggle — always visible and responsive */}
         <button
           onClick={handleToggleMute}
-          className={`p-2 rounded-xl transition-all ${
+          className={`p-1.5 sm:p-2 rounded-xl transition-all active:scale-90 flex items-center justify-center flex-shrink-0 ${
             isMuted
-              ? 'text-rose-400 bg-rose-500/10 hover:bg-rose-500/20'
-              : 'text-zen-400 hover:text-zen-900 dark:hover:text-zen-100 bg-zen-100 dark:bg-zen-800/80 hover:bg-zen-200 dark:hover:bg-zen-700'
+              ? 'text-rose-500 bg-rose-500/15 border border-rose-500/30'
+              : 'text-[#0066FF] hover:text-[#0052CC] bg-[#0066FF]/10 hover:bg-[#0066FF]/20 border border-[#0066FF]/25 dark:bg-[#0066FF]/15 dark:border-[#0066FF]/30'
           }`}
           title={isMuted ? 'Включить звук' : 'Выключить звук'}
+          aria-label={isMuted ? 'Включить звук' : 'Выключить звук'}
         >
-          {isMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
+          {isMuted ? <VolumeX size={17} className="text-rose-500" /> : <Volume2 size={17} className="text-[#0066FF]" />}
         </button>
 
         {/* Theme Toggle */}
@@ -80,15 +81,15 @@ export const Header: React.FC<HeaderProps> = ({ onOpenQuickAdd }) => {
         {/* Round Blue Plus Button */}
         <button
           onClick={onOpenQuickAdd}
-          className="w-9 h-9 rounded-full bg-[#0066FF] hover:bg-[#0052CC] text-white flex items-center justify-center shadow-glow transition-transform active:scale-95 flex-shrink-0"
+          className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-[#0066FF] hover:bg-[#0052CC] text-white flex items-center justify-center shadow-glow transition-transform active:scale-95 flex-shrink-0"
           title={t('header_quick_add')}
         >
-          <Plus size={20} strokeWidth={2.5} />
+          <Plus size={18} strokeWidth={2.5} />
         </button>
 
         {/* User Avatar — links to settings */}
-        <a href="/settings" title={t('nav_settings')}>
-          <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#0055FF] to-[#00C2FF] p-0.5 flex-shrink-0 cursor-pointer shadow-sm hover:scale-110 transition-transform">
+        <a href="/settings" title={t('nav_settings')} className="flex-shrink-0">
+          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-tr from-[#0055FF] to-[#00C2FF] p-0.5 flex-shrink-0 cursor-pointer shadow-sm hover:scale-110 transition-transform">
             {session?.user?.image ? (
               <img
                 src={session.user.image}
@@ -96,11 +97,11 @@ export const Header: React.FC<HeaderProps> = ({ onOpenQuickAdd }) => {
                 className="w-full h-full rounded-full object-cover"
               />
             ) : (
-              <div className="w-full h-full rounded-full bg-zen-900 flex items-center justify-center text-white font-bold text-xs">
+              <div className="w-full h-full rounded-full bg-zen-900 flex items-center justify-center text-white font-bold text-[10px] sm:text-xs">
                 {session?.user?.name ? (
                   session.user.name.charAt(0).toUpperCase()
                 ) : (
-                  <UserIcon size={16} />
+                  <UserIcon size={14} />
                 )}
               </div>
             )}
