@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { soundFx } from '@/lib/soundEffects';
 import { addTransaction } from '@/app/actions/financeActions';
+import { getAIBookRecommendation, type RecommendedBook } from '@/app/actions/aiActions';
 import { useRouter } from 'next/navigation';
 
 export type BookCategory =
@@ -159,7 +160,7 @@ export function BooksClient({
   const [books, setBooks] = useState<BookItem[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [activeTab, setActiveTab] = useState<'READING' | 'LIBRARY' | 'WISHLIST' | 'TIMER'>('READING');
-  const [aiRec, setAiRec] = useState<{ title: string; author: string; reason: string } | null>(null);
+  const [aiRec, setAiRec] = useState<RecommendedBook | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
@@ -420,26 +421,59 @@ export function BooksClient({
     setRandomPick(candidates[idx]);
   };
 
-  // AI Book Recommendation (smart random pick with motivating tip)
-  const AI_REASONS = [
-    'Эта книга изменит ваш взгляд на время и продуктивность. Идеальное чтение для роста.',
-    'Автор раскрывает секреты, которые применяют лучшие лидеры мира. Мощная книга.',
-    'Простые принципы, которые работают в реальной жизни. Начните прямо сегодня!',
-    'Книга отвечает на вопросы, которые вы давно задавали себе. Очень своевременно.',
-    'Эту книгу рекомендуют 9 из 10 успешных предпринимателей. Самое время прочитать!',
-  ];
-
-  const handleAiRecommend = () => {
+  // AI Book Recommendation with real ChatGPT integration & infinite world-class library
+  const handleAiRecommend = async () => {
     setAiLoading(true);
-    const all = books.filter((b) => b.status !== 'WISHLIST');
-    const candidates = all.length > 0 ? all : DEFAULT_BOOKS;
-    setTimeout(() => {
-      const pick = candidates[Math.floor(Math.random() * candidates.length)];
-      const reason = AI_REASONS[Math.floor(Math.random() * AI_REASONS.length)];
-      setAiRec({ title: pick.title, author: pick.author, reason });
-      setAiLoading(false);
+    try {
+      const exclude = books.map((b) => b.title);
+      const rec = await getAIBookRecommendation(exclude);
+      setAiRec(rec);
       soundFx.playIncomeSound();
-    }, 1200);
+    } catch (err) {
+      console.error('AI Book Recommend Error:', err);
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const handleAddRecommendedToReading = (rec: RecommendedBook) => {
+    soundFx.playIncomeSound();
+    const newBook: BookItem = {
+      id: `b-${Date.now()}`,
+      title: rec.title,
+      author: rec.author,
+      category: rec.category,
+      status: 'READING',
+      totalPages: rec.totalPages,
+      currentPage: 0,
+      coverGradient: rec.coverGradient,
+      startedAt: new Date().toISOString(),
+      notes: rec.keyInsight ? [rec.keyInsight] : [],
+      quotes: [],
+    };
+    saveBooks([newBook, ...books]);
+    setAiRec(null);
+    setActiveTab('READING');
+  };
+
+  const handleAddRecommendedToWishlist = (rec: RecommendedBook) => {
+    soundFx.playIncomeSound();
+    const newBook: BookItem = {
+      id: `b-${Date.now()}`,
+      title: rec.title,
+      author: rec.author,
+      category: rec.category,
+      status: 'WISHLIST',
+      totalPages: rec.totalPages,
+      currentPage: 0,
+      price: rec.price,
+      coverGradient: rec.coverGradient,
+      notes: rec.keyInsight ? [rec.keyInsight] : [],
+      quotes: [],
+    };
+    saveBooks([newBook, ...books]);
+    setAiRec(null);
+    setActiveTab('WISHLIST');
   };
 
   // Complete Reading Timer Session
@@ -530,46 +564,128 @@ export function BooksClient({
       </div>
 
       {/* AI Recommendation Banner */}
-      <div className="p-4 rounded-2xl bg-gradient-to-r from-violet-900/50 via-indigo-900/50 to-blue-900/40 border border-violet-500/30 flex flex-col sm:flex-row items-center gap-3">
-        <div className="flex items-center gap-3 flex-1">
-          <button
-            onClick={handleAiRecommend}
-            disabled={aiLoading}
-            className={`relative w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 transition-all active:scale-95 ${
-              aiLoading
-                ? 'bg-violet-600/50 cursor-wait'
-                : 'bg-gradient-to-tr from-violet-600 to-blue-500 hover:from-violet-500 hover:to-blue-400 shadow-lg shadow-violet-500/40 hover:scale-105'
-            }`}
-          >
-            {aiLoading ? (
-              <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-            ) : (
-              <Wand2 size={22} className="text-white" />
-            )}
-            {!aiLoading && (
-              <span className="absolute inset-0 rounded-2xl bg-violet-400/20 animate-ping opacity-60 pointer-events-none" />
-            )}
-          </button>
-          {aiRec ? (
-            <div className="flex-1 min-w-0">
-              <p className="text-[10px] text-violet-300 font-bold uppercase tracking-wider">🤖 AI рекомендует</p>
-              <p className="text-sm font-extrabold text-white truncate">{aiRec.title}</p>
-              <p className="text-[11px] text-slate-400 truncate">{aiRec.author} — {aiRec.reason}</p>
+      <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-violet-950/70 via-indigo-950/70 to-blue-950/60 border border-violet-500/40 shadow-xl transition-all space-y-3">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleAiRecommend}
+              disabled={aiLoading}
+              className={`relative w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 transition-all active:scale-95 ${
+                aiLoading
+                  ? 'bg-violet-600/50 cursor-wait'
+                  : 'bg-gradient-to-tr from-violet-600 to-blue-500 hover:from-violet-500 hover:to-blue-400 shadow-lg shadow-violet-500/40 hover:scale-105'
+              }`}
+              title="Нажмите для рекомендации от ChatGPT"
+            >
+              {aiLoading ? (
+                <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : (
+                <Wand2 size={22} className="text-white" />
+              )}
+              {!aiLoading && (
+                <span className="absolute inset-0 rounded-2xl bg-violet-400/25 animate-ping opacity-60 pointer-events-none" />
+              )}
+            </button>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] text-violet-300 font-extrabold uppercase tracking-wider flex items-center gap-1">
+                  <Sparkles size={12} className="text-amber-400" /> AI-библиотекарь (ChatGPT)
+                </span>
+                {aiLoading && (
+                  <span className="text-[10px] text-sky-400 font-bold animate-pulse">
+                    Подбираю лучшую книгу...
+                  </span>
+                )}
+              </div>
+              <p className="text-sm font-extrabold text-white">
+                {aiRec ? aiRec.title : 'Какую книгу прочитать следующей?'}
+              </p>
+              {!aiRec && (
+                <p className="text-[11px] text-slate-400">
+                  Нажмите на шар — AI подберёт глубокую книгу с инсайтом под ваш рост
+                </p>
+              )}
             </div>
-          ) : (
-            <div className="flex-1">
-              <p className="text-xs font-extrabold text-white">🤖 AI посоветует книгу</p>
-              <p className="text-[11px] text-slate-400">Нажмите на шар — получите умную рекомендацию</p>
-            </div>
-          )}
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleAiRecommend}
+              disabled={aiLoading}
+              className="px-3 py-1.5 rounded-xl bg-violet-500/20 hover:bg-violet-500/30 text-violet-300 border border-violet-500/30 text-xs font-bold transition-all active:scale-95 hidden sm:flex items-center gap-1.5"
+            >
+              <Wand2 size={13} />
+              <span>{aiRec ? 'Другую книгу' : 'Подобрать'}</span>
+            </button>
+            {aiRec && (
+              <button
+                onClick={() => setAiRec(null)}
+                className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-white/10"
+              >
+                <X size={16} />
+              </button>
+            )}
+          </div>
         </div>
+
+        {/* Detailed AI Recommended Book Card */}
         {aiRec && (
-          <button
-            onClick={() => setAiRec(null)}
-            className="p-1.5 text-slate-400 hover:text-white flex-shrink-0"
-          >
-            <X size={14} />
-          </button>
+          <div className="pt-2 border-t border-white/10 flex flex-col md:flex-row gap-4 items-start justify-between animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex gap-3.5 items-start flex-1 min-w-0">
+              {/* Cover */}
+              <div
+                className={`w-14 h-20 rounded-xl bg-gradient-to-br ${aiRec.coverGradient} shadow-md flex-shrink-0 flex flex-col justify-between p-1.5 text-white border-l-2 border-white/20`}
+              >
+                <span className="text-[8px] font-extrabold uppercase truncate opacity-80">
+                  {CATEGORY_MAP[aiRec.category]?.label || 'Книга'}
+                </span>
+                <p className="text-[9px] font-black line-clamp-2 leading-tight">{aiRec.title}</p>
+              </div>
+
+              {/* Info */}
+              <div className="space-y-1 min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <span
+                    className="px-2 py-0.5 rounded-md text-[9px] font-extrabold"
+                    style={{
+                      color: CATEGORY_MAP[aiRec.category]?.color,
+                      backgroundColor: CATEGORY_MAP[aiRec.category]?.bg,
+                    }}
+                  >
+                    {CATEGORY_MAP[aiRec.category]?.label}
+                  </span>
+                  <span className="text-[11px] text-slate-400">Автор: <b className="text-white">{aiRec.author}</b></span>
+                  <span className="text-[10px] text-slate-500">• {aiRec.totalPages} стр</span>
+                </div>
+                <p className="text-xs text-slate-300 leading-relaxed font-medium">
+                  {aiRec.shortReason}
+                </p>
+                {aiRec.keyInsight && (
+                  <p className="text-[11px] text-amber-300/90 italic bg-amber-500/10 px-2.5 py-1 rounded-lg border border-amber-500/20 inline-block">
+                    💡 «{aiRec.keyInsight}»
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Quick Actions */}
+            <div className="flex items-center gap-2 w-full md:w-auto justify-end flex-shrink-0 pt-2 md:pt-0">
+              <button
+                onClick={() => handleAddRecommendedToReading(aiRec)}
+                className="flex-1 md:flex-initial px-3.5 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-600 hover:opacity-90 text-white text-xs font-bold shadow-glow transition-all active:scale-95 flex items-center justify-center gap-1.5"
+              >
+                <BookOpen size={14} />
+                <span>+ В «Читаю сейчас»</span>
+              </button>
+              <button
+                onClick={() => handleAddRecommendedToWishlist(aiRec)}
+                className="flex-1 md:flex-initial px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold border border-white/15 transition-all active:scale-95 flex items-center justify-center gap-1.5"
+              >
+                <ShoppingBag size={14} />
+                <span>+ В вишлист</span>
+              </button>
+            </div>
+          </div>
         )}
       </div>
 

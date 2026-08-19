@@ -15,6 +15,7 @@ import {
   HandCoins,
   Sparkles,
   BarChart3,
+  Calculator,
   Settings,
   X,
 } from 'lucide-react';
@@ -30,6 +31,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ onOpenQuickAdd }) => {
   const allItems = [
     { href: '/dashboard', label: 'Сегодня', icon: LayoutDashboard },
     { href: '/finances', label: 'Финансы', icon: Wallet },
+    { href: '/calculator', label: 'Калькулятор & Курсы', icon: Calculator },
     { href: '/tasks', label: 'Задачи', icon: CheckSquare },
     { href: '/habits', label: 'Привычки', icon: Repeat },
     { href: '/books', label: 'Книги', icon: BookOpen },

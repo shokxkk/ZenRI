@@ -26,6 +26,37 @@ interface VoiceAssistantProps {
 
 const QUICK_CATEGORIES = ['Авто', 'Кафе / Еда', 'Продукты', 'Такси', 'Зарплата', 'Перевод', 'Дом'];
 
+export function FlagUzbekistan({ className = 'w-4 h-3' }: { className?: string }) {
+  return (
+    <svg className={`${className} rounded-[2px] overflow-hidden shadow-xs flex-shrink-0`} viewBox="0 0 500 250" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect width="500" height="78" fill="#1EB53A" y="172"/>
+      <rect width="500" height="8" fill="#D52B1E" y="164"/>
+      <rect width="500" height="82" fill="#FFFFFF" y="82"/>
+      <rect width="500" height="8" fill="#D52B1E" y="74"/>
+      <rect width="500" height="74" fill="#0099B5"/>
+      {/* Crescent */}
+      <circle cx="70" cy="37" r="24" fill="#FFFFFF"/>
+      <circle cx="76" cy="37" r="20" fill="#0099B5"/>
+      {/* Stars */}
+      <g fill="#FFFFFF">
+        <circle cx="115" cy="22" r="3.5"/><circle cx="132" cy="22" r="3.5"/><circle cx="149" cy="22" r="3.5"/>
+        <circle cx="115" cy="37" r="3.5"/><circle cx="132" cy="37" r="3.5"/><circle cx="149" cy="37" r="3.5"/><circle cx="166" cy="37" r="3.5"/>
+        <circle cx="115" cy="52" r="3.5"/><circle cx="132" cy="52" r="3.5"/><circle cx="149" cy="52" r="3.5"/><circle cx="166" cy="52" r="3.5"/><circle cx="183" cy="52" r="3.5"/>
+      </g>
+    </svg>
+  );
+}
+
+export function FlagRussia({ className = 'w-4 h-3' }: { className?: string }) {
+  return (
+    <svg className={`${className} rounded-[2px] overflow-hidden shadow-xs flex-shrink-0`} viewBox="0 0 300 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect width="300" height="66.67" fill="#FFFFFF"/>
+      <rect width="300" height="66.67" fill="#0039A6" y="66.67"/>
+      <rect width="300" height="66.67" fill="#D52B1E" y="133.33"/>
+    </svg>
+  );
+}
+
 export function VoiceAssistant({ size = 'sm' }: VoiceAssistantProps) {
   const [mounted, setMounted] = useState(false);
   const [state, setState] = useState<VoiceState>('idle');
@@ -289,13 +320,20 @@ export function VoiceAssistant({ size = 'sm' }: VoiceAssistantProps) {
           {state === 'result' && (
             <div className="flex flex-col gap-5">
               {/* Header Title */}
-              <div className="flex items-center gap-2.5">
-                <div className="p-2 rounded-xl bg-violet-500/20 border border-violet-500/30 text-violet-400">
-                  <Zap size={20} />
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 rounded-xl bg-violet-500/20 border border-violet-500/30 text-violet-400">
+                    <Zap size={20} />
+                  </div>
+                  <div>
+                    <h3 className="text-white font-bold text-lg leading-snug">Голосовая операция</h3>
+                    <p className="text-xs text-zinc-400">Проверьте данные и подтвердите запись</p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-white font-bold text-lg leading-snug">Голосовая операция</h3>
-                  <p className="text-xs text-zinc-400">Проверьте данные и подтвердите запись</p>
+
+                <div className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-white/5 border border-white/10 text-xs font-bold text-slate-300">
+                  {voiceLang === 'uz' ? <FlagUzbekistan className="w-4 h-2.5" /> : <FlagRussia className="w-4 h-2.5" />}
+                  <span>{voiceLang === 'uz' ? "O'zbek" : 'Русский'}</span>
                 </div>
               </div>
 
@@ -575,22 +613,34 @@ export function VoiceAssistant({ size = 'sm' }: VoiceAssistantProps) {
         {/* Overlay card portal */}
         {renderCard()}
 
-        {/* Language Switcher — small pill next to button */}
-        <div className="flex items-center gap-0.5 ml-1">
-          {(['ru', 'uz'] as const).map((lang) => (
-            <button
-              key={lang}
-              onClick={() => setVoiceLang(lang)}
-              title={lang === 'ru' ? 'Русский' : 'Ўзбекча'}
-              className={`px-2 py-1 rounded-lg text-[10px] font-extrabold transition-all ${
-                voiceLang === lang
-                  ? 'bg-violet-600 text-white'
-                  : 'bg-white/10 text-zinc-400 hover:text-white'
-              }`}
-            >
-              {lang === 'ru' ? '🇷🇺' : '🇺🇿'}
-            </button>
-          ))}
+        {/* Language Switcher — small pill with clean SVG flags next to button */}
+        <div className="flex items-center gap-1 ml-1 bg-black/40 dark:bg-[#070D1E] p-1 rounded-2xl border border-white/10 shadow-sm">
+          <button
+            type="button"
+            onClick={() => setVoiceLang('uz')}
+            title="O'zbek tili (Ўзбекча)"
+            className={`flex items-center gap-1.5 px-2 py-1 rounded-xl text-[11px] font-extrabold transition-all active:scale-95 ${
+              voiceLang === 'uz'
+                ? 'bg-[#1EB53A]/25 text-emerald-300 border border-emerald-400/50 shadow-glow'
+                : 'text-zinc-400 hover:text-white hover:bg-white/5 border border-transparent'
+            }`}
+          >
+            <FlagUzbekistan className="w-4 h-2.5" />
+            <span>UZ</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setVoiceLang('ru')}
+            title="Русский язык"
+            className={`flex items-center gap-1.5 px-2 py-1 rounded-xl text-[11px] font-extrabold transition-all active:scale-95 ${
+              voiceLang === 'ru'
+                ? 'bg-blue-600/30 text-blue-300 border border-blue-400/50 shadow-glow'
+                : 'text-zinc-400 hover:text-white hover:bg-white/5 border border-transparent'
+            }`}
+          >
+            <FlagRussia className="w-4 h-2.5" />
+            <span>RU</span>
+          </button>
         </div>
       </>
     );

@@ -86,17 +86,78 @@ export async function getUserSettings() {
   return user;
 }
 
+import { convertCurrency, fetchLiveExchangeRates } from '@/lib/currencyRates';
+
 export async function updateUserProfile(data: { name: string; defaultCurrency: string }) {
   const userId = await getUserId();
+  const currentUser = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { defaultCurrency: true },
+  });
+
+  const oldCurrency = currentUser?.defaultCurrency || 'UZS';
+  const newCurrency = data.defaultCurrency;
+
+  // If currency changed, convert existing account balances & debts seamlessly!
+  if (oldCurrency !== newCurrency) {
+    try {
+      const rates = await fetchLiveExchangeRates();
+      const simpleRates: Record<string, number> = {
+        UZS: rates.UZS.rateToUZS,
+        USD: rates.USD.rateToUZS,
+        EUR: rates.EUR.rateToUZS,
+        RUB: rates.RUB.rateToUZS,
+      };
+
+      // 1. Update Accounts
+      const accounts = await prisma.account.findMany({ where: { userId } });
+      for (const acc of accounts) {
+        const convertedCurrent = convertCurrency(Number(acc.currentBalance), oldCurrency, newCurrency, simpleRates);
+        const convertedInitial = convertCurrency(Number(acc.initialBalance), oldCurrency, newCurrency, simpleRates);
+        await prisma.account.update({
+          where: { id: acc.id },
+          data: {
+            currentBalance: Math.round(convertedCurrent * 100) / 100,
+            initialBalance: Math.round(convertedInitial * 100) / 100,
+            currency: newCurrency as never,
+          },
+        });
+      }
+
+      // 2. Update Debts
+      const debts = await prisma.debt.findMany({ where: { userId } });
+      for (const debt of debts) {
+        const convertedOrig = convertCurrency(Number(debt.originalAmount), oldCurrency, newCurrency, simpleRates);
+        const convertedRem = convertCurrency(Number(debt.remainingAmount), oldCurrency, newCurrency, simpleRates);
+        await prisma.debt.update({
+          where: { id: debt.id },
+          data: {
+            originalAmount: Math.round(convertedOrig * 100) / 100,
+            remainingAmount: Math.round(convertedRem * 100) / 100,
+            currency: newCurrency as never,
+          },
+        });
+      }
+    } catch (conversionErr) {
+      console.error('Error during currency conversion:', conversionErr);
+    }
+  }
+
   await prisma.user.update({
     where: { id: userId },
     data: {
       name: data.name,
-      defaultCurrency: data.defaultCurrency as never,
+      defaultCurrency: newCurrency as never,
     },
   });
+
   revalidatePath('/settings');
   revalidatePath('/dashboard');
+  revalidatePath('/finances');
+  revalidatePath('/debts');
+  revalidatePath('/budgets');
+  revalidatePath('/analytics');
+  revalidatePath('/calculator');
 }
 
 export async function updateAvatar(avatarUrl: string) {

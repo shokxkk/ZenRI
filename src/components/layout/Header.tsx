@@ -5,7 +5,8 @@ import { ZenLogo } from '@/components/ui/ZenLogo';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { VoiceAssistant } from '@/components/ui/VoiceAssistant';
 import { useSession } from 'next-auth/react';
-import { User as UserIcon, Plus } from 'lucide-react';
+import { User as UserIcon, Plus, Calculator } from 'lucide-react';
+import Link from 'next/link';
 
 interface HeaderProps {
   onOpenQuickAdd: () => void;
@@ -36,6 +37,18 @@ export const Header: React.FC<HeaderProps> = ({ onOpenQuickAdd }) => {
 
       {/* Right Controls */}
       <div className="flex items-center gap-2 flex-shrink-0">
+
+        {/* Currency & Calculator Quick Access */}
+        <Link
+          href="/calculator"
+          className="p-2 rounded-xl text-zen-500 hover:text-[#0066FF] hover:bg-zen-100 dark:hover:bg-zen-800/80 transition-all flex items-center gap-1.5"
+          title="Калькулятор & Курсы валют ЦБ РУз"
+        >
+          <Calculator size={18} />
+          <span className="text-[10px] font-black uppercase text-emerald-500 bg-emerald-500/10 px-1.5 py-0.5 rounded-md hidden lg:inline">
+            ЦБ РУз
+          </span>
+        </Link>
 
         {/* Theme Toggle */}
         <ThemeToggle />

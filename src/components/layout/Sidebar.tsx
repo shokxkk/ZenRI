@@ -13,6 +13,7 @@ import {
   HandCoins,
   Sparkles,
   BarChart3,
+  Calculator,
   Settings,
   ChevronLeft,
   ChevronRight,
@@ -30,6 +31,7 @@ export const Sidebar: React.FC = () => {
   const navItems = [
     { href: '/dashboard', label: 'Сегодня', icon: LayoutDashboard },
     { href: '/finances', label: 'Финансы', icon: Wallet },
+    { href: '/calculator', label: 'Калькулятор & Курсы', icon: Calculator },
     { href: '/tasks', label: 'Задачи', icon: CheckSquare },
     { href: '/habits', label: 'Привычки', icon: Repeat },
     { href: '/books', label: 'Книги', icon: BookOpen },
