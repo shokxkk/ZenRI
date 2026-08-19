@@ -3,7 +3,7 @@ import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { cookies } from 'next/headers';
 import { getAdminStatsAction, getAdminUsersListAction } from '@/app/actions/adminActions';
-import { AdminClient } from './AdminClient';
+import { AdminClient, type AdminUser, type AdminStats } from './AdminClient';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
@@ -51,8 +51,8 @@ export default async function AdminPage() {
     }
   }
 
-  let initialStats = null;
-  let initialUsers: any[] = [];
+  let initialStats: AdminStats | null = null;
+  let initialUsers: AdminUser[] = [];
 
   if (isAuthorized) {
     try {
@@ -65,7 +65,7 @@ export default async function AdminPage() {
         initialStats = statsRes.stats;
       }
       if (usersRes.success && usersRes.users) {
-        initialUsers = usersRes.users;
+        initialUsers = usersRes.users as unknown as AdminUser[];
       }
     } catch (e) {
       console.error('AdminPage stats load error:', e);

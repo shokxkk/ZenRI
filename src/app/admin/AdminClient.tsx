@@ -40,7 +40,7 @@ import {
 } from '@/app/actions/adminActions';
 import { soundFx } from '@/lib/soundEffects';
 
-interface AdminStats {
+export interface AdminStats {
   totalUsers: number;
   activeUsers: number;
   blockedUsers: number;
@@ -53,7 +53,7 @@ interface AdminStats {
   totalAccounts: number;
 }
 
-interface AdminUser {
+export interface AdminUser {
   id: string;
   name: string;
   email: string;
@@ -76,7 +76,7 @@ interface AdminUser {
   };
 }
 
-interface AdminClientProps {
+export interface AdminClientProps {
   initialStats: AdminStats | null;
   initialUsers: AdminUser[];
   currentUserId: string;
