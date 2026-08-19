@@ -12,6 +12,7 @@ import { signOut, useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { useLanguage } from '@/components/ui/LanguageProvider';
+import { FlagRussia, FlagUzbekistan, FlagUSA } from '@/components/ui/CountryFlags';
 
 type Category = { id: string; name: string; type: string; color: string | null; icon: string };
 
@@ -230,25 +231,45 @@ export function SettingsClient({ user, categories }: SettingsClientProps) {
       {/* Language Section */}
       <Section title={t('settings_language')}>
         <div className="p-5">
-          <p className="text-xs text-zen-400 mb-3">{t('settings_language_subtitle')}</p>
+          <p className="text-xs text-zen-400 mb-4">{t('settings_language_subtitle')}</p>
           <div className="grid grid-cols-3 gap-3">
-            {languages.map((l) => (
-              <button
-                key={l.code}
-                onClick={() => setLang(l.code)}
-                className={`flex flex-col items-center justify-center p-4 rounded-2xl border-2 transition-all min-h-[80px] font-bold text-sm gap-1 active:scale-95 ${
-                  lang === l.code
-                    ? 'border-[#0066FF] bg-[#0066FF]/10 text-[#0066FF] shadow-glow scale-[1.02]'
-                    : 'border-zen-200 dark:border-zen-700 bg-zen-50 dark:bg-zen-800/50 text-zen-700 dark:text-zen-300 hover:border-[#0066FF]/50'
-                }`}
-              >
-                <span className="text-2xl">{l.flag}</span>
-                <span className="text-xs font-bold">{l.nativeName}</span>
-                {lang === l.code && (
-                  <span className="text-[10px] text-[#0066FF] font-extrabold">✓ Активен</span>
-                )}
-              </button>
-            ))}
+            {languages.map((l) => {
+              const isActive = lang === l.code;
+              const FlagComponent = l.code === 'ru' ? FlagRussia : l.code === 'uz' ? FlagUzbekistan : FlagUSA;
+              return (
+                <button
+                  key={l.code}
+                  onClick={() => setLang(l.code)}
+                  className={`relative flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border-2 transition-all duration-200 active:scale-95 overflow-hidden ${
+                    isActive
+                      ? 'border-[#0066FF] bg-gradient-to-b from-[#0066FF]/15 to-[#0066FF]/5 shadow-glow scale-[1.03]'
+                      : 'border-zen-200 dark:border-zen-700 bg-zen-50 dark:bg-zen-800/50 hover:border-[#0066FF]/50 hover:scale-[1.01]'
+                  }`}
+                >
+                  {/* Active indicator ring */}
+                  {isActive && (
+                    <div className="absolute top-2 right-2 w-4 h-4 rounded-full bg-[#0066FF] flex items-center justify-center">
+                      <span className="text-white text-[8px] font-black">✓</span>
+                    </div>
+                  )}
+
+                  {/* Flag Image with drop shadow */}
+                  <div className={`rounded-lg overflow-hidden shadow-md transition-all ${
+                    isActive ? 'ring-2 ring-[#0066FF]/60 shadow-lg' : 'ring-1 ring-black/10'
+                  }`}>
+                    <FlagComponent size={64} />
+                  </div>
+
+                  {/* Language Name */}
+                  <div className="text-center">
+                    <p className={`text-xs font-black ${
+                      isActive ? 'text-[#0066FF]' : 'text-zen-900 dark:text-zen-100'
+                    }`}>{l.nativeName}</p>
+                    <p className="text-[10px] text-zen-400 font-medium">{l.country}</p>
+                  </div>
+                </button>
+              );
+            })}
           </div>
         </div>
       </Section>

@@ -3,11 +3,12 @@
 
 export type Language = 'ru' | 'uz' | 'en';
 
-export const LANGUAGES: { code: Language; label: string; flag: string; nativeName: string }[] = [
-  { code: 'ru', label: 'Русский', flag: '🇷🇺', nativeName: 'Русский' },
-  { code: 'uz', label: "O'zbek", flag: '🇺🇿', nativeName: "O'zbek" },
-  { code: 'en', label: 'English', flag: '🇬🇧', nativeName: 'English' },
+export const LANGUAGES: { code: Language; label: string; flag: string; nativeName: string; country: string }[] = [
+  { code: 'ru', label: 'Русский', flag: '🇷🇺', nativeName: 'Русский', country: 'Россия' },
+  { code: 'uz', label: "O'zbek", flag: '🇺🇿', nativeName: "O'zbek", country: 'Узбекистон' },
+  { code: 'en', label: 'English', flag: '🇺🇸', nativeName: 'English', country: 'USA' },
 ];
+
 
 export const STORAGE_KEY = 'zenri_lang';
 
