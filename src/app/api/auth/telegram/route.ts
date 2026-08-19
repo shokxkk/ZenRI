@@ -133,6 +133,14 @@ export async function GET(req: NextRequest) {
       });
     }
 
+    // Check if user is blocked by Admin
+    if (user.isBlocked) {
+      return NextResponse.json(
+        { error: `🚫 Ваш доступ к приложению приостановлен администратором. ${user.blockReason ? `Причина: ${user.blockReason}` : ''}` },
+        { status: 403 }
+      );
+    }
+
     // Return user data for NextAuth credentials sign-in
     return NextResponse.json({
       success: true,
@@ -141,6 +149,8 @@ export async function GET(req: NextRequest) {
         email: user.email,
         name: user.name,
         avatarUrl: user.avatarUrl,
+        role: user.role,
+        isBlocked: user.isBlocked,
       },
     });
   } catch (err) {

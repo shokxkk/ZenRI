@@ -15,6 +15,7 @@ import {
   BarChart3,
   Calculator,
   Settings,
+  ShieldAlert,
   ChevronLeft,
   ChevronRight,
   LogOut,
@@ -30,6 +31,8 @@ export const Sidebar: React.FC = () => {
   const { data: session } = useSession();
   const { t } = useLanguage();
 
+  const isAdmin = (session?.user as any)?.role === 'ADMIN' || (session?.user as any)?.email === 'demo@zenri.app';
+
   const navItems = [
     { href: '/dashboard', labelKey: 'nav_today' as const, icon: LayoutDashboard },
     { href: '/finances', labelKey: 'nav_finances' as const, icon: Wallet },
@@ -41,6 +44,7 @@ export const Sidebar: React.FC = () => {
     { href: '/budgets', labelKey: 'nav_budgets' as const, icon: PieChart },
     { href: '/analytics', labelKey: 'nav_analytics' as const, icon: BarChart3 },
     { href: '/ai', labelKey: 'nav_ai' as const, icon: Sparkles },
+    ...(isAdmin ? [{ href: '/admin', labelKey: 'nav_admin' as const, icon: ShieldAlert }] : []),
     { href: '/settings', labelKey: 'nav_settings' as const, icon: Settings },
   ];
 

@@ -17,9 +17,11 @@ import {
   BarChart3,
   Calculator,
   Settings,
+  ShieldAlert,
   X,
 } from 'lucide-react';
 import { useLanguage } from '@/components/ui/LanguageProvider';
+import { useSession } from 'next-auth/react';
 
 interface BottomNavProps {
   onOpenQuickAdd: () => void;
@@ -29,6 +31,9 @@ export const BottomNav: React.FC<BottomNavProps> = ({ onOpenQuickAdd }) => {
   const pathname = usePathname();
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const { t } = useLanguage();
+  const { data: session } = useSession();
+
+  const isAdmin = (session?.user as any)?.role === 'ADMIN' || (session?.user as any)?.email === 'demo@zenri.app';
 
   const allItems = [
     { href: '/dashboard', labelKey: 'nav_today' as const, icon: LayoutDashboard },
@@ -41,6 +46,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ onOpenQuickAdd }) => {
     { href: '/debts', labelKey: 'nav_debts' as const, icon: HandCoins },
     { href: '/ai', labelKey: 'nav_ai' as const, icon: Sparkles },
     { href: '/analytics', labelKey: 'nav_analytics' as const, icon: BarChart3 },
+    ...(isAdmin ? [{ href: '/admin', labelKey: 'nav_admin' as const, icon: ShieldAlert }] : []),
     { href: '/settings', labelKey: 'nav_settings' as const, icon: Settings },
   ];
 

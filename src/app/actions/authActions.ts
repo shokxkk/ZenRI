@@ -111,11 +111,18 @@ export async function verifyTelegramMagicToken(token: string) {
 
   const user = await prisma.user.findUnique({
     where: { id: result.userId },
-    select: { id: true, name: true, email: true, avatarUrl: true },
+    select: { id: true, name: true, email: true, avatarUrl: true, isBlocked: true, blockReason: true },
   });
 
   if (!user) {
     return { success: false, error: 'Пользователь не найден' };
+  }
+
+  if (user.isBlocked) {
+    return {
+      success: false,
+      error: `🚫 Ваш доступ к приложению приостановлен администратором. ${user.blockReason ? `Причина: ${user.blockReason}` : ''}`,
+    };
   }
 
   return {
@@ -143,7 +150,7 @@ export async function verifyTelegramSixDigitCode(code: string) {
         startsWith: `TGCODE:${cleanCode}:`,
       },
     },
-    select: { id: true, name: true, email: true, avatarUrl: true, passwordHash: true },
+    select: { id: true, name: true, email: true, avatarUrl: true, passwordHash: true, isBlocked: true, blockReason: true },
   });
 
   // 2. Fallback to memory store if DB query was empty
@@ -153,7 +160,7 @@ export async function verifyTelegramSixDigitCode(code: string) {
     if (memoryRecord?.userId) {
       user = await prisma.user.findFirst({
         where: { OR: [{ id: memoryRecord.userId }, { telegramId: memoryRecord.telegramId }] },
-        select: { id: true, name: true, email: true, avatarUrl: true, passwordHash: true },
+        select: { id: true, name: true, email: true, avatarUrl: true, passwordHash: true, isBlocked: true, blockReason: true },
       });
     }
   }
@@ -162,6 +169,14 @@ export async function verifyTelegramSixDigitCode(code: string) {
     return {
       success: false,
       error: 'Неверный или устаревший код. Откройте @zenriauthefication_bot и нажмите Start.',
+    };
+  }
+
+  // Check if user is blocked by Admin
+  if (user.isBlocked) {
+    return {
+      success: false,
+      error: `🚫 Ваш доступ к приложению приостановлен администратором. ${user.blockReason ? `Причина: ${user.blockReason}` : ''}`,
     };
   }
 

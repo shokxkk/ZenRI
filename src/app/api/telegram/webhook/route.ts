@@ -127,6 +127,18 @@ export async function POST(req: NextRequest) {
 
       if (user) {
         userId = user.id;
+
+        // If user is suspended/blocked by admin, send notice and halt
+        if (user.isBlocked) {
+          const blockNotice =
+            `🚫 <b>Доступ к ZenRI приостановлен</b>\n\n` +
+            `Ваш аккаунт был временно заблокирован администратором.\n` +
+            (user.blockReason ? `\n📌 <b>Причина:</b> <i>${user.blockReason}</i>\n` : '') +
+            `\nЕсли вы считаете, что это ошибка, пожалуйста, обратитесь к поддержке.`;
+
+          await sendTelegramMessage(chatId, blockNotice);
+          return NextResponse.json({ ok: true });
+        }
       }
     } catch (dbErr) {
       console.error('DB user creation/update error in webhook:', dbErr);

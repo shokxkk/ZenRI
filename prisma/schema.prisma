@@ -73,6 +73,10 @@ model User {
   telegramId        String?                @unique
   telegramUsername  String?
   authProvider      String                 @default("email")  // "email" | "telegram"
+  role              String                 @default("USER")   // "USER" | "ADMIN"
+  isBlocked         Boolean                @default(false)
+  blockReason       String?
+  blockedAt         DateTime?
   defaultCurrency   CurrencyCode           @default(UZS)
   createdAt         DateTime               @default(now())
   updatedAt         DateTime               @updatedAt
