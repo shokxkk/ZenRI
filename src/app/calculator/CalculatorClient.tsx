@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Coins,
   Calculator as CalcIcon,
@@ -16,6 +16,9 @@ import {
   Sparkles,
   RefreshCw,
   Info,
+  ExternalLink,
+  ShieldCheck,
+  Building2,
 } from 'lucide-react';
 import {
   type ExchangeRateInfo,
@@ -24,6 +27,7 @@ import {
   formatWithCurrency,
 } from '@/lib/currencyRates';
 import { soundFx } from '@/lib/soundEffects';
+import { getLiveRatesAction } from '@/app/actions/currencyActions';
 
 interface AccountSummary {
   id: string;
@@ -46,8 +50,35 @@ export function CalculatorClient({
   userAccounts,
 }: CalculatorClientProps) {
   const [activeTab, setActiveTab] = useState<TabType>('CONVERTER');
-  const [rates] = useState(initialRates);
+  const [rates, setRates] = useState<Record<SupportedCurrency, ExchangeRateInfo>>(initialRates);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [lastSyncedTime, setLastSyncedTime] = useState<string>(
+    new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
+  );
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
+
+  // Sync with live CBU / bank.uz rate
+  const handleSyncRates = async () => {
+    setIsSyncing(true);
+    soundFx.playClick();
+    try {
+      const res = await getLiveRatesAction();
+      if (res.success) {
+        setRates(res.rates);
+        setLastSyncedTime(res.syncedAt);
+        soundFx.playIncomeSound();
+      }
+    } catch (err) {
+      console.error('Failed to sync live rates:', err);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  useEffect(() => {
+    // Auto-sync on client load
+    handleSyncRates();
+  }, []);
 
   // ─── 1. Currency Converter State ───
   const [activeSourceCurrency, setActiveSourceCurrency] = useState<SupportedCurrency>('USD');
@@ -57,10 +88,13 @@ export function CalculatorClient({
 
   const convertedValues = useMemo(() => {
     const simpleRates = {
-      UZS: rates.UZS.rateToUZS,
-      USD: rates.USD.rateToUZS,
-      EUR: rates.EUR.rateToUZS,
-      RUB: rates.RUB.rateToUZS,
+      UZS: rates.UZS?.rateToUZS || 1,
+      USD: rates.USD?.rateToUZS || 11820.40,
+      EUR: rates.EUR?.rateToUZS || 13684.48,
+      RUB: rates.RUB?.rateToUZS || 139.05,
+      GBP: rates.GBP?.rateToUZS || 15990.64,
+      AED: rates.AED?.rateToUZS || 3218.54,
+      KZT: rates.KZT?.rateToUZS || 25.58,
     };
 
     return {
@@ -68,6 +102,9 @@ export function CalculatorClient({
       USD: convertCurrency(parsedAmount, activeSourceCurrency, 'USD', simpleRates),
       EUR: convertCurrency(parsedAmount, activeSourceCurrency, 'EUR', simpleRates),
       RUB: convertCurrency(parsedAmount, activeSourceCurrency, 'RUB', simpleRates),
+      GBP: convertCurrency(parsedAmount, activeSourceCurrency, 'GBP', simpleRates),
+      AED: convertCurrency(parsedAmount, activeSourceCurrency, 'AED', simpleRates),
+      KZT: convertCurrency(parsedAmount, activeSourceCurrency, 'KZT', simpleRates),
     };
   }, [parsedAmount, activeSourceCurrency, rates]);
 
@@ -245,28 +282,34 @@ export function CalculatorClient({
                 <Coins size={22} />
               </div>
               <div>
-                <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight">
-                  Калькулятор & Курсы валют
-                </h1>
+                <div className="flex items-center gap-2">
+                  <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight">
+                    Калькулятор & Курсы валют
+                  </h1>
+                  <span className="flex items-center gap-1 text-[10px] font-black uppercase text-emerald-400 bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 rounded-full">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    Онлайн ЦБ РУз
+                  </span>
+                </div>
                 <p className="text-xs text-zen-300">
-                  Официальные онлайн курсы ЦБ РУз, конвертер и финансовые расчёты
+                  Прямая синхронизация с Центральным банком Узбекистана и bank.uz
                 </p>
               </div>
             </div>
           </div>
 
-          {/* Quick Rate Badges */}
+          {/* Quick Rate Badges + Live Sync Button */}
           <div className="flex items-center gap-2 flex-wrap">
             {(['USD', 'EUR', 'RUB'] as const).map((curr) => {
-              const info = rates[curr];
-              const isPositive = info.diff24h >= 0;
+              const info = rates[curr] || { rateToUZS: 0, diff24h: 0, diffPercent: 0 };
+              const isPositive = (info.diff24h || 0) >= 0;
               return (
                 <div
                   key={curr}
                   className="flex items-center gap-2 px-3 py-1.5 rounded-2xl bg-white/5 border border-white/10 text-xs font-bold"
                 >
                   <span className="text-slate-400">1 {curr} =</span>
-                  <span className="text-white font-extrabold">
+                  <span className="text-white font-extrabold font-mono">
                     {info.rateToUZS.toLocaleString('ru-RU')} сум
                   </span>
                   <span
@@ -274,11 +317,33 @@ export function CalculatorClient({
                       isPositive ? 'text-emerald-400' : 'text-rose-400'
                     }`}
                   >
-                    {isPositive ? '↑' : '↓'} {Math.abs(info.diffPercent)}%
+                    {isPositive ? '↑' : '↓'} {Math.abs(info.diffPercent || 0)}%
                   </span>
                 </div>
               );
             })}
+
+            {/* Live Refresh Button */}
+            <button
+              onClick={handleSyncRates}
+              disabled={isSyncing}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-[#0066FF] hover:bg-[#0052CC] text-white text-xs font-black shadow-glow active:scale-95 transition-all disabled:opacity-50"
+              title="Обновить курс онлайн прямо сейчас"
+            >
+              <RefreshCw size={13} className={isSyncing ? 'animate-spin' : ''} />
+              <span>{isSyncing ? 'Синхронизация...' : 'Обновить'}</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Sync Metadata bar */}
+        <div className="mt-3 pt-3 border-t border-white/10 flex items-center justify-between text-[11px] text-slate-400">
+          <div className="flex items-center gap-1.5">
+            <ShieldCheck size={13} className="text-emerald-400" />
+            <span>Источник: Официальный реестр ЦБ РУз (cbu.uz) • bank.uz</span>
+          </div>
+          <div>
+            Синхронизировано: <span className="text-white font-bold">{lastSyncedTime}</span>
           </div>
         </div>
       </div>
@@ -320,7 +385,7 @@ export function CalculatorClient({
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Left: Input & Converter Card */}
             <div className="lg:col-span-2 p-6 rounded-3xl bg-white dark:bg-[#131C2E] border border-zen-200 dark:border-zen-800 shadow-apple space-y-6">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between flex-wrap gap-2">
                 <div>
                   <h3 className="text-base font-extrabold text-zen-900 dark:text-zen-100">
                     Мгновенная онлайн-конвертация
@@ -331,14 +396,14 @@ export function CalculatorClient({
                 </div>
 
                 <div className="flex items-center gap-1.5 bg-zen-100 dark:bg-zen-800/60 p-1 rounded-xl">
-                  {(['UZS', 'USD', 'EUR', 'RUB'] as const).map((code) => (
+                  {(['UZS', 'USD', 'EUR', 'RUB', 'GBP', 'AED', 'KZT'] as const).map((code) => (
                     <button
                       key={code}
                       onClick={() => {
                         soundFx.playClick();
                         setActiveSourceCurrency(code);
                       }}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-extrabold transition-all ${
+                      className={`px-2.5 py-1 rounded-lg text-xs font-extrabold transition-all ${
                         activeSourceCurrency === code
                           ? 'bg-[#0066FF] text-white shadow-sm'
                           : 'text-zen-500 hover:text-zen-800 dark:hover:text-zen-200'
@@ -365,7 +430,7 @@ export function CalculatorClient({
                   />
                   <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
                     <span className="text-sm font-extrabold text-zen-400">
-                      {rates[activeSourceCurrency].name}
+                      {rates[activeSourceCurrency]?.name || activeSourceCurrency}
                     </span>
                   </div>
                 </div>
@@ -384,17 +449,17 @@ export function CalculatorClient({
                       }}
                       className="px-3 py-1 rounded-xl bg-zen-100 dark:bg-zen-800/80 hover:bg-zen-200 dark:hover:bg-zen-700 text-xs font-bold text-zen-600 dark:text-zen-300 transition-all active:scale-95"
                     >
-                      {preset} {rates[activeSourceCurrency].symbol}
+                      {preset} {rates[activeSourceCurrency]?.symbol || ''}
                     </button>
                   ))}
                 </div>
               </div>
 
-              {/* Converted Output Cards Grid (4 Currencies) */}
+              {/* Converted Output Cards Grid (All Major Currencies) */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-                {(['UZS', 'USD', 'EUR', 'RUB'] as const).map((curr) => {
+                {(['UZS', 'USD', 'EUR', 'RUB', 'GBP', 'AED'] as const).map((curr) => {
                   const val = convertedValues[curr];
-                  const info = rates[curr];
+                  const info = rates[curr] || { name: curr, rateToUZS: 1 };
                   const formatted = formatWithCurrency(val, curr);
 
                   return (
@@ -436,8 +501,53 @@ export function CalculatorClient({
               </div>
             </div>
 
-            {/* Right: User Total Net Worth in Converted Currencies */}
+            {/* Right: Rates Comparison Table & User Total Capital */}
             <div className="space-y-4">
+              {/* Bank.uz and CBU Rates Breakdown Card */}
+              <div className="p-5 rounded-3xl bg-white dark:bg-[#131C2E] border border-zen-200 dark:border-zen-800 shadow-apple space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Building2 size={16} className="text-[#0066FF]" />
+                    <h4 className="text-xs font-black uppercase text-zen-800 dark:text-zen-200 tracking-wider">
+                      Курсы в банках Узбекистана
+                    </h4>
+                  </div>
+                  <a
+                    href="https://bank.uz/currency/dollar-ssha-uz-aqsh-dollari"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[10px] text-[#0066FF] hover:underline flex items-center gap-1 font-bold"
+                  >
+                    bank.uz <ExternalLink size={10} />
+                  </a>
+                </div>
+
+                <div className="space-y-2 pt-1 text-xs">
+                  {[
+                    { code: 'USD', name: 'Доллар США', info: rates.USD },
+                    { code: 'EUR', name: 'Евро', info: rates.EUR },
+                    { code: 'RUB', name: 'Рубль', info: rates.RUB },
+                  ].map((item) => (
+                    <div
+                      key={item.code}
+                      className="p-3 rounded-2xl bg-zen-50 dark:bg-zen-900/60 border border-zen-200/60 dark:border-zen-800 space-y-1.5"
+                    >
+                      <div className="flex items-center justify-between font-bold">
+                        <span className="text-zen-900 dark:text-zen-100">{item.name} ({item.code})</span>
+                        <span className="font-mono text-[#0066FF] font-extrabold">
+                          ЦБ: {item.info?.rateToUZS.toLocaleString('ru-RU')} сум
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between text-[11px] text-zen-500 pt-1 border-t border-zen-200/40 dark:border-zen-800">
+                        <span>Покупка: <strong className="text-emerald-500 font-mono">{item.info?.bankBuy?.toLocaleString('ru-RU') || '—'} сум</strong></span>
+                        <span>Продажа: <strong className="text-blue-500 font-mono">{item.info?.bankSell?.toLocaleString('ru-RU') || '—'} сум</strong></span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* User Net Worth in Converted Currencies */}
               <div className="p-6 rounded-3xl bg-gradient-to-br from-indigo-900/40 via-[#131C2E] to-[#0F1E36] border border-indigo-500/30 text-white space-y-4">
                 <div className="flex items-center gap-2.5">
                   <div className="w-9 h-9 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center">
@@ -454,13 +564,13 @@ export function CalculatorClient({
                 <div className="space-y-2.5 pt-2 border-t border-white/10">
                   <div>
                     <span className="text-[10px] text-slate-400">В сумах (UZS)</span>
-                    <p className="text-xl font-black text-white">
+                    <p className="text-xl font-black text-white font-mono">
                       {totalUserBalanceInUZS.toLocaleString('ru-RU')} сум
                     </p>
                   </div>
                   <div>
                     <span className="text-[10px] text-slate-400">В долларах (USD)</span>
-                    <p className="text-lg font-black text-emerald-400">
+                    <p className="text-lg font-black text-emerald-400 font-mono">
                       {formatWithCurrency(
                         convertCurrency(totalUserBalanceInUZS, 'UZS', 'USD'),
                         'USD'
@@ -469,7 +579,7 @@ export function CalculatorClient({
                   </div>
                   <div>
                     <span className="text-[10px] text-slate-400">В евро (EUR)</span>
-                    <p className="text-lg font-black text-sky-400">
+                    <p className="text-lg font-black text-sky-400 font-mono">
                       {formatWithCurrency(
                         convertCurrency(totalUserBalanceInUZS, 'UZS', 'EUR'),
                         'EUR'
@@ -477,17 +587,6 @@ export function CalculatorClient({
                     </p>
                   </div>
                 </div>
-              </div>
-
-              {/* Info Note */}
-              <div className="p-4 rounded-2xl bg-zen-50 dark:bg-[#131C2E] border border-zen-200 dark:border-zen-800 text-xs text-zen-500 space-y-1.5">
-                <div className="flex items-center gap-2 font-bold text-zen-700 dark:text-zen-300">
-                  <Info size={14} className="text-[#0066FF]" />
-                  <span>Центральный банк РУз</span>
-                </div>
-                <p className="text-[11px] leading-relaxed">
-                  Все курсы синхронизированы с официальным API Центрального банка Республики Узбекистан и обновляются ежедневно.
-                </p>
               </div>
             </div>
           </div>
