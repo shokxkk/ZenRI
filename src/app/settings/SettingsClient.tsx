@@ -3,8 +3,10 @@
 import React, { useState, useEffect, useTransition } from 'react';
 import {
   User, Mail, Globe, Plus, LogOut, ChevronRight, Palette, Key,
-  ShieldCheck, Eye, EyeOff, AlertTriangle, RotateCcw, CheckCircle2, Sparkles, Database, Camera, Send, Languages
+  ShieldCheck, Eye, EyeOff, AlertTriangle, RotateCcw, CheckCircle2, Sparkles, Database, Camera, Send, Languages,
+  Headphones, MessageCircle, ExternalLink, Copy, Check
 } from 'lucide-react';
+import { soundFx } from '@/lib/soundEffects';
 import { Modal } from '@/components/ui/Modal';
 import { Badge } from '@/components/ui/Badge';
 import { updateUserProfile, createCategory, resetAllUserData, seedDemoDataAction, updateAvatar } from '@/app/actions/analyticsActions';
@@ -57,6 +59,16 @@ export function SettingsClient({ user, categories }: SettingsClientProps) {
   const [customApiKey, setCustomApiKey] = useState('');
   const [showKeyText, setShowKeyText] = useState(false);
   const [savedKeySuccess, setSavedKeySuccess] = useState(false);
+
+  // Support contact state
+  const [copiedSupport, setCopiedSupport] = useState(false);
+
+  const handleCopySupport = () => {
+    soundFx.playCopy();
+    navigator.clipboard.writeText('@headsales');
+    setCopiedSupport(true);
+    setTimeout(() => setCopiedSupport(false), 2500);
+  };
 
   useEffect(() => {
     const storedKey = localStorage.getItem('zenri_custom_openai_key');
@@ -379,6 +391,70 @@ export function SettingsClient({ user, categories }: SettingsClientProps) {
           </button>
         </div>
       </Section>
+
+      {/* ─── Customer Support & Direct Contact (@headsales) ─── */}
+      <div className="bg-gradient-to-br from-[#0066FF]/10 via-[#00C2FF]/10 to-indigo-500/10 border border-[#0066FF]/30 dark:border-[#0066FF]/40 rounded-3xl p-5 sm:p-6 shadow-apple relative overflow-hidden space-y-4">
+        {/* Ambient background glow */}
+        <div className="absolute top-0 right-0 w-64 h-64 bg-[#0066FF]/15 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-start sm:items-center gap-3.5">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#0066FF] via-[#0088FF] to-[#00C2FF] text-white flex items-center justify-center font-bold flex-shrink-0 shadow-glow">
+              <Send size={22} className="-rotate-12 translate-x-0.5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="text-base font-extrabold text-zen-900 dark:text-zen-100">
+                  {t('settings_support_title')}
+                </h3>
+                <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-500 border border-emerald-500/30 text-[10px] font-black uppercase flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  Онлайн 24/7
+                </span>
+              </div>
+              <p className="text-xs text-zen-500 dark:text-zen-400 mt-1 max-w-xl leading-relaxed">
+                {t('settings_support_desc')}
+              </p>
+            </div>
+          </div>
+
+          {/* Action buttons */}
+          <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap flex-shrink-0 relative z-10">
+            {/* Copy handle button */}
+            <button
+              type="button"
+              onClick={handleCopySupport}
+              className="px-3.5 py-3 rounded-2xl bg-white dark:bg-[#131C2E] hover:bg-zen-100 dark:hover:bg-zen-800 text-zen-700 dark:text-zen-200 border border-zen-200 dark:border-zen-800 text-xs font-bold transition-all flex items-center gap-1.5 active:scale-95 shadow-sm min-h-[46px]"
+              title="Скопировать @headsales"
+            >
+              {copiedSupport ? (
+                <>
+                  <Check size={15} className="text-emerald-500" />
+                  <span className="text-emerald-500">Скопировано!</span>
+                </>
+              ) : (
+                <>
+                  <Copy size={15} className="text-zen-400" />
+                  <span>@headsales</span>
+                </>
+              )}
+            </button>
+
+            {/* Direct Telegram Link Button */}
+            <a
+              href="https://t.me/headsales"
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => soundFx.playClick()}
+              className="px-5 py-3 rounded-2xl bg-gradient-to-r from-[#0066FF] to-[#0088FF] hover:from-[#0055EE] hover:to-[#0077EE] text-white text-xs font-black shadow-glow transition-all flex items-center gap-2 flex-shrink-0 active:scale-95 min-h-[46px]"
+            >
+              <Send size={15} className="-rotate-12" />
+              <span>{t('settings_support_btn')}</span>
+              <ExternalLink size={13} className="opacity-80" />
+            </a>
+          </div>
+        </div>
+      </div>
 
       {/* Danger Zone: Reset All Data */}
       <div className="bg-red-500/5 dark:bg-red-950/20 border border-red-200 dark:border-red-900/50 rounded-3xl overflow-hidden">

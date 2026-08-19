@@ -107,6 +107,11 @@ export const translations = {
     settings_reset_success: 'Все данные успешны обнулены!',
     settings_redirect: 'Перенаправление на главную страницу...',
     settings_profile_label: 'Профиль',
+    settings_support_title: 'Служба поддержки & Обратная связь',
+    settings_support_desc: 'Возникли вопросы, предложения или нашли ошибку? Напишите напрямую в Telegram — поможем решить любой вопрос в кратчайшие сроки.',
+    settings_support_btn: 'Написать в Telegram',
+    settings_support_handle: 'Telegram: @headsales',
+    settings_support_copy: 'Скопировать username',
 
     // === Calculator ===
     calc_title: 'Калькулятор и Курсы',
@@ -256,6 +261,11 @@ export const translations = {
     settings_reset_success: "Barcha ma'lumotlar muvaffaqiyatli nolga tushirildi!",
     settings_redirect: 'Bosh sahifaga yo\'naltirilmoqda...',
     settings_profile_label: 'Profil',
+    settings_support_title: "Qo'llab-quvvatlash xizmati & Aloqa",
+    settings_support_desc: "Savollar, takliflar yoki xatoliklar bormi? Telegram orqali to'g'ridan-to'g'ri yozing — har qanday masalada yordam beramiz.",
+    settings_support_btn: 'Telegramda yozish',
+    settings_support_handle: 'Telegram: @headsales',
+    settings_support_copy: 'Nusxalash @headsales',
 
     // === Calculator ===
     calc_title: 'Kalkulyator va Kurslar',
@@ -405,6 +415,11 @@ export const translations = {
     settings_reset_success: 'All data has been successfully reset!',
     settings_redirect: 'Redirecting to home page...',
     settings_profile_label: 'Profile',
+    settings_support_title: 'Customer Support & Feedback',
+    settings_support_desc: 'Have questions, ideas, or found an issue? Contact the team directly on Telegram — we are happy to assist.',
+    settings_support_btn: 'Open Telegram Support',
+    settings_support_handle: 'Telegram: @headsales',
+    settings_support_copy: 'Copy @headsales',
 
     // === Calculator ===
     calc_title: 'Calculator & Rates',
