@@ -2,9 +2,9 @@
 
 import React, { useState, useEffect, useTransition } from 'react';
 import {
-  User, Mail, Globe, Plus, LogOut, ChevronRight, Palette, Key,
-  ShieldCheck, Eye, EyeOff, AlertTriangle, RotateCcw, CheckCircle2, Sparkles, Database, Camera, Send, Languages,
-  Headphones, MessageCircle, ExternalLink, Copy, Check
+  Mail, Globe, Plus, LogOut, ChevronRight, Palette, Key,
+  ShieldCheck, Eye, EyeOff, AlertTriangle, RotateCcw, CheckCircle2, Sparkles, Database, Camera, Send,
+  ExternalLink
 } from 'lucide-react';
 import { soundFx } from '@/lib/soundEffects';
 import { Modal } from '@/components/ui/Modal';
@@ -59,16 +59,6 @@ export function SettingsClient({ user, categories }: SettingsClientProps) {
   const [customApiKey, setCustomApiKey] = useState('');
   const [showKeyText, setShowKeyText] = useState(false);
   const [savedKeySuccess, setSavedKeySuccess] = useState(false);
-
-  // Support contact state
-  const [copiedSupport, setCopiedSupport] = useState(false);
-
-  const handleCopySupport = () => {
-    soundFx.playCopy();
-    navigator.clipboard.writeText('@headsales');
-    setCopiedSupport(true);
-    setTimeout(() => setCopiedSupport(false), 2500);
-  };
 
   useEffect(() => {
     const storedKey = localStorage.getItem('zenri_custom_openai_key');
@@ -418,35 +408,14 @@ export function SettingsClient({ user, categories }: SettingsClientProps) {
             </div>
           </div>
 
-          {/* Action buttons */}
-          <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap flex-shrink-0 relative z-10">
-            {/* Copy handle button */}
-            <button
-              type="button"
-              onClick={handleCopySupport}
-              className="px-3.5 py-3 rounded-2xl bg-white dark:bg-[#131C2E] hover:bg-zen-100 dark:hover:bg-zen-800 text-zen-700 dark:text-zen-200 border border-zen-200 dark:border-zen-800 text-xs font-bold transition-all flex items-center gap-1.5 active:scale-95 shadow-sm min-h-[46px]"
-              title="Скопировать @headsales"
-            >
-              {copiedSupport ? (
-                <>
-                  <Check size={15} className="text-emerald-500" />
-                  <span className="text-emerald-500">Скопировано!</span>
-                </>
-              ) : (
-                <>
-                  <Copy size={15} className="text-zen-400" />
-                  <span>@headsales</span>
-                </>
-              )}
-            </button>
-
-            {/* Direct Telegram Link Button */}
+          {/* Direct Telegram Link Button */}
+          <div className="flex items-center flex-shrink-0 relative z-10">
             <a
               href="https://t.me/headsales"
               target="_blank"
               rel="noopener noreferrer"
               onClick={() => soundFx.playClick()}
-              className="px-5 py-3 rounded-2xl bg-gradient-to-r from-[#0066FF] to-[#0088FF] hover:from-[#0055EE] hover:to-[#0077EE] text-white text-xs font-black shadow-glow transition-all flex items-center gap-2 flex-shrink-0 active:scale-95 min-h-[46px]"
+              className="w-full sm:w-auto px-5 py-3 rounded-2xl bg-gradient-to-r from-[#0066FF] to-[#0088FF] hover:from-[#0055EE] hover:to-[#0077EE] text-white text-xs font-black shadow-glow transition-all flex items-center justify-center gap-2 active:scale-95 min-h-[46px]"
             >
               <Send size={15} className="-rotate-12" />
               <span>{t('settings_support_btn')}</span>
