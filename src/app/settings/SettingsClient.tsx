@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useTransition } from 'react';
 import {
   User, Mail, Globe, Plus, LogOut, ChevronRight, Palette, Key,
-  ShieldCheck, Eye, EyeOff, AlertTriangle, RotateCcw, CheckCircle2, Sparkles, Database, Camera, Send
+  ShieldCheck, Eye, EyeOff, AlertTriangle, RotateCcw, CheckCircle2, Sparkles, Database, Camera, Send, Languages
 } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
 import { Badge } from '@/components/ui/Badge';
@@ -11,6 +11,7 @@ import { updateUserProfile, createCategory, resetAllUserData, seedDemoDataAction
 import { signOut, useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
+import { useLanguage } from '@/components/ui/LanguageProvider';
 
 type Category = { id: string; name: string; type: string; color: string | null; icon: string };
 
@@ -27,7 +28,6 @@ interface SettingsClientProps {
   categories: Category[];
 }
 
-
 const CURRENCIES = ['UZS', 'USD', 'EUR', 'RUB'];
 const COLORS = ['#0066FF', '#10B981', '#EF4444', '#F59E0B', '#8B5CF6', '#00C2FF', '#EC4899', '#06B6D4', '#84CC16', '#71717A'];
 
@@ -35,6 +35,7 @@ export function SettingsClient({ user, categories }: SettingsClientProps) {
   const router = useRouter();
   const { update: updateSession } = useSession();
   const [isPending, startTransition] = useTransition();
+  const { t, lang, setLang, languages } = useLanguage();
 
   const [showProfile, setShowProfile] = useState(false);
   const [showNewCat, setShowNewCat] = useState(false);
@@ -50,7 +51,6 @@ export function SettingsClient({ user, categories }: SettingsClientProps) {
   // Avatar
   const [avatarUrl, setAvatarUrl] = useState(user.avatarUrl || '');
   const [avatarSaved, setAvatarSaved] = useState(false);
-
 
   // Custom ChatGPT API Key State
   const [customApiKey, setCustomApiKey] = useState('');
@@ -80,7 +80,6 @@ export function SettingsClient({ user, categories }: SettingsClientProps) {
   const handleSaveProfile = () => {
     startTransition(async () => {
       await updateUserProfile({ name, defaultCurrency: currency });
-      // Save avatar if changed
       if (avatarUrl !== (user.avatarUrl || '')) {
         await updateAvatar(avatarUrl);
         await updateSession({ name, picture: avatarUrl || undefined });
@@ -102,7 +101,6 @@ export function SettingsClient({ user, categories }: SettingsClientProps) {
     });
   };
 
-
   const handleCreateCategory = () => {
     if (!catName.trim()) return;
     startTransition(async () => {
@@ -114,7 +112,8 @@ export function SettingsClient({ user, categories }: SettingsClientProps) {
   };
 
   const handleResetAllData = () => {
-    if (confirmResetInput.trim().toUpperCase() !== 'СБРОС') return;
+    const confirmWord = t('settings_reset_confirm_word');
+    if (confirmResetInput.trim().toUpperCase() !== confirmWord) return;
     startTransition(async () => {
       localStorage.setItem('zenri_utility_bills', '[]');
       localStorage.setItem('zenri_wishlist_items', '[]');
@@ -164,7 +163,7 @@ export function SettingsClient({ user, categories }: SettingsClientProps) {
   );
 
   const Row = ({ icon: Icon, label, value, onClick }: { icon: React.ElementType; label: string; value?: string; onClick?: () => void }) => (
-    <button onClick={onClick} className="w-full flex items-center gap-4 px-5 py-4 hover:bg-zen-50 dark:hover:bg-zen-800/50 transition-colors text-left">
+    <button onClick={onClick} className="w-full flex items-center gap-4 px-5 py-4 hover:bg-zen-50 dark:hover:bg-zen-800/50 transition-colors text-left min-h-[56px]">
       <div className="w-9 h-9 rounded-xl bg-zen-100 dark:bg-zen-800 flex items-center justify-center flex-shrink-0">
         <Icon size={18} className="text-[#0066FF]" />
       </div>
@@ -178,10 +177,10 @@ export function SettingsClient({ user, categories }: SettingsClientProps) {
 
   return (
     <div className="space-y-5">
-      <h1 className="text-2xl font-bold text-zen-900 dark:text-zen-100">Настройки</h1>
+      <h1 className="text-2xl font-bold text-zen-900 dark:text-zen-100">{t('settings_title')}</h1>
 
       {/* Profile Section */}
-      <Section title="Профиль">
+      <Section title={t('settings_profile')}>
         {/* Avatar + Identity Block */}
         <div className="flex items-center gap-4 px-5 py-4 border-b border-zen-100 dark:border-zen-800/40">
           {/* Avatar */}
@@ -216,7 +215,7 @@ export function SettingsClient({ user, categories }: SettingsClientProps) {
               </span>
             ) : (
               <span className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full bg-zen-100 dark:bg-zen-800 text-zen-400 text-[10px] font-bold">
-                Email аккаунт
+                Email
               </span>
             )}
           </div>
@@ -225,7 +224,33 @@ export function SettingsClient({ user, categories }: SettingsClientProps) {
             <ChevronRight size={16} />
           </button>
         </div>
-        <Row icon={Globe} label="Валюта по умолчанию" value={user.defaultCurrency} onClick={() => setShowProfile(true)} />
+        <Row icon={Globe} label={t('settings_currency_label')} value={user.defaultCurrency} onClick={() => setShowProfile(true)} />
+      </Section>
+
+      {/* Language Section */}
+      <Section title={t('settings_language')}>
+        <div className="p-5">
+          <p className="text-xs text-zen-400 mb-3">{t('settings_language_subtitle')}</p>
+          <div className="grid grid-cols-3 gap-3">
+            {languages.map((l) => (
+              <button
+                key={l.code}
+                onClick={() => setLang(l.code)}
+                className={`flex flex-col items-center justify-center p-4 rounded-2xl border-2 transition-all min-h-[80px] font-bold text-sm gap-1 active:scale-95 ${
+                  lang === l.code
+                    ? 'border-[#0066FF] bg-[#0066FF]/10 text-[#0066FF] shadow-glow scale-[1.02]'
+                    : 'border-zen-200 dark:border-zen-700 bg-zen-50 dark:bg-zen-800/50 text-zen-700 dark:text-zen-300 hover:border-[#0066FF]/50'
+                }`}
+              >
+                <span className="text-2xl">{l.flag}</span>
+                <span className="text-xs font-bold">{l.nativeName}</span>
+                {lang === l.code && (
+                  <span className="text-[10px] text-[#0066FF] font-extrabold">✓ Активен</span>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
       </Section>
 
       {/* Demo Seed Generator */}
@@ -235,9 +260,9 @@ export function SettingsClient({ user, categories }: SettingsClientProps) {
             <Sparkles size={20} />
           </div>
           <div>
-            <p className="text-sm font-bold text-zen-900 dark:text-zen-100">Заполнить всё примерами (Тестовый режим)</p>
+            <p className="text-sm font-bold text-zen-900 dark:text-zen-100">{t('settings_demo')}</p>
             <p className="text-xs text-zen-400 mt-0.5 max-w-md">
-              Автоматически создаёт готовые счета (Uzcard, Humo, Visa), транзакции, коммунальные услуги, хотелки и задачи для проверки приложения.
+              {t('settings_demo_desc')}
             </p>
           </div>
         </div>
@@ -245,14 +270,14 @@ export function SettingsClient({ user, categories }: SettingsClientProps) {
         <button
           onClick={handleSeedDemoData}
           disabled={isPending}
-          className="px-5 py-3 rounded-2xl bg-[#0066FF] hover:bg-[#0052CC] text-white text-xs font-bold shadow-glow transition-all flex items-center gap-2 flex-shrink-0 active:scale-95 disabled:opacity-50"
+          className="px-5 py-3 rounded-2xl bg-[#0066FF] hover:bg-[#0052CC] text-white text-xs font-bold shadow-glow transition-all flex items-center gap-2 flex-shrink-0 active:scale-95 disabled:opacity-50 min-h-[44px]"
         >
-          <Database size={16} /> {isPending ? 'Заполнение...' : 'Заполнить все примеры'}
+          <Database size={16} /> {isPending ? t('settings_filling') : t('settings_demo_btn')}
         </button>
       </div>
 
       {/* ChatGPT API Key Section */}
-      <Section title="Интеграция с ChatGPT API (Персональный Токен)">
+      <Section title={t('settings_chatgpt_title')}>
         <div className="p-5 space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -260,13 +285,13 @@ export function SettingsClient({ user, categories }: SettingsClientProps) {
                 <Key size={18} />
               </div>
               <div>
-                <p className="text-sm font-bold text-zen-900 dark:text-zen-100">Персональный OpenAI API Key</p>
-                <p className="text-xs text-zen-400">Введите свой токен ChatGPT API для личного доступа</p>
+                <p className="text-sm font-bold text-zen-900 dark:text-zen-100">{t('settings_chatgpt_key_label')}</p>
+                <p className="text-xs text-zen-400">{t('settings_chatgpt_key_desc')}</p>
               </div>
             </div>
 
-            <span className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold ${customApiKey ? 'bg-emerald-500/15 text-emerald-500' : 'bg-[#0066FF]/15 text-[#0066FF]'}`}>
-              {customApiKey ? '🟢 Личный токен' : '🔵 Системный ключ ZenRI'}
+            <span className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold flex-shrink-0 ${customApiKey ? 'bg-emerald-500/15 text-emerald-500' : 'bg-[#0066FF]/15 text-[#0066FF]'}`}>
+              {customApiKey ? t('settings_chatgpt_personal_key') : t('settings_chatgpt_system_key')}
             </span>
           </div>
 
@@ -276,11 +301,11 @@ export function SettingsClient({ user, categories }: SettingsClientProps) {
               placeholder="sk-proj-..."
               value={customApiKey}
               onChange={(e) => setCustomApiKey(e.target.value)}
-              className="w-full px-4 py-3 pr-24 rounded-2xl bg-zen-50 dark:bg-zen-800 border border-zen-200 dark:border-zen-700 text-xs font-mono text-zen-900 dark:text-zen-100 focus:outline-none focus:border-[#0066FF]"
+              className="w-full px-4 py-3 pr-24 rounded-2xl bg-zen-50 dark:bg-zen-800 border border-zen-200 dark:border-zen-700 text-xs font-mono text-zen-900 dark:text-zen-100 focus:outline-none focus:border-[#0066FF] min-h-[44px]"
             />
             <button
               onClick={() => setShowKeyText(!showKeyText)}
-              className="absolute right-3 top-3 text-zen-400 hover:text-white transition-colors"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-zen-400 hover:text-zen-700 dark:hover:text-zen-200 transition-colors p-1"
             >
               {showKeyText ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>
@@ -288,48 +313,48 @@ export function SettingsClient({ user, categories }: SettingsClientProps) {
 
           <div className="flex items-center justify-between pt-1">
             <span className="text-[11px] text-zen-400 flex items-center gap-1">
-              <ShieldCheck size={13} className="text-emerald-500" /> Ключ хранится локально в вашем браузере
+              <ShieldCheck size={13} className="text-emerald-500" /> {t('settings_key_local')}
             </span>
 
             <button
               onClick={handleSaveApiKey}
-              className="px-4 py-2 rounded-xl bg-[#0066FF] hover:bg-[#0052CC] text-white text-xs font-bold shadow-glow transition-all active:scale-95"
+              className="px-4 py-2 rounded-xl bg-[#0066FF] hover:bg-[#0052CC] text-white text-xs font-bold shadow-glow transition-all active:scale-95 min-h-[36px]"
             >
-              {savedKeySuccess ? 'Сохранено! ✓' : 'Сохранить ключ'}
+              {savedKeySuccess ? t('settings_saved') : t('settings_save_key')}
             </button>
           </div>
         </div>
       </Section>
 
       {/* Appearance */}
-      <Section title="Оформление">
-        <div className="flex items-center gap-4 px-5 py-4">
+      <Section title={t('settings_appearance')}>
+        <div className="flex items-center gap-4 px-5 py-4 min-h-[64px]">
           <div className="w-9 h-9 rounded-xl bg-zen-100 dark:bg-zen-800 flex items-center justify-center flex-shrink-0">
             <Palette size={18} className="text-[#0066FF]" />
           </div>
           <div className="flex-1">
-            <p className="text-sm font-bold text-zen-900 dark:text-zen-100">Тема оформления</p>
-            <p className="text-xs text-zen-400 mt-0.5">Светлая / Тёмная</p>
+            <p className="text-sm font-bold text-zen-900 dark:text-zen-100">{t('settings_theme')}</p>
+            <p className="text-xs text-zen-400 mt-0.5">{t('settings_theme_subtitle')}</p>
           </div>
           <ThemeToggle />
         </div>
       </Section>
 
       {/* Categories */}
-      <Section title="Категории расходов">
+      <Section title={t('settings_categories')}>
         <div className="px-5 py-3 space-y-2 max-h-60 overflow-y-auto">
-          {categories.length === 0 && <p className="text-xs text-zen-400 py-4 text-center">Нет категорий</p>}
+          {categories.length === 0 && <p className="text-xs text-zen-400 py-4 text-center">{t('settings_no_categories')}</p>}
           {categories.map((cat) => (
-            <div key={cat.id} className="flex items-center gap-2">
+            <div key={cat.id} className="flex items-center gap-2 py-1">
               <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: cat.color || '#71717A' }} />
               <span className="text-sm text-zen-700 dark:text-zen-300 font-medium">{cat.name}</span>
-              <Badge variant="neutral" size="sm">{cat.type === 'EXPENSE' ? 'Расход' : 'Доход'}</Badge>
+              <Badge variant="neutral" size="sm">{cat.type === 'EXPENSE' ? t('settings_expense_type') : t('settings_income_type')}</Badge>
             </div>
           ))}
         </div>
         <div className="px-5 pb-4">
-          <button onClick={() => setShowNewCat(true)} className="flex items-center gap-2 text-xs font-bold text-[#0066FF] hover:underline">
-            <Plus size={14} /> Добавить категорию
+          <button onClick={() => setShowNewCat(true)} className="flex items-center gap-2 text-xs font-bold text-[#0066FF] hover:underline min-h-[36px]">
+            <Plus size={14} /> {t('settings_add_category')}
           </button>
         </div>
       </Section>
@@ -338,54 +363,53 @@ export function SettingsClient({ user, categories }: SettingsClientProps) {
       <div className="bg-red-500/5 dark:bg-red-950/20 border border-red-200 dark:border-red-900/50 rounded-3xl overflow-hidden">
         <div className="px-5 py-3 border-b border-red-100 dark:border-red-900/40 flex items-center justify-between">
           <h2 className="text-xs font-bold text-red-600 dark:text-red-400 uppercase tracking-wider flex items-center gap-1.5">
-            <AlertTriangle size={14} /> Опасная зона
+            <AlertTriangle size={14} /> {t('settings_danger_zone')}
           </h2>
-          <span className="text-[10px] font-bold text-red-500 bg-red-500/10 px-2 py-0.5 rounded-full">Сброс данных</span>
+          <span className="text-[10px] font-bold text-red-500 bg-red-500/10 px-2 py-0.5 rounded-full">{t('settings_reset_data')}</span>
         </div>
         <div className="p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
-            <p className="text-sm font-bold text-zen-900 dark:text-zen-100">Сбросить все показатели (С чистого листа)</p>
+            <p className="text-sm font-bold text-zen-900 dark:text-zen-100">{t('settings_reset_title')}</p>
             <p className="text-xs text-zen-400 mt-0.5 max-w-md">
-              Обнуляет все финансовые операции, балансы счетов, задачи, привычки, долги и хотелки. Вы сможете начать вести учёт с чистого листа в любое время.
+              {t('settings_reset_desc')}
             </p>
           </div>
           <button
             onClick={() => setShowResetModal(true)}
-            className="px-4 py-2.5 rounded-2xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold shadow-lg shadow-red-500/20 transition-all flex items-center gap-2 flex-shrink-0 active:scale-95"
+            className="px-4 py-2.5 rounded-2xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold shadow-lg shadow-red-500/20 transition-all flex items-center gap-2 flex-shrink-0 active:scale-95 min-h-[44px]"
           >
-            <RotateCcw size={15} /> Сбросить всё
+            <RotateCcw size={15} /> {t('settings_reset_btn')}
           </button>
         </div>
       </div>
 
       {/* Account Management */}
-      <Section title="Аккаунт">
-        <div className="flex items-center gap-4 px-5 py-4">
+      <Section title={t('settings_account')}>
+        <div className="flex items-center gap-4 px-5 py-4 min-h-[64px]">
           <div className="w-9 h-9 rounded-xl bg-zen-100 dark:bg-zen-800 flex items-center justify-center flex-shrink-0">
             <Mail size={18} className="text-zen-400" />
           </div>
           <div className="flex-1">
             <p className="text-sm font-bold text-zen-900 dark:text-zen-100">{user.email}</p>
-            <p className="text-xs text-zen-400 mt-0.5">Email аккаунта</p>
+            <p className="text-xs text-zen-400 mt-0.5">{t('settings_email_label')}</p>
           </div>
         </div>
         <button
           onClick={() => signOut({ callbackUrl: '/login' })}
-          className="w-full flex items-center gap-4 px-5 py-4 hover:bg-expense-light dark:hover:bg-expense-dark/20 transition-colors text-left"
+          className="w-full flex items-center gap-4 px-5 py-4 hover:bg-expense-light dark:hover:bg-expense-dark/20 transition-colors text-left min-h-[56px]"
         >
           <div className="w-9 h-9 rounded-xl bg-expense-light dark:bg-expense-dark/40 flex items-center justify-center flex-shrink-0">
             <LogOut size={18} className="text-expense" />
           </div>
-          <p className="text-sm font-bold text-expense">Выйти из аккаунта</p>
+          <p className="text-sm font-bold text-expense">{t('settings_logout')}</p>
         </button>
       </Section>
 
       {/* Profile Edit Modal */}
-      <Modal open={showProfile} onClose={() => setShowProfile(false)} title="Редактировать профиль">
+      <Modal open={showProfile} onClose={() => setShowProfile(false)} title={t('settings_edit_profile')}>
         <div className="space-y-4">
-          {/* Avatar preview + URL */}
           <div>
-            <label className="block text-xs font-bold text-zen-700 dark:text-zen-300 mb-2">Фото профиля</label>
+            <label className="block text-xs font-bold text-zen-700 dark:text-zen-300 mb-2">{t('settings_avatar_label')}</label>
             <div className="flex items-center gap-4 mb-2">
               {avatarUrl ? (
                 <img src={avatarUrl} alt="preview" className="w-14 h-14 rounded-full object-cover ring-2 ring-[#0066FF]/40 flex-shrink-0" />
@@ -399,120 +423,120 @@ export function SettingsClient({ user, categories }: SettingsClientProps) {
                   type="url"
                   value={avatarUrl}
                   onChange={(e) => setAvatarUrl(e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-xl bg-zen-50 dark:bg-zen-800 border border-zen-200 dark:border-zen-700 text-xs font-bold focus:outline-none focus:border-[#0066FF] text-zen-900 dark:text-zen-100"
-                  placeholder="https://example.com/avatar.jpg"
+                  className="w-full px-3 py-2.5 rounded-xl bg-zen-50 dark:bg-zen-800 border border-zen-200 dark:border-zen-700 text-xs font-bold focus:outline-none focus:border-[#0066FF] text-zen-900 dark:text-zen-100 min-h-[44px]"
+                  placeholder={t('settings_avatar_placeholder')}
                 />
-                <p className="text-[10px] text-zen-400 mt-1">Вставьте URL прямой ссылки на фото</p>
+                <p className="text-[10px] text-zen-400 mt-1">{t('settings_avatar_placeholder')}</p>
               </div>
             </div>
             {avatarSaved && (
               <p className="text-xs text-emerald-500 font-bold flex items-center gap-1">
-                <CheckCircle2 size={12} /> Аватарка сохранена!
+                <CheckCircle2 size={12} /> {t('settings_avatar_saved')}
               </p>
             )}
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-zen-700 dark:text-zen-300 mb-1">Имя профиля</label>
+            <label className="block text-xs font-bold text-zen-700 dark:text-zen-300 mb-1">{t('settings_name_label')}</label>
             <input type="text" value={name} onChange={(e) => setName(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl bg-zen-50 dark:bg-zen-800 border border-zen-200 dark:border-zen-700 text-sm font-bold focus:outline-none focus:border-[#0066FF] text-zen-900 dark:text-zen-100"
+              className="w-full px-4 py-3 rounded-xl bg-zen-50 dark:bg-zen-800 border border-zen-200 dark:border-zen-700 text-sm font-bold focus:outline-none focus:border-[#0066FF] text-zen-900 dark:text-zen-100 min-h-[44px]"
             />
           </div>
           <div>
-            <label className="block text-xs font-bold text-zen-700 dark:text-zen-300 mb-1">Валюта по умолчанию</label>
+            <label className="block text-xs font-bold text-zen-700 dark:text-zen-300 mb-1">{t('settings_currency_label')}</label>
             <select value={currency} onChange={(e) => setCurrency(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl bg-zen-50 dark:bg-zen-800 border border-zen-200 dark:border-zen-700 text-sm font-bold focus:outline-none focus:border-[#0066FF] text-zen-900 dark:text-zen-100">
+              className="w-full px-4 py-3 rounded-xl bg-zen-50 dark:bg-zen-800 border border-zen-200 dark:border-zen-700 text-sm font-bold focus:outline-none focus:border-[#0066FF] text-zen-900 dark:text-zen-100 min-h-[44px]">
               {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
             </select>
           </div>
           <button onClick={handleSaveProfile} disabled={isPending || !name.trim()}
-            className="w-full py-3.5 rounded-2xl font-bold text-sm text-white bg-[#0066FF] hover:bg-[#0052CC] shadow-glow transition-all disabled:opacity-50">
-            {isPending ? 'Сохранение...' : 'Сохранить изменения'}
+            className="w-full py-3.5 rounded-2xl font-bold text-sm text-white bg-[#0066FF] hover:bg-[#0052CC] shadow-glow transition-all disabled:opacity-50 min-h-[48px]">
+            {isPending ? t('settings_saving') : t('settings_save_changes')}
           </button>
         </div>
       </Modal>
 
       {/* New Category Modal */}
-      <Modal open={showNewCat} onClose={() => setShowNewCat(false)} title="Новая категория">
+      <Modal open={showNewCat} onClose={() => setShowNewCat(false)} title={t('settings_new_category')}>
         <div className="space-y-4">
           <div>
-            <label className="block text-xs font-bold text-zen-700 dark:text-zen-300 mb-1">Название *</label>
-            <input type="text" placeholder="Название категории" value={catName} onChange={(e) => setCatName(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl bg-zen-50 dark:bg-zen-800 border border-zen-200 dark:border-zen-700 text-sm font-bold focus:outline-none focus:border-[#0066FF] text-zen-900 dark:text-zen-100"
+            <label className="block text-xs font-bold text-zen-700 dark:text-zen-300 mb-1">{t('settings_cat_name')}</label>
+            <input type="text" placeholder={t('settings_cat_name_placeholder')} value={catName} onChange={(e) => setCatName(e.target.value)}
+              className="w-full px-4 py-3 rounded-xl bg-zen-50 dark:bg-zen-800 border border-zen-200 dark:border-zen-700 text-sm font-bold focus:outline-none focus:border-[#0066FF] text-zen-900 dark:text-zen-100 min-h-[44px]"
             />
           </div>
           <div>
-            <label className="block text-xs font-bold text-zen-700 dark:text-zen-300 mb-2">Тип</label>
+            <label className="block text-xs font-bold text-zen-700 dark:text-zen-300 mb-2">{t('settings_cat_type')}</label>
             <div className="grid grid-cols-2 gap-2">
-              {(['EXPENSE', 'INCOME'] as const).map((t) => (
-                <button key={t} onClick={() => setCatType(t)}
-                  className={`py-2.5 rounded-xl text-sm font-bold transition-all ${catType === t ? (t === 'EXPENSE' ? 'bg-expense text-white' : 'bg-income text-white') : 'bg-zen-100 dark:bg-zen-800 text-zen-600 dark:text-zen-400'}`}>
-                  {t === 'EXPENSE' ? 'Расход' : 'Доход'}
+              {(['EXPENSE', 'INCOME'] as const).map((tp) => (
+                <button key={tp} onClick={() => setCatType(tp)}
+                  className={`py-3 rounded-xl text-sm font-bold transition-all min-h-[44px] ${catType === tp ? (tp === 'EXPENSE' ? 'bg-expense text-white' : 'bg-income text-white') : 'bg-zen-100 dark:bg-zen-800 text-zen-600 dark:text-zen-400'}`}>
+                  {tp === 'EXPENSE' ? t('settings_expense_type') : t('settings_income_type')}
                 </button>
               ))}
             </div>
           </div>
           <div>
-            <label className="block text-xs font-bold text-zen-700 dark:text-zen-300 mb-2">Цвет</label>
+            <label className="block text-xs font-bold text-zen-700 dark:text-zen-300 mb-2">{t('settings_cat_color')}</label>
             <div className="flex flex-wrap gap-2">
               {COLORS.map((c) => (
                 <button key={c} onClick={() => setCatColor(c)} style={{ backgroundColor: c }}
-                  className={`w-8 h-8 rounded-full transition-all ${catColor === c ? 'ring-2 ring-offset-2 ring-[#0066FF] scale-110' : 'hover:scale-105'}`} />
+                  className={`w-9 h-9 rounded-full transition-all ${catColor === c ? 'ring-2 ring-offset-2 ring-[#0066FF] scale-110' : 'hover:scale-105'}`} />
               ))}
             </div>
           </div>
           <button onClick={handleCreateCategory} disabled={isPending || !catName.trim()}
-            className="w-full py-3.5 rounded-2xl font-bold text-sm text-white bg-[#0066FF] hover:bg-[#0052CC] shadow-glow transition-all disabled:opacity-50">
-            {isPending ? 'Создание...' : 'Создать категорию'}
+            className="w-full py-3.5 rounded-2xl font-bold text-sm text-white bg-[#0066FF] hover:bg-[#0052CC] shadow-glow transition-all disabled:opacity-50 min-h-[48px]">
+            {isPending ? t('settings_creating') : t('settings_create_category')}
           </button>
         </div>
       </Modal>
 
       {/* Data Reset Modal */}
-      <Modal open={showResetModal} onClose={() => { setShowResetModal(false); setConfirmResetInput(''); }} title="Сбросить все показатели">
+      <Modal open={showResetModal} onClose={() => { setShowResetModal(false); setConfirmResetInput(''); }} title={t('settings_reset_modal_title')}>
         <div className="space-y-4">
           {resetSuccess ? (
             <div className="py-8 flex flex-col items-center gap-3">
               <CheckCircle2 size={48} className="text-emerald-500 animate-bounce" />
-              <p className="font-bold text-lg text-zen-900 dark:text-zen-100">Все данные успешны обнулены!</p>
-              <p className="text-xs text-zen-400">Перенаправление на главную страницу...</p>
+              <p className="font-bold text-lg text-zen-900 dark:text-zen-100">{t('settings_reset_success')}</p>
+              <p className="text-xs text-zen-400">{t('settings_redirect')}</p>
             </div>
           ) : (
             <>
               <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-500 dark:text-red-400 text-xs leading-relaxed flex gap-3">
                 <AlertTriangle size={22} className="flex-shrink-0 text-red-500 mt-0.5" />
                 <div>
-                  <p className="font-bold text-red-500 text-sm mb-1">Вы уверены?</p>
-                  <p>Это действие полностью удалит ваши транзакции, задачи, привычки, долги, бюджеты и обнулит балансы всех счетов. <strong className="underline">Это действие нельзя отменить.</strong></p>
+                  <p className="font-bold text-red-500 text-sm mb-1">{t('settings_reset_sure')}</p>
+                  <p>{t('settings_reset_warning')} <strong className="underline">{t('settings_reset_irreversible')}</strong></p>
                 </div>
               </div>
 
               <div>
                 <label className="block text-xs font-bold text-zen-700 dark:text-zen-300 mb-1">
-                  Для подтверждения введите <span className="text-red-500 font-extrabold">СБРОС</span>:
+                  {t('settings_reset_confirm_label')} <span className="text-red-500 font-extrabold">{t('settings_reset_confirm_word')}</span>:
                 </label>
                 <input
                   type="text"
-                  placeholder="СБРОС"
+                  placeholder={t('settings_reset_confirm_word')}
                   value={confirmResetInput}
                   onChange={(e) => setConfirmResetInput(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl bg-zen-50 dark:bg-zen-800 border border-zen-200 dark:border-zen-700 text-sm font-bold focus:outline-none focus:border-red-500 text-zen-900 dark:text-zen-100"
+                  className="w-full px-4 py-3 rounded-xl bg-zen-50 dark:bg-zen-800 border border-zen-200 dark:border-zen-700 text-sm font-bold focus:outline-none focus:border-red-500 text-zen-900 dark:text-zen-100 min-h-[44px]"
                 />
               </div>
 
               <div className="flex gap-2 pt-2">
                 <button
                   onClick={() => { setShowResetModal(false); setConfirmResetInput(''); }}
-                  className="flex-1 py-3.5 rounded-2xl font-bold text-sm bg-zen-100 dark:bg-zen-800 text-zen-700 dark:text-zen-300 hover:bg-zen-200 transition-colors"
+                  className="flex-1 py-3.5 rounded-2xl font-bold text-sm bg-zen-100 dark:bg-zen-800 text-zen-700 dark:text-zen-300 hover:bg-zen-200 transition-colors min-h-[48px]"
                 >
-                  Отмена
+                  {t('settings_cancel')}
                 </button>
                 <button
                   onClick={handleResetAllData}
-                  disabled={isPending || confirmResetInput.trim().toUpperCase() !== 'СБРОС'}
-                  className="flex-1 py-3.5 rounded-2xl font-bold text-sm text-white bg-red-600 hover:bg-red-700 shadow-lg shadow-red-600/30 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  disabled={isPending || confirmResetInput.trim().toUpperCase() !== t('settings_reset_confirm_word')}
+                  className="flex-1 py-3.5 rounded-2xl font-bold text-sm text-white bg-red-600 hover:bg-red-700 shadow-lg shadow-red-600/30 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 min-h-[48px]"
                 >
-                  {isPending ? 'Сброс...' : 'Да, сбросить всё'}
+                  {isPending ? t('settings_resetting') : t('settings_confirm_reset')}
                 </button>
               </div>
             </>

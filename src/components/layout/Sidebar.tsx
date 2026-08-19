@@ -22,24 +22,26 @@ import {
 } from 'lucide-react';
 import { ZenLogo } from '@/components/ui/ZenLogo';
 import { signOut, useSession } from 'next-auth/react';
+import { useLanguage } from '@/components/ui/LanguageProvider';
 
 export const Sidebar: React.FC = () => {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   const { data: session } = useSession();
+  const { t } = useLanguage();
 
   const navItems = [
-    { href: '/dashboard', label: 'Сегодня', icon: LayoutDashboard },
-    { href: '/finances', label: 'Финансы', icon: Wallet },
-    { href: '/calculator', label: 'Калькулятор & Курсы', icon: Calculator },
-    { href: '/tasks', label: 'Задачи', icon: CheckSquare },
-    { href: '/habits', label: 'Привычки', icon: Repeat },
-    { href: '/books', label: 'Книги', icon: BookOpen },
-    { href: '/debts', label: 'Долги', icon: HandCoins },
-    { href: '/budgets', label: 'Бюджеты', icon: PieChart },
-    { href: '/analytics', label: 'Аналитика', icon: BarChart3 },
-    { href: '/ai', label: 'AI Ассистент', icon: Sparkles },
-    { href: '/settings', label: 'Настройки', icon: Settings },
+    { href: '/dashboard', labelKey: 'nav_today' as const, icon: LayoutDashboard },
+    { href: '/finances', labelKey: 'nav_finances' as const, icon: Wallet },
+    { href: '/calculator', labelKey: 'nav_calculator' as const, icon: Calculator },
+    { href: '/tasks', labelKey: 'nav_tasks' as const, icon: CheckSquare },
+    { href: '/habits', labelKey: 'nav_habits' as const, icon: Repeat },
+    { href: '/books', labelKey: 'nav_books' as const, icon: BookOpen },
+    { href: '/debts', labelKey: 'nav_debts' as const, icon: HandCoins },
+    { href: '/budgets', labelKey: 'nav_budgets' as const, icon: PieChart },
+    { href: '/analytics', labelKey: 'nav_analytics' as const, icon: BarChart3 },
+    { href: '/ai', labelKey: 'nav_ai' as const, icon: Sparkles },
+    { href: '/settings', labelKey: 'nav_settings' as const, icon: Settings },
   ];
 
   return (
@@ -61,7 +63,7 @@ export const Sidebar: React.FC = () => {
         </button>
       </div>
 
-      {/* Navigation Items with Micro-animations & Fix for Active State Text */}
+      {/* Navigation Items */}
       <nav className="flex-1 px-3 py-4 space-y-1.5 overflow-y-auto">
         {navItems.map((item) => {
           const Icon = item.icon;
@@ -83,7 +85,7 @@ export const Sidebar: React.FC = () => {
                   isActive ? '!text-white' : 'text-zen-400 group-hover:text-[#0066FF] dark:group-hover:text-[#00C2FF]'
                 }`}
               />
-              {!collapsed && <span className={isActive ? '!text-white' : ''}>{item.label}</span>}
+              {!collapsed && <span className={isActive ? '!text-white' : ''}>{t(item.labelKey)}</span>}
             </Link>
           );
         })}
@@ -97,7 +99,6 @@ export const Sidebar: React.FC = () => {
           }`}
         >
           <div className="flex items-center gap-3 min-w-0">
-            {/* Avatar: photo if exists, else letter */}
             <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-[#0055FF] to-[#00C2FF] p-0.5 flex-shrink-0">
               {session?.user?.image ? (
                 <img
@@ -120,7 +121,7 @@ export const Sidebar: React.FC = () => {
                 <p className="text-xs font-bold text-zen-900 dark:text-zen-100 truncate">
                   {session?.user?.name || 'Пользователь'}
                 </p>
-                <p className="text-[10px] text-zen-400">Профиль</p>
+                <p className="text-[10px] text-zen-400">{t('settings_profile_label')}</p>
               </div>
             )}
           </div>
@@ -128,14 +129,13 @@ export const Sidebar: React.FC = () => {
             <button
               onClick={() => signOut({ callbackUrl: '/login' })}
               className="p-1.5 rounded-xl text-zen-400 hover:text-expense hover:bg-expense-light dark:hover:bg-expense-dark transition-colors"
-              title="Выйти из аккаунта"
+              title={t('settings_logout')}
             >
               <LogOut size={16} />
             </button>
           )}
         </div>
       </div>
-
     </aside>
   );
 };

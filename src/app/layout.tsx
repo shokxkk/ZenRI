@@ -41,9 +41,32 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ru" suppressHydrationWarning>
+      <head>
+        {/* Anti-FOUC: synchronously apply saved theme BEFORE first paint */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+(function() {
+  try {
+    var t = localStorage.getItem('theme');
+    var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    if (t === 'dark' || (!t && prefersDark)) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+    var lang = localStorage.getItem('zenri_lang');
+    if (lang) { document.documentElement.setAttribute('lang', lang); }
+  } catch(e) {}
+})();
+            `,
+          }}
+        />
+      </head>
       <body className="antialiased selection:bg-[#0066FF]/20 selection:text-[#0066FF] min-h-screen">
         <Providers>{children}</Providers>
       </body>
     </html>
   );
 }
+

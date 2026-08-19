@@ -7,6 +7,7 @@ import { VoiceAssistant } from '@/components/ui/VoiceAssistant';
 import { useSession } from 'next-auth/react';
 import { User as UserIcon, Plus, Calculator } from 'lucide-react';
 import Link from 'next/link';
+import { useLanguage } from '@/components/ui/LanguageProvider';
 
 interface HeaderProps {
   onOpenQuickAdd: () => void;
@@ -14,6 +15,15 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({ onOpenQuickAdd }) => {
   const { data: session } = useSession();
+  const { t } = useLanguage();
+
+  const getGreeting = () => {
+    const h = new Date().getHours();
+    if (h >= 5 && h < 12) return t('header_good_morning');
+    if (h >= 12 && h < 17) return t('header_good_afternoon');
+    if (h >= 17 && h < 22) return t('header_good_evening');
+    return t('header_good_night');
+  };
 
   return (
     <header className="h-[calc(4.5rem+env(safe-area-inset-top))] pt-[env(safe-area-inset-top)] px-4 md:px-6 bg-white/90 dark:bg-[#0A0F1D]/90 apple-glass border-b border-zen-200 dark:border-zen-800/80 flex items-center justify-between sticky top-0 z-20 transition-colors gap-3">
@@ -26,7 +36,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenQuickAdd }) => {
         </div>
         {/* Desktop greeting */}
         <span className="hidden md:block text-sm font-bold text-zen-900 dark:text-zen-100 whitespace-nowrap">
-          Доброе утро, {session?.user?.name?.split(' ')[0] || 'Пользователь'}! 👋
+          {getGreeting()}, {session?.user?.name?.split(' ')[0] || ''}! 👋
         </span>
       </div>
 
@@ -42,7 +52,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenQuickAdd }) => {
         <Link
           href="/calculator"
           className="p-2 rounded-xl text-zen-500 hover:text-[#0066FF] hover:bg-zen-100 dark:hover:bg-zen-800/80 transition-all flex items-center gap-1.5"
-          title="Калькулятор & Курсы валют ЦБ РУз"
+          title={t('nav_calculator')}
         >
           <Calculator size={18} />
           <span className="text-[10px] font-black uppercase text-emerald-500 bg-emerald-500/10 px-1.5 py-0.5 rounded-md hidden lg:inline">
@@ -57,13 +67,13 @@ export const Header: React.FC<HeaderProps> = ({ onOpenQuickAdd }) => {
         <button
           onClick={onOpenQuickAdd}
           className="w-9 h-9 rounded-full bg-[#0066FF] hover:bg-[#0052CC] text-white flex items-center justify-center shadow-glow transition-transform active:scale-95 flex-shrink-0"
-          title="Быстрое действие"
+          title={t('header_quick_add')}
         >
           <Plus size={20} strokeWidth={2.5} />
         </button>
 
         {/* User Avatar — links to settings */}
-        <a href="/settings" title="Настройки профиля">
+        <a href="/settings" title={t('nav_settings')}>
           <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#0055FF] to-[#00C2FF] p-0.5 flex-shrink-0 cursor-pointer shadow-sm hover:scale-110 transition-transform">
             {session?.user?.image ? (
               <img
