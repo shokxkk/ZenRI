@@ -3,34 +3,37 @@
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
+import { cookies } from 'next/headers';
 
-const ADMIN_MASTER_PASSCODE = process.env.ADMIN_SECRET || 'zenri2026';
+const ADMIN_MASTER_PASSCODE = 'Woxan9600';
 
-// Helper: Check if current session user is Admin or Owner
+// Helper: Check if request is authenticated as Admin (via cookie or User role)
 async function verifyAdminAccess() {
+  // 1. Check direct admin passcode cookie
+  const cookieStore = await cookies();
+  const adminCookie = cookieStore.get('zenri_admin_key')?.value;
+  if (adminCookie === ADMIN_MASTER_PASSCODE) {
+    return { isAuthorized: true, user: null, error: null };
+  }
+
+  // 2. Check session user role in database
   const session = await auth();
-  if (!session?.user?.id) {
-    return { isAuthorized: false, user: null, error: 'Требуется авторизация' };
+  if (session?.user?.id) {
+    const currentUser = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { id: true, email: true, role: true, isBlocked: true, name: true, telegramUsername: true },
+    });
+
+    if (currentUser && !currentUser.isBlocked) {
+      const isRoleAdmin = currentUser.role === 'ADMIN';
+      const isOwner = currentUser.email === 'demo@zenri.app' || currentUser.email.includes('admin') || isRoleAdmin;
+      if (isRoleAdmin || isOwner) {
+        return { isAuthorized: true, user: currentUser, error: null };
+      }
+    }
   }
 
-  const currentUser = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { id: true, email: true, role: true, isBlocked: true, name: true, telegramUsername: true },
-  });
-
-  if (!currentUser) {
-    return { isAuthorized: false, user: null, error: 'Пользователь не найден' };
-  }
-
-  if (currentUser.isBlocked) {
-    return { isAuthorized: false, user: null, error: 'Ваш доступ приостановлен' };
-  }
-
-  const isRoleAdmin = currentUser.role === 'ADMIN';
-  // Also allow if it's the primary demo/admin account or creator
-  const isOwner = currentUser.email === 'demo@zenri.app' || currentUser.email.includes('admin') || isRoleAdmin;
-
-  return { isAuthorized: isRoleAdmin || isOwner, user: currentUser, error: null };
+  return { isAuthorized: false, user: null, error: 'Требуется ввод мастер-кода администратора' };
 }
 
 // ─── 1. Get Admin System Stats ──────────────────────────────────────────────
@@ -164,11 +167,11 @@ export async function getAdminUsersListAction(search = '', filter = 'ALL') {
 // ─── 3. Block User ───────────────────────────────────────────────────────────
 export async function blockUserAction({ userId, reason }: { userId: string; reason?: string }) {
   const { isAuthorized, user: currentAdmin, error } = await verifyAdminAccess();
-  if (!isAuthorized || !currentAdmin) {
+  if (!isAuthorized) {
     return { success: false, error: error || 'Доступ запрещён' };
   }
 
-  if (userId === currentAdmin.id) {
+  if (currentAdmin && userId === currentAdmin.id) {
     return { success: false, error: 'Вы не можете заблокировать самого себя' };
   }
 
@@ -219,11 +222,11 @@ export async function unblockUserAction(userId: string) {
 // ─── 5. Delete User Account Permanently ──────────────────────────────────────
 export async function deleteUserAction(userId: string) {
   const { isAuthorized, user: currentAdmin, error } = await verifyAdminAccess();
-  if (!isAuthorized || !currentAdmin) {
+  if (!isAuthorized) {
     return { success: false, error: error || 'Доступ запрещён' };
   }
 
-  if (userId === currentAdmin.id) {
+  if (currentAdmin && userId === currentAdmin.id) {
     return { success: false, error: 'Вы не можете удалить свой собственный аккаунт через админку' };
   }
 
@@ -242,8 +245,8 @@ export async function deleteUserAction(userId: string) {
 
 // ─── 6. Toggle User Role (Admin <-> User) ────────────────────────────────────
 export async function toggleUserRoleAction(userId: string) {
-  const { isAuthorized, user: currentAdmin, error } = await verifyAdminAccess();
-  if (!isAuthorized || !currentAdmin) {
+  const { isAuthorized, error } = await verifyAdminAccess();
+  if (!isAuthorized) {
     return { success: false, error: error || 'Доступ запрещён' };
   }
 
@@ -270,32 +273,50 @@ export async function toggleUserRoleAction(userId: string) {
   }
 }
 
-// ─── 7. Verify Admin Passcode & Promote to Admin ─────────────────────────────
+// ─── 7. Verify Admin Passcode (Woxan9600) ─────────────────────────────────────
 export async function verifyAdminPasscodeAction(passcode: string) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return { success: false, error: 'Сначала войдите в свой аккаунт' };
-  }
-
   const cleanInput = passcode.trim();
-  const validCodes = [ADMIN_MASTER_PASSCODE, 'zenri2026', 'admin2026', 'zenri_admin_2026'];
 
-  if (!validCodes.includes(cleanInput)) {
+  if (cleanInput !== ADMIN_MASTER_PASSCODE) {
     return { success: false, error: 'Неверный мастер-код администратора' };
   }
 
   try {
-    // Elevate user to ADMIN
-    await prisma.user.update({
-      where: { id: session.user.id },
-      data: { role: 'ADMIN' },
+    // 1. Set secure HTTP-only cookie for admin session
+    const cookieStore = await cookies();
+    cookieStore.set('zenri_admin_key', ADMIN_MASTER_PASSCODE, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 60 * 60 * 24 * 30, // 30 days
     });
 
+    // 2. If user is logged in, elevate user role to ADMIN in DB
+    const session = await auth();
+    if (session?.user?.id) {
+      await prisma.user.update({
+        where: { id: session.user.id },
+        data: { role: 'ADMIN' },
+      });
+    }
+
     revalidatePath('/admin');
-    revalidatePath('/dashboard');
     return { success: true };
   } catch (err) {
     console.error('verifyAdminPasscodeAction error:', err);
     return { success: false, error: 'Ошибка подтверждения прав' };
+  }
+}
+
+// ─── 8. Logout Admin ─────────────────────────────────────────────────────────
+export async function logoutAdminAction() {
+  try {
+    const cookieStore = await cookies();
+    cookieStore.delete('zenri_admin_key');
+    revalidatePath('/admin');
+    return { success: true };
+  } catch {
+    return { success: false };
   }
 }

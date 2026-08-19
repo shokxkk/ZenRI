@@ -36,6 +36,7 @@ import {
   deleteUserAction,
   toggleUserRoleAction,
   verifyAdminPasscodeAction,
+  logoutAdminAction,
 } from '@/app/actions/adminActions';
 import { soundFx } from '@/lib/soundEffects';
 
@@ -276,6 +277,18 @@ export function AdminClient({
     });
   };
 
+  // Handle Logout / Lock Admin Panel
+  const handleLogoutAdmin = () => {
+    startTransition(async () => {
+      soundFx.playToggleOff();
+      await logoutAdminAction();
+      setIsAuthorized(false);
+      setStats(null);
+      setUsers([]);
+      setPasscodeInput('');
+    });
+  };
+
   // Copy helper
   const handleCopy = (text: string, id: string) => {
     soundFx.playCopy();
@@ -406,15 +419,25 @@ export function AdminClient({
           </div>
         </div>
 
-        {/* Live Refresh Button */}
+        {/* Top Header Buttons */}
         <div className="flex items-center gap-2">
           <button
             onClick={handleRefresh}
             disabled={isPending}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-white dark:bg-[#131C2E] hover:bg-zen-100 dark:hover:bg-zen-800 border border-zen-200 dark:border-zen-800 text-zen-800 dark:text-zen-100 text-xs font-bold shadow-sm transition-all active:scale-95 disabled:opacity-50"
+            className="flex items-center gap-2 px-3.5 py-2.5 rounded-2xl bg-white dark:bg-[#131C2E] hover:bg-zen-100 dark:hover:bg-zen-800 border border-zen-200 dark:border-zen-800 text-zen-800 dark:text-zen-100 text-xs font-bold shadow-sm transition-all active:scale-95 disabled:opacity-50"
           >
             <RefreshCw size={14} className={isPending ? 'animate-spin text-[#0066FF]' : 'text-[#0066FF]'} />
-            <span>{isPending ? 'Обновление...' : 'Обновить'}</span>
+            <span className="hidden sm:inline">{isPending ? 'Обновление...' : 'Обновить'}</span>
+          </button>
+
+          <button
+            onClick={handleLogoutAdmin}
+            disabled={isPending}
+            className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-2xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 border border-rose-500/20 text-xs font-bold shadow-sm transition-all active:scale-95"
+            title="Заблокировать админ-панель"
+          >
+            <Lock size={14} />
+            <span className="hidden sm:inline">Выйти</span>
           </button>
         </div>
       </div>

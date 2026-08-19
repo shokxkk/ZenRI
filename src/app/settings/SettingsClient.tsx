@@ -1,11 +1,9 @@
 'use client';
 
 import React, { useState, useEffect, useTransition } from 'react';
-import Link from 'next/link';
 import {
   User, Mail, Globe, Plus, LogOut, ChevronRight, Palette, Key,
-  ShieldCheck, Eye, EyeOff, AlertTriangle, RotateCcw, CheckCircle2, Sparkles, Database, Camera, Send, Languages,
-  Crown, ShieldAlert
+  ShieldCheck, Eye, EyeOff, AlertTriangle, RotateCcw, CheckCircle2, Sparkles, Database, Camera, Send, Languages
 } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
 import { Badge } from '@/components/ui/Badge';
@@ -381,27 +379,6 @@ export function SettingsClient({ user, categories }: SettingsClientProps) {
           </button>
         </div>
       </Section>
-
-      {/* Admin Control Center Portal Card */}
-      <div className="bg-gradient-to-r from-[#0066FF]/10 via-[#8B5CF6]/10 to-indigo-500/10 border border-[#0066FF]/30 rounded-3xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#0066FF] to-[#8B5CF6] text-white flex items-center justify-center font-bold flex-shrink-0 shadow-glow">
-            <Crown size={20} />
-          </div>
-          <div>
-            <p className="text-sm font-bold text-zen-900 dark:text-zen-100">Панель администратора (Admin Control)</p>
-            <p className="text-xs text-zen-400 mt-0.5 max-w-md">
-              Просмотр зарегистрированных пользователей, мониторинг Telegram-аккаунтов, блокировка ботов и управление доступом.
-            </p>
-          </div>
-        </div>
-        <Link
-          href="/admin"
-          className="px-5 py-3 rounded-2xl bg-[#0066FF] hover:bg-[#0052CC] text-white text-xs font-black shadow-glow transition-all flex items-center gap-2 flex-shrink-0 active:scale-95 min-h-[44px]"
-        >
-          <ShieldAlert size={15} /> Открыть админку
-        </Link>
-      </div>
 
       {/* Danger Zone: Reset All Data */}
       <div className="bg-red-500/5 dark:bg-red-950/20 border border-red-200 dark:border-red-900/50 rounded-3xl overflow-hidden">
