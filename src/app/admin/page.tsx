@@ -14,26 +14,40 @@ export const metadata: Metadata = {
 export const dynamic = 'force-dynamic';
 
 export default async function AdminPage() {
-  const cookieStore = await cookies();
-  const hasAdminCookie = cookieStore.get('zenri_admin_key')?.value === 'Woxan9600';
+  let hasAdminCookie = false;
+  try {
+    const cookieStore = await cookies();
+    hasAdminCookie = cookieStore.get('zenri_admin_key')?.value === 'Woxan9600';
+  } catch (e) {
+    console.error('Cookie read error:', e);
+  }
 
-  const session = await auth();
+  let session = null;
+  try {
+    session = await auth();
+  } catch (e) {
+    console.error('Session error:', e);
+  }
+
   const currentUserId = session?.user?.id || '';
-
   let currentUserRole = 'USER';
   let isAuthorized = hasAdminCookie;
 
   if (currentUserId && !isAuthorized) {
-    const user = await prisma.user.findUnique({
-      where: { id: currentUserId },
-      select: { role: true, email: true, isBlocked: true },
-    });
+    try {
+      const user = await prisma.user.findUnique({
+        where: { id: currentUserId },
+        select: { role: true, email: true, isBlocked: true },
+      });
 
-    if (user && !user.isBlocked) {
-      currentUserRole = user.role;
-      if (user.role === 'ADMIN' || user.email === 'demo@zenri.app' || user.email.includes('admin')) {
-        isAuthorized = true;
+      if (user && !user.isBlocked) {
+        currentUserRole = user.role;
+        if (user.role === 'ADMIN' || user.email === 'demo@zenri.app' || user.email.includes('admin')) {
+          isAuthorized = true;
+        }
       }
+    } catch (e) {
+      console.error('User check error in AdminPage:', e);
     }
   }
 
@@ -41,16 +55,20 @@ export default async function AdminPage() {
   let initialUsers: any[] = [];
 
   if (isAuthorized) {
-    const [statsRes, usersRes] = await Promise.all([
-      getAdminStatsAction(),
-      getAdminUsersListAction(),
-    ]);
+    try {
+      const [statsRes, usersRes] = await Promise.all([
+        getAdminStatsAction(),
+        getAdminUsersListAction(),
+      ]);
 
-    if (statsRes.success && statsRes.stats) {
-      initialStats = statsRes.stats;
-    }
-    if (usersRes.success && usersRes.users) {
-      initialUsers = usersRes.users;
+      if (statsRes.success && statsRes.stats) {
+        initialStats = statsRes.stats;
+      }
+      if (usersRes.success && usersRes.users) {
+        initialUsers = usersRes.users;
+      }
+    } catch (e) {
+      console.error('AdminPage stats load error:', e);
     }
   }
 
@@ -58,7 +76,7 @@ export default async function AdminPage() {
     <div className="min-h-screen bg-zen-50 dark:bg-[#0A0F1D] text-zen-900 dark:text-zen-100 p-3 sm:p-6">
       <AdminClient
         initialStats={initialStats}
-        initialUsers={initialUsers as any}
+        initialUsers={initialUsers}
         currentUserId={currentUserId}
         currentUserRole={currentUserRole}
         isAuthorized={isAuthorized}
