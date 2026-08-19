@@ -5,8 +5,7 @@ import { ZenLogo } from '@/components/ui/ZenLogo';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { VoiceAssistant } from '@/components/ui/VoiceAssistant';
 import { useSession } from 'next-auth/react';
-import { User as UserIcon, Plus, Calculator, Volume2, VolumeX } from 'lucide-react';
-import Link from 'next/link';
+import { User as UserIcon, Plus, Volume2, VolumeX } from 'lucide-react';
 import { useLanguage } from '@/components/ui/LanguageProvider';
 import { soundFx } from '@/lib/soundEffects';
 
@@ -74,18 +73,6 @@ export const Header: React.FC<HeaderProps> = ({ onOpenQuickAdd }) => {
         >
           {isMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
         </button>
-
-        {/* Currency & Calculator Quick Access */}
-        <Link
-          href="/calculator"
-          className="p-2 rounded-xl text-zen-500 hover:text-[#0066FF] hover:bg-zen-100 dark:hover:bg-zen-800/80 transition-all flex items-center gap-1.5"
-          title={t('nav_calculator')}
-        >
-          <Calculator size={18} />
-          <span className="text-[10px] font-black uppercase text-emerald-500 bg-emerald-500/10 px-1.5 py-0.5 rounded-md hidden lg:inline">
-            ЦБ РУз
-          </span>
-        </Link>
 
         {/* Theme Toggle */}
         <ThemeToggle />
