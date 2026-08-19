@@ -15,9 +15,27 @@ class SoundEffects {
   private audioCtx: AudioContext | null = null;
   private masterGain: GainNode | null = null;
   private compressor: DynamicsCompressorNode | null = null;
+  private isMuted: boolean = false;
+
+  constructor() {
+    if (typeof window !== 'undefined') {
+      this.isMuted = localStorage.getItem('zenri_sound_muted') === 'true';
+    }
+  }
+
+  public getMuted(): boolean { return this.isMuted; }
+
+  public toggleMute(): boolean {
+    this.isMuted = !this.isMuted;
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('zenri_sound_muted', String(this.isMuted));
+    }
+    return this.isMuted;
+  }
 
   // ─── Инициализация Audio Graph ───────────────────────────────────────────
   private getContext(): AudioContext | null {
+    if (this.isMuted) return null;
     if (typeof window === 'undefined') return null;
 
     if (!this.audioCtx) {
@@ -58,6 +76,7 @@ class SoundEffects {
 
   // ─── Haptic ───────────────────────────────────────────────────────────────
   public triggerVibration(pattern: number | number[] = 15) {
+    if (this.isMuted) return;
     if (typeof window !== 'undefined' && 'vibrate' in navigator) {
       try { navigator.vibrate(pattern); } catch {}
     }

@@ -1,13 +1,14 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { ZenLogo } from '@/components/ui/ZenLogo';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { VoiceAssistant } from '@/components/ui/VoiceAssistant';
 import { useSession } from 'next-auth/react';
-import { User as UserIcon, Plus, Calculator } from 'lucide-react';
+import { User as UserIcon, Plus, Calculator, Volume2, VolumeX } from 'lucide-react';
 import Link from 'next/link';
 import { useLanguage } from '@/components/ui/LanguageProvider';
+import { soundFx } from '@/lib/soundEffects';
 
 interface HeaderProps {
   onOpenQuickAdd: () => void;
@@ -16,6 +17,19 @@ interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({ onOpenQuickAdd }) => {
   const { data: session } = useSession();
   const { t } = useLanguage();
+  const [isMuted, setIsMuted] = useState(false);
+
+  // Sync mute state from localStorage on mount
+  useEffect(() => {
+    setIsMuted(soundFx.getMuted());
+  }, []);
+
+  const handleToggleMute = () => {
+    const newMuted = soundFx.toggleMute();
+    setIsMuted(newMuted);
+    // Если включили звук — проиграть маленький подтверждающий клик
+    if (!newMuted) soundFx.playClick();
+  };
 
   const getGreeting = () => {
     const h = new Date().getHours();
@@ -47,6 +61,19 @@ export const Header: React.FC<HeaderProps> = ({ onOpenQuickAdd }) => {
 
       {/* Right Controls */}
       <div className="flex items-center gap-2 flex-shrink-0">
+
+        {/* Sound Mute Toggle */}
+        <button
+          onClick={handleToggleMute}
+          className={`p-2 rounded-xl transition-all ${
+            isMuted
+              ? 'text-rose-400 bg-rose-500/10 hover:bg-rose-500/20'
+              : 'text-zen-400 hover:text-zen-900 dark:hover:text-zen-100 bg-zen-100 dark:bg-zen-800/80 hover:bg-zen-200 dark:hover:bg-zen-700'
+          }`}
+          title={isMuted ? 'Включить звук' : 'Выключить звук'}
+        >
+          {isMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
+        </button>
 
         {/* Currency & Calculator Quick Access */}
         <Link
