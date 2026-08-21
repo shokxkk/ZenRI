@@ -239,26 +239,26 @@ export function DashboardClient({ data }: { data: DashboardData }) {
           <p className="text-xs text-zen-400 capitalize mt-0.5">{todayDateStr}</p>
         </div>
 
-        {/* Top Header Buttons: Voice AI + Streak Badge + Widget Settings */}
-        <div className="flex items-center gap-2">
+        {/* Top Header Buttons: VIP Card + Meme + Voice AI + Streak Badge + Settings */}
+        <div className="flex items-center gap-1.5 flex-wrap justify-end">
           {/* 🔥 Daily Financial Streak Badge */}
           <button
             onClick={() => setIsStreakModalOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-xs font-black text-amber-400 hover:bg-amber-500/20 transition-all shadow-sm active:scale-95"
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-xs font-black text-amber-400 hover:bg-amber-500/20 transition-all shadow-sm active:scale-95"
             title="Огненный страйк активности"
           >
-            <Flame size={15} className="fill-amber-400 animate-pulse text-amber-400" />
-            <span>{streakInfo.currentStreak} дн.</span>
+            <Flame size={14} className="fill-amber-400 animate-pulse text-amber-400" />
+            <span>{streakInfo.currentStreak}d</span>
           </button>
 
           {/* 📇 VIP Personal Card Button */}
           <button
             onClick={() => setIsCardModalOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500/20 via-rose-500/20 to-purple-500/20 border border-amber-500/40 text-xs font-black text-amber-300 hover:brightness-110 transition-all shadow-sm active:scale-95"
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500/20 via-rose-500/20 to-purple-500/20 border border-amber-500/40 text-xs font-black text-amber-300 hover:brightness-110 transition-all shadow-sm active:scale-95"
             title="Моя персональная VIP-Карта"
           >
             <CreditCard size={14} className="text-amber-400" />
-            <span className="hidden sm:inline">VIP Карта</span>
+            <span>VIP Карта</span>
           </button>
 
           {/* 🎭 Barsik Meme Lab Button */}
@@ -267,30 +267,30 @@ export function DashboardClient({ data }: { data: DashboardData }) {
               setCurrentMeme(getRandomMemeForCategory());
               setIsMemeModalOpen(true);
             }}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-500/20 border border-purple-500/40 text-xs font-black text-purple-300 hover:bg-purple-500/30 transition-all shadow-sm active:scale-95"
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-purple-500/20 border border-purple-500/40 text-xs font-black text-purple-300 hover:bg-purple-500/30 transition-all shadow-sm active:scale-95"
             title="Мем-Лаборатория Барсика"
           >
             <Laugh size={14} className="text-purple-400" />
-            <span className="hidden sm:inline">Мем</span>
+            <span>Мем</span>
           </button>
 
           {/* 🎤 Voice AI Assistant Button */}
           <button
             onClick={() => setIsVoiceModalOpen(true)}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-[#0066FF] to-[#00C2FF] text-white text-xs font-black shadow-glow hover:brightness-110 transition-all active:scale-95"
+            className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-gradient-to-r from-[#0066FF] to-[#00C2FF] text-white text-xs font-black shadow-glow hover:brightness-110 transition-all active:scale-95"
             title="Голосовой ИИ Барсик"
           >
             <Mic size={14} className="animate-pulse" />
-            <span className="hidden sm:inline">Барсик AI</span>
+            <span>Барсик AI</span>
           </button>
 
           {/* Sleek Compact Widget Settings Icon Button ⚙️ */}
           <button
             onClick={() => setShowWidgetSettings(true)}
-            className="p-2 rounded-xl bg-zen-100 dark:bg-[#131C2E] border border-zen-200 dark:border-zen-800 text-zen-700 dark:text-zen-300 hover:text-[#00C2FF] transition-all relative active:scale-95"
+            className="p-1.5 rounded-xl bg-zen-100 dark:bg-[#131C2E] border border-zen-200 dark:border-zen-800 text-zen-700 dark:text-zen-300 hover:text-[#00C2FF] transition-all relative active:scale-95"
             title="Настроить виджеты"
           >
-            <Settings2 size={16} />
+            <Settings2 size={15} />
             {hiddenCount > 0 && (
               <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#0066FF] text-white text-[9px] flex items-center justify-center font-black">
                 {hiddenCount}
