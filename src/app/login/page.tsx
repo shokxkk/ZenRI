@@ -487,7 +487,7 @@ function PricingSection() {
                 <div className="space-y-3">
                   <div className="p-3.5 rounded-xl bg-[#020712] border border-blue-500/20">
                     <p className="text-[10px] text-slate-500 uppercase tracking-widest mb-1">Номер карты</p>
-                    <p className="text-base font-black text-white font-mono tracking-widest">8600 1234 5678 9010</p>
+                    <p className="text-base font-black text-white font-mono tracking-widest">8600 4929 8806 3737</p>
                   </div>
                   <div className="p-3.5 rounded-xl bg-[#020712] border border-blue-500/20">
                     <p className="text-[10px] text-slate-500 uppercase tracking-widest mb-1">Сумма к оплате</p>
@@ -496,7 +496,7 @@ function PricingSection() {
                   <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/25">
                     <p className="text-[11px] text-amber-300 font-bold flex items-start gap-1.5">
                       <AlertCircle size={13} className="flex-shrink-0 mt-0.5" />
-                      После оплаты напишите скриншот чека в Telegram <a href={`https://t.me/${TG_SUPPORT}`} target="_blank" rel="noopener noreferrer" className="text-amber-200 underline">@{TG_SUPPORT}</a> — код придёт в течение нескольких минут.
+                      <span>После оплаты отправьте чек в Telegram <a href={`https://t.me/${TG_SUPPORT}`} target="_blank" rel="noopener noreferrer" className="text-amber-200 underline">@{TG_SUPPORT}</a> — код придёт в течение нескольких минут.</span>
                     </p>
                   </div>
                 </div>
