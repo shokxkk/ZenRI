@@ -112,6 +112,9 @@ export function DashboardClient({ data }: { data: DashboardData }) {
   });
   const [showWidgetSettings, setShowWidgetSettings] = useState(false);
 
+  // View Mode State (iOS Style Tabs: OVERVIEW vs ALL_WIDGETS)
+  const [viewMode, setViewMode] = useState<'OVERVIEW' | 'ALL_WIDGETS'>('OVERVIEW');
+
   // Streak & Interactive Voice Modals State
   const [streakInfo, setStreakInfo] = useState<StreakInfo>({
     currentStreak: 1,
@@ -252,15 +255,15 @@ export function DashboardClient({ data }: { data: DashboardData }) {
             <span className="hidden sm:inline">Барсик AI</span>
           </button>
 
-          {/* Widget Manager Button */}
+          {/* Sleek Compact Widget Settings Icon Button ⚙️ */}
           <button
             onClick={() => setShowWidgetSettings(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zen-100 dark:bg-[#131C2E] border border-zen-200 dark:border-zen-800 text-xs font-bold text-zen-700 dark:text-zen-300 hover:text-[#0066FF] transition-all"
+            className="p-2 rounded-xl bg-zen-100 dark:bg-[#131C2E] border border-zen-200 dark:border-zen-800 text-zen-700 dark:text-zen-300 hover:text-[#00C2FF] transition-all relative active:scale-95"
+            title="Настроить виджеты"
           >
-            <Settings2 size={15} />
-            <span className="hidden md:inline">Виджеты</span>
+            <Settings2 size={16} />
             {hiddenCount > 0 && (
-              <span className="w-5 h-5 rounded-full bg-[#0066FF] text-white text-[10px] flex items-center justify-center font-bold">
+              <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#0066FF] text-white text-[9px] flex items-center justify-center font-black">
                 {hiddenCount}
               </span>
             )}
@@ -268,8 +271,32 @@ export function DashboardClient({ data }: { data: DashboardData }) {
         </div>
       </div>
 
-      {/* Quote of the Day (Financial Wisdom Widget - Requirement match) */}
-      {!hiddenWidgets.quote && (
+      {/* iOS Style View Mode Selector (📌 Обзор vs 📊 Все виджеты) */}
+      <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-slate-900/60 border border-white/10 w-fit">
+        <button
+          onClick={() => setViewMode('OVERVIEW')}
+          className={`px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition-all ${
+            viewMode === 'OVERVIEW'
+              ? 'bg-gradient-to-r from-[#0066FF] to-[#00C2FF] text-white shadow-md'
+              : 'text-slate-400 hover:text-white'
+          }`}
+        >
+          📌 Обзор
+        </button>
+        <button
+          onClick={() => setViewMode('ALL_WIDGETS')}
+          className={`px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition-all ${
+            viewMode === 'ALL_WIDGETS'
+              ? 'bg-gradient-to-r from-[#0066FF] to-[#00C2FF] text-white shadow-md'
+              : 'text-slate-400 hover:text-white'
+          }`}
+        >
+          📊 Все виджеты
+        </button>
+      </div>
+
+      {/* Quote of the Day (Shown in All Widgets mode or if quote is active) */}
+      {viewMode === 'ALL_WIDGETS' && !hiddenWidgets.quote && (
         <div className="relative group">
           <button
             onClick={() => toggleWidgetHide('quote')}
@@ -468,52 +495,57 @@ export function DashboardClient({ data }: { data: DashboardData }) {
         )}
       </div>
 
-      {/* AI Predict Feature (Hideable) */}
-      {!hiddenWidgets.aiPredict && (
-        <div className="relative group">
-          <button
-            onClick={() => toggleWidgetHide('aiPredict')}
-            className="absolute top-4 right-4 p-1.5 rounded-lg bg-zen-900/80 text-zen-400 hover:text-white z-20 opacity-0 group-hover:opacity-100 transition-opacity"
-            title="Скрыть виджет"
-          >
-            <X size={15} />
-          </button>
-          <AIPredictWidget
-            totalBalance={data.totalBalance}
-            monthlyIncome={data.thisMonthIncome}
-            monthlyExpense={data.thisMonthExpense}
-            topCategoryName={data.topCategoryName || 'Расходы'}
-            topCategoryAmount={data.topCategoryAmount || 0}
-          />
-        </div>
-      )}
+      {/* Extra Widgets (Shown in "Все виджеты" mode) */}
+      {viewMode === 'ALL_WIDGETS' && (
+        <>
+          {/* AI Predict Feature (Hideable) */}
+          {!hiddenWidgets.aiPredict && (
+            <div className="relative group">
+              <button
+                onClick={() => toggleWidgetHide('aiPredict')}
+                className="absolute top-4 right-4 p-1.5 rounded-lg bg-zen-900/80 text-zen-400 hover:text-white z-20 opacity-0 group-hover:opacity-100 transition-opacity"
+                title="Скрыть виджет"
+              >
+                <X size={15} />
+              </button>
+              <AIPredictWidget
+                totalBalance={data.totalBalance}
+                monthlyIncome={data.thisMonthIncome}
+                monthlyExpense={data.thisMonthExpense}
+                topCategoryName={data.topCategoryName || 'Расходы'}
+                topCategoryAmount={data.topCategoryAmount || 0}
+              />
+            </div>
+          )}
 
-      {/* Wishlist Хотелки Widget (Hideable & AI Scoring Integrated) */}
-      {!hiddenWidgets.wishlist && (
-        <div className="relative group">
-          <button
-            onClick={() => toggleWidgetHide('wishlist')}
-            className="absolute top-4 right-4 p-1.5 rounded-lg bg-zen-900/80 text-zen-400 hover:text-white z-20 opacity-0 group-hover:opacity-100 transition-opacity"
-            title="Скрыть виджет"
-          >
-            <X size={15} />
-          </button>
-          <WishlistWidget monthlyNetSavings={Math.max(1000000, (data.thisMonthIncome || 12000000) - (data.thisMonthExpense || 545000))} />
-        </div>
-      )}
+          {/* Wishlist Хотелки Widget (Hideable & AI Scoring Integrated) */}
+          {!hiddenWidgets.wishlist && (
+            <div className="relative group">
+              <button
+                onClick={() => toggleWidgetHide('wishlist')}
+                className="absolute top-4 right-4 p-1.5 rounded-lg bg-zen-900/80 text-zen-400 hover:text-white z-20 opacity-0 group-hover:opacity-100 transition-opacity"
+                title="Скрыть виджет"
+              >
+                <X size={15} />
+              </button>
+              <WishlistWidget monthlyNetSavings={Math.max(1000000, (data.thisMonthIncome || 12000000) - (data.thisMonthExpense || 545000))} />
+            </div>
+          )}
 
-      {/* Books & Reading Tracker Widget (Hideable) */}
-      {!hiddenWidgets.books && (
-        <div className="relative group">
-          <button
-            onClick={() => toggleWidgetHide('books')}
-            className="absolute top-4 right-4 p-1.5 rounded-lg bg-zen-900/80 text-zen-400 hover:text-white z-20 opacity-0 group-hover:opacity-100 transition-opacity"
-            title="Скрыть виджет"
-          >
-            <X size={15} />
-          </button>
-          <BooksWidget />
-        </div>
+          {/* Books & Reading Tracker Widget (Hideable) */}
+          {!hiddenWidgets.books && (
+            <div className="relative group">
+              <button
+                onClick={() => toggleWidgetHide('books')}
+                className="absolute top-4 right-4 p-1.5 rounded-lg bg-zen-900/80 text-zen-400 hover:text-white z-20 opacity-0 group-hover:opacity-100 transition-opacity"
+                title="Скрыть виджет"
+              >
+                <X size={15} />
+              </button>
+              <BooksWidget />
+            </div>
+          )}
+        </>
       )}
 
 

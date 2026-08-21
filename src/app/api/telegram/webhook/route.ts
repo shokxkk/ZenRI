@@ -20,6 +20,70 @@ export async function POST(req: NextRequest) {
     const { id: telegramIdNum, first_name, last_name, username } = message.from;
     const chatId = message.chat.id;
     const telegramId = String(telegramIdNum);
+    const text = (message.text || '').trim();
+
+    // Check if user exists
+    let user = await prisma.user.findUnique({ where: { telegramId } });
+
+    // Handle Quick Expense / Income logging directly from Telegram messages (e.g., "Такси 25000" or "Кофе 15000")
+    if (text && !text.startsWith('/start') && user) {
+      const match = text.match(/([a-zA-Zа-яА-ЯёЁ\s]+)?\s*(\d+[\d\s]*)/);
+      if (match) {
+        const categoryOrComment = (match[1] || 'Расход').trim();
+        const rawAmount = match[2].replace(/\s/g, '');
+        const amount = parseInt(rawAmount, 10);
+
+        if (!isNaN(amount) && amount > 0) {
+          // Find default account
+          let account = await prisma.account.findFirst({ where: { userId: user.id } });
+          if (!account) {
+            account = await prisma.account.create({
+              data: {
+                userId: user.id,
+                name: 'Основной счёт',
+                type: 'UZCARD',
+                currency: CurrencyCode.UZS,
+                initialBalance: 0,
+                currentBalance: 0,
+              },
+            });
+          }
+
+          // Create transaction
+          await prisma.transaction.create({
+            data: {
+              userId: user.id,
+              accountId: account.id,
+              type: 'EXPENSE',
+              amount,
+              comment: categoryOrComment,
+              date: new Date(),
+            },
+          });
+
+          // Deduct from account
+          await prisma.account.update({
+            where: { id: account.id },
+            data: {
+              currentBalance: {
+                decrement: amount,
+              },
+            },
+          });
+
+          const reply =
+            `✅ <b>Записано в ZenRI!</b>\n\n` +
+            `💸 <b>Расход:</b> ${amount.toLocaleString('ru-RU')} сум\n` +
+            `🏷 <b>Категория / Заметка:</b> ${categoryOrComment}\n` +
+            `───────────────\n` +
+            `Баланс автоматически обновлён на сайте www.zenri.uz 🎯`;
+
+          await sendTelegramMessage(chatId, reply);
+          return NextResponse.json({ ok: true });
+        }
+      }
+    }
+
     const displayName = [first_name, last_name].filter(Boolean).join(' ') || username || `User_${telegramId}`;
     const syntheticEmail = `tg_${telegramId}@telegram.zenri.app`;
 
@@ -40,8 +104,6 @@ export async function POST(req: NextRequest) {
 
     // Find or create user in DB safely
     try {
-      let user = await prisma.user.findUnique({ where: { telegramId } });
-
       if (!user) {
         const existingByEmail = await prisma.user.findUnique({ where: { email: syntheticEmail } });
 
@@ -128,7 +190,6 @@ export async function POST(req: NextRequest) {
       if (user) {
         userId = user.id;
 
-        // If user is suspended/blocked by admin, send notice and halt
         if (user.isBlocked) {
           const blockNotice =
             `🚫 <b>Доступ к ZenRI приостановлен</b>\n\n` +
@@ -158,6 +219,7 @@ export async function POST(req: NextRequest) {
       `🔑 <b>Ваш 6-значный код для входа на сайт:</b>\n\n` +
       `👉 <code>${sixDigitCode}</code> 👈\n\n` +
       `<i>(Нажмите на код чтобы скопировать. Введите его на сайте www.zenri.uz — номер телефона вводить не нужно!)</i>\n\n` +
+      `💡 <b>Совет:</b> Вы можете писать прямо в этот бот свои расходы (например: <code>Такси 25000</code> или <code>Обед 45000</code>) — они автоматически запишутся на ваш сайт!\n\n` +
       `⏱ Код действует 15 минут.\n` +
       `───────────────\n` +
       `Или нажмите кнопку ниже для входа в 1 клик:`;
