@@ -14,7 +14,17 @@ export default async function AIPage() {
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   const start6m = new Date(now.getFullYear(), now.getMonth() - 5, 1);
 
-  const [accounts, monthlyIncomeAgg, monthlyExpenseAgg, topExpenseGroup, income6mAgg, expense6mAgg] = await Promise.all([
+  const [
+    accounts,
+    monthlyIncomeAgg,
+    monthlyExpenseAgg,
+    topExpenseGroup,
+    topIncomeGroup,
+    income6mAgg,
+    expense6mAgg,
+    debts,
+    budgetCats,
+  ] = await Promise.all([
     getAccounts(),
     prisma.transaction.aggregate({
       where: { userId, type: 'INCOME', date: { gte: startOfMonth } },
@@ -31,6 +41,13 @@ export default async function AIPage() {
       orderBy: { _sum: { amount: 'desc' } },
       take: 6,
     }),
+    prisma.transaction.groupBy({
+      by: ['categoryId'],
+      where: { userId, type: 'INCOME', date: { gte: startOfMonth }, categoryId: { not: null } },
+      _sum: { amount: true },
+      orderBy: { _sum: { amount: 'desc' } },
+      take: 5,
+    }),
     prisma.transaction.aggregate({
       where: { userId, type: 'INCOME', date: { gte: start6m } },
       _sum: { amount: true },
@@ -38,6 +55,14 @@ export default async function AIPage() {
     prisma.transaction.aggregate({
       where: { userId, type: 'EXPENSE', date: { gte: start6m } },
       _sum: { amount: true },
+    }),
+    prisma.debt.findMany({
+      where: { userId },
+      select: { type: true, remainingAmount: true },
+    }),
+    prisma.budgetCategory.findMany({
+      where: { budget: { userId } },
+      include: { category: true },
     }),
   ]);
 
@@ -51,10 +76,10 @@ export default async function AIPage() {
   const expense6m = Number(expense6mAgg._sum.amount || 0);
   const savingsRate = income6m > 0 ? Math.round(((income6m - expense6m) / income6m) * 100) : 0;
 
+  // Expense categories
   let topCategoryName = 'Расходы';
   let topCategoryAmount = 0;
   const totalExpenseMonth = topExpenseGroup.reduce((s, g) => s + Number(g._sum.amount || 0), 0);
-
   const topExpenseCategories: { name: string; amount: number; percent: number; color: string }[] = [];
 
   for (const g of topExpenseGroup) {
@@ -74,6 +99,29 @@ export default async function AIPage() {
     });
   }
 
+  // Income categories
+  const topIncomeCategories: { name: string; amount: number }[] = [];
+  for (const g of topIncomeGroup) {
+    if (!g.categoryId) continue;
+    const cat = await prisma.category.findUnique({ where: { id: g.categoryId } });
+    if (!cat) continue;
+    topIncomeCategories.push({
+      name: cat.name,
+      amount: Number(g._sum.amount || 0),
+    });
+  }
+
+  // Debts
+  const iOweTotal = debts.filter((d) => d.type === 'I_OWE').reduce((s, d) => s + Number(d.remainingAmount), 0);
+  const owesMeTotal = debts.filter((d) => d.type === 'THEY_OWE_ME').reduce((s, d) => s + Number(d.remainingAmount), 0);
+
+  // Budgets
+  const budgetsSummary = budgetCats.map((b) => ({
+    categoryName: b.category.name,
+    limit: Number(b.limitAmount),
+    spent: 0,
+  }));
+
   return (
     <AppShell>
       <AIClient
@@ -85,6 +133,10 @@ export default async function AIPage() {
         topCategoryAmount={topCategoryAmount}
         savingsRate={savingsRate}
         topExpenseCategories={topExpenseCategories}
+        topIncomeCategories={topIncomeCategories}
+        iOweTotal={iOweTotal}
+        owesMeTotal={owesMeTotal}
+        budgetsSummary={budgetsSummary}
       />
     </AppShell>
   );

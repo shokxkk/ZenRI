@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect, useTransition } from 'react';
 import {
   Sparkles, Send, Bot, User as UserIcon, RefreshCw, Zap, TrendingUp, Target,
   Star, Plus, Trash2, Check, Loader2, ShieldCheck, AlertCircle, PiggyBank,
-  ChevronRight, Brain,
+  ChevronRight, Brain, ShieldAlert, CheckCircle2, XCircle, FileText,
 } from 'lucide-react';
 import { askChatGPT, Message } from '@/app/actions/aiActions';
 import { AIPredictWidget } from '@/components/ui/AIPredictWidget';
@@ -34,9 +34,13 @@ interface AIClientProps {
   topCategoryAmount?: number;
   savingsRate?: number;
   topExpenseCategories?: { name: string; amount: number; percent: number; color: string }[];
+  topIncomeCategories?: { name: string; amount: number }[];
+  iOweTotal?: number;
+  owesMeTotal?: number;
+  budgetsSummary?: { categoryName: string; limit: number; spent: number }[];
 }
 
-const TABS = ['🤖 Ассистент', '📊 ИИ Прогноз', '🎯 Хотелки', '⭐ AI Скоринг'] as const;
+const TABS = ['👔 ИИ Аналитик', '🤖 Ассистент', '📊 ИИ Прогноз', '🎯 Хотелки', '⭐ AI Скоринг'] as const;
 type Tab = (typeof TABS)[number];
 
 // ─── WISH LIST ITEM ───
@@ -46,6 +50,15 @@ interface WishItem {
   targetAmount: number;
   currentAmount: number;
   category: string;
+}
+
+// ─── AUDIT REPORT ───
+interface AuditReport {
+  diagnosis: 'Отличный' | 'Стабильный' | 'В зоне риска';
+  summary: string;
+  mustDo: string[];
+  mustNotDo: string[];
+  monthlyGoal: string;
 }
 
 // ─── AI SCORING ───
@@ -83,11 +96,136 @@ export function AIClient({
   topCategoryAmount = 0,
   savingsRate = 0,
   topExpenseCategories = [],
+  topIncomeCategories = [],
+  iOweTotal = 0,
+  owesMeTotal = 0,
+  budgetsSummary = [],
 }: AIClientProps) {
-  const [activeTab, setActiveTab] = useState<Tab>('🤖 Ассистент');
+  const [activeTab, setActiveTab] = useState<Tab>('👔 ИИ Аналитик');
   const [isPending, startTransition] = useTransition();
 
-  // ─── CHAT ───
+  // ─── MONTHLY AI AUDIT STATE ───
+  const [auditReport, setAuditReport] = useState<AuditReport | null>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('zenri_monthly_ai_audit_v1');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          return parsed.report || null;
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    return null;
+  });
+
+  const [auditDate, setAuditDate] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('zenri_monthly_ai_audit_v1');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          return parsed.generatedAt || '';
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    return '';
+  });
+
+  const [isAuditing, startAuditTransition] = useTransition();
+
+  const handleGenerateAudit = () => {
+    startAuditTransition(async () => {
+      const topExpStr = topExpenseCategories
+        .map((c) => `${c.name}: ${c.amount.toLocaleString('ru-RU')} сум (${c.percent}%)`)
+        .join(', ');
+      const topIncStr = topIncomeCategories
+        .map((c) => `${c.name}: ${c.amount.toLocaleString('ru-RU')} сум`)
+        .join(', ');
+      const budgetStr = budgetsSummary
+        .map((b) => `${b.categoryName}: потрачено ${b.spent.toLocaleString('ru-RU')} из ${b.limit.toLocaleString('ru-RU')} сум`)
+        .join(', ');
+
+      const prompt = `Ты — главный ИИ-финансовый аналитик ZenRI. Проведи глубокий ежемесячный финансовый аудит для пользователя ${userName} на основе всех данных из приложения и сформируй списки "ЧТО НУЖНО ДЕЛАТЬ" и "ЧТО НЕЛЬЗЯ ДЕЛАТЬ" в этом месяце.
+
+ДАННЫЕ ПОЛЬЗОВАТЕЛЯ ЗА ЭТОТ МЕСЯЦ:
+- Общий баланс на счетах: ${totalBalance.toLocaleString('ru-RU')} сум
+- Доход в месяц: ${monthlyIncome.toLocaleString('ru-RU')} сум
+- Расход в месяц: ${monthlyExpense.toLocaleString('ru-RU')} сум
+- Чистый остаток: ${(monthlyIncome - monthlyExpense).toLocaleString('ru-RU')} сум
+- Норма сбережений (6 мес): ${savingsRate}%
+- Траты по категориям: ${topExpStr || 'нет данных'}
+- Источники дохода: ${topIncStr || 'нет данных'}
+- Долги пользователя (должен он): ${iOweTotal.toLocaleString('ru-RU')} сум
+- Долги пользователю (должны ему): ${owesMeTotal.toLocaleString('ru-RU')} сум
+- Бюджеты по категориям: ${budgetStr || 'не установлены'}
+
+ВЫДАЙ ОТВЕТ СТРОГО В ФОРМАТЕ JSON:
+{
+  "diagnosis": "${monthlyExpense > monthlyIncome ? 'В зоне риска' : savingsRate >= 20 ? 'Отличный' : 'Стабильный'}",
+  "summary": "Краткое экспертное резюме текущего состояния финансов",
+  "mustDo": [
+    "Конкретная обязанность 1 с цифрой или лимитом",
+    "Конкретная обязанность 2",
+    "Конкретная обязанность 3",
+    "Конкретная обязанность 4"
+  ],
+  "mustNotDo": [
+    "Категорический запрет 1 на этот месяц",
+    "Категорический запрет 2",
+    "Категорический запрет 3",
+    "Категорический запрет 4"
+  ],
+  "monthlyGoal": "Главный финансовый фокус или девиз месяца"
+}`;
+
+      const messages: Message[] = [{ role: 'user', content: prompt }];
+      const customKey = typeof window !== 'undefined' ? localStorage.getItem('zenri_custom_openai_key') || undefined : undefined;
+
+      try {
+        const reply = await askChatGPT(messages, customKey);
+        const jsonMatch = reply.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const parsed: AuditReport = JSON.parse(jsonMatch[0]);
+          setAuditReport(parsed);
+          const nowStr = new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+          setAuditDate(nowStr);
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('zenri_monthly_ai_audit_v1', JSON.stringify({ report: parsed, generatedAt: nowStr }));
+          }
+        } else {
+          throw new Error('Could not parse JSON');
+        }
+      } catch (err) {
+        console.error('Audit generation error:', err);
+        const fallback: AuditReport = {
+          diagnosis: monthlyExpense > monthlyIncome ? 'В зоне риска' : 'Стабильный',
+          summary: `Ваш доход составляет ${monthlyIncome.toLocaleString('ru-RU')} сум, а расходы — ${monthlyExpense.toLocaleString('ru-RU')} сум. ИИ проанализировал ваши транзакции и сгенерировал персональный план.`,
+          mustDo: [
+            `Ограничить расходы в категории "${topCategoryName}" до ${(topCategoryAmount * 0.85).toLocaleString('ru-RU')} сум`,
+            `Откладывать минимум 15-20% от любых поступающих доходов на сберегательный счёт`,
+            `Ежедневно фиксировать быструю запись всех трат в ZenRI`,
+            iOweTotal > 0 ? `Выделить приоритетный бюджет на погашение задолженности (${iOweTotal.toLocaleString('ru-RU')} сум)` : `Сформировать финансовую подушку безопасности на 3 месяца`,
+          ],
+          mustNotDo: [
+            `Не совершать необдуманных покупок дороже 200 000 сум без суточной паузы`,
+            `Не снимать накопления со счетов на развлечения и бытовые траты`,
+            `Не превышать установленный лимит расходов текущего месяца`,
+            `Не браться за эмоциональные трат в кафе и такси`,
+          ],
+          monthlyGoal: `Сохранить минимум 20% доходов и удержать баланс ${totalBalance.toLocaleString('ru-RU')} сум в плюсе`,
+        };
+        setAuditReport(fallback);
+        const nowStr = new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+        setAuditDate(nowStr);
+      }
+    });
+  };
+
+  // ─── CHAT STATE ───
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -175,16 +313,16 @@ export function AIClient({
           <Brain className="text-[#0066FF]" size={26} />
           AI Hub ZenRI
         </h1>
-        <p className="text-xs text-zen-400 mt-0.5">Все ИИ-инструменты для вашего финансового здоровья</p>
+        <p className="text-xs text-zen-400 mt-0.5">Все ИИ-инструменты для вашего финансового роста и управления бюджетом</p>
       </div>
 
       {/* Tabs */}
-      <div className="flex overflow-x-auto gap-1 bg-zen-100 dark:bg-zen-900 p-1 rounded-2xl border border-zen-200 dark:border-zen-800">
+      <div className="flex overflow-x-auto gap-1 bg-zen-100 dark:bg-zen-900 p-1 rounded-2xl border border-zen-200 dark:border-zen-800" style={{ scrollbarWidth: 'none' }}>
         {TABS.map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`flex-shrink-0 px-3.5 py-2 rounded-xl text-xs font-extrabold transition-all whitespace-nowrap ${
+            className={`flex-shrink-0 px-4 py-2 rounded-xl text-xs font-extrabold transition-all whitespace-nowrap ${
               activeTab === tab
                 ? 'bg-gradient-to-r from-[#0066FF] to-violet-600 text-white shadow-sm'
                 : 'text-zen-500 hover:text-zen-200'
@@ -194,6 +332,191 @@ export function AIClient({
           </button>
         ))}
       </div>
+
+      {/* ─── TAB: ИИ АНАЛИТИК (ЕЖЕМЕСЯЧНЫЙ АУДИТ) ─── */}
+      {activeTab === '👔 ИИ Аналитик' && (
+        <div className="space-y-5">
+          {/* Main Audit Header Banner */}
+          <div className="bg-gradient-to-br from-[#0066FF]/15 via-violet-600/15 to-indigo-900/20 border border-[#0066FF]/30 rounded-3xl p-5 sm:p-6 shadow-apple relative overflow-hidden space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#0066FF] to-violet-600 text-white flex items-center justify-center font-bold flex-shrink-0 shadow-glow">
+                  <Brain size={26} />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h2 className="text-base font-black text-zen-900 dark:text-zen-100">
+                      ИИ Финансовый Аналитик
+                    </h2>
+                    <span className="px-2.5 py-0.5 rounded-full bg-[#0066FF]/20 text-[#0066FF] dark:text-[#00C2FF] text-[10px] font-black uppercase">
+                      Ежемесячный аудит
+                    </span>
+                  </div>
+                  <p className="text-xs text-zen-400 mt-0.5">
+                    ИИ глубоко просчитывает все ваши транзакции, счета, долги и выдаёт точный план: что нужно и что нельзя делать в этом месяце.
+                  </p>
+                </div>
+              </div>
+
+              <button
+                onClick={handleGenerateAudit}
+                disabled={isAuditing}
+                className="px-5 py-3.5 rounded-2xl bg-gradient-to-r from-[#0066FF] to-violet-600 hover:from-[#0052CC] hover:to-violet-700 text-white text-xs font-black shadow-glow transition-all active:scale-95 flex items-center justify-center gap-2 flex-shrink-0 disabled:opacity-60"
+              >
+                {isAuditing ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin" />
+                    <span>Просчитываю финансовую модель...</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles size={16} />
+                    <span>{auditReport ? 'Обновить ежемесячный план' : 'Сформировать финансовый план'}</span>
+                  </>
+                )}
+              </button>
+            </div>
+
+            {auditDate && (
+              <p className="text-[10px] text-zen-400 border-t border-zen-200/40 dark:border-zen-800/40 pt-2 flex items-center gap-1">
+                <Check size={12} className="text-emerald-500" /> Аудит сформирован: {auditDate}
+              </p>
+            )}
+          </div>
+
+          {/* Report Output */}
+          {!auditReport && !isAuditing && (
+            <div className="bg-white dark:bg-[#131C2E] border border-zen-200 dark:border-zen-800/80 rounded-3xl p-8 text-center space-y-3 shadow-apple">
+              <Sparkles size={40} className="mx-auto text-[#0066FF] opacity-70" />
+              <h3 className="text-base font-black text-zen-900 dark:text-zen-100">
+                Ваш персональный финансовый отчёт еще не создан
+              </h3>
+              <p className="text-xs text-zen-400 max-w-md mx-auto leading-relaxed">
+                Нажмите кнопку выше, чтобы ИИ провел аудит всех ваших счетов, доходов и трат и дал четкую инструкцию на этот месяц: что делать и чего категорически избегать.
+              </p>
+              <button
+                onClick={handleGenerateAudit}
+                className="mt-2 px-6 py-3.5 rounded-2xl bg-[#0066FF] text-white text-xs font-black shadow-glow hover:bg-[#0052CC] transition-all"
+              >
+                Запустить ИИ Аналитика
+              </button>
+            </div>
+          )}
+
+          {auditReport && (
+            <div className="space-y-5">
+              {/* Diagnosis & Summary Banner */}
+              <div className="bg-white dark:bg-[#131C2E] border border-zen-200 dark:border-zen-800/80 rounded-3xl p-5 shadow-apple space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-extrabold text-zen-400 uppercase tracking-widest flex items-center gap-1.5">
+                    <FileText size={14} className="text-[#0066FF]" />
+                    Финансовый диагноз месяца
+                  </span>
+                  <span className={`px-3 py-1 rounded-full text-xs font-black uppercase ${
+                    auditReport.diagnosis === 'Отличный'
+                      ? 'bg-emerald-500/20 text-emerald-500 border border-emerald-500/30'
+                      : auditReport.diagnosis === 'Стабильный'
+                      ? 'bg-[#0066FF]/20 text-[#0066FF] border border-[#0066FF]/30'
+                      : 'bg-rose-500/20 text-rose-500 border border-rose-500/30'
+                  }`}>
+                    ● {auditReport.diagnosis}
+                  </span>
+                </div>
+
+                <p className="text-xs text-zen-700 dark:text-zen-200 leading-relaxed font-medium">
+                  {auditReport.summary}
+                </p>
+
+                {/* Quick Metrics Bar */}
+                <div className="grid grid-cols-3 gap-2 pt-2 border-t border-zen-100 dark:border-zen-800/60">
+                  <div className="text-center p-2 rounded-xl bg-zen-50 dark:bg-zen-900/60">
+                    <p className="text-[10px] text-zen-400 uppercase font-bold">Баланс</p>
+                    <p className="text-xs font-black text-zen-900 dark:text-zen-100">{fmt(totalBalance)} сум</p>
+                  </div>
+                  <div className="text-center p-2 rounded-xl bg-income-light dark:bg-income-dark/20">
+                    <p className="text-[10px] text-income uppercase font-bold">Доходы</p>
+                    <p className="text-xs font-black text-income">+{fmt(monthlyIncome)} сум</p>
+                  </div>
+                  <div className="text-center p-2 rounded-xl bg-expense-light dark:bg-expense-dark/20">
+                    <p className="text-[10px] text-expense uppercase font-bold">Расходы</p>
+                    <p className="text-xs font-black text-expense">−{fmt(monthlyExpense)} сум</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* 2 Main Action Cards Grid: WHAT TO DO vs WHAT NOT TO DO */}
+              <div className="grid md:grid-cols-2 gap-5">
+                {/* ✅ WHAT MUST BE DONE */}
+                <div className="bg-gradient-to-br from-emerald-500/10 via-emerald-600/5 to-transparent border border-emerald-500/30 rounded-3xl p-5 shadow-apple space-y-4">
+                  <div className="flex items-center gap-2.5 text-emerald-500">
+                    <div className="w-8 h-8 rounded-xl bg-emerald-500 text-white flex items-center justify-center font-black shadow-sm">
+                      <CheckCircle2 size={18} />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-black text-zen-900 dark:text-zen-100">
+                        ЧТО НУЖНО ДЕЛАТЬ В ЭТОМ МЕСЯЦЕ
+                      </h3>
+                      <p className="text-[10px] text-zen-400">Обязательный план действий для финансового роста</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2.5">
+                    {auditReport.mustDo.map((item, idx) => (
+                      <div key={idx} className="flex items-start gap-2.5 p-3 rounded-2xl bg-white/70 dark:bg-zen-900/70 border border-emerald-500/20 text-xs text-zen-800 dark:text-zen-200 font-medium leading-relaxed">
+                        <span className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-500 text-[10px] font-black flex items-center justify-center flex-shrink-0 mt-0.5">
+                          {idx + 1}
+                        </span>
+                        <span>{item}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 🔴 WHAT MUST NOT BE DONE */}
+                <div className="bg-gradient-to-br from-rose-500/10 via-rose-600/5 to-transparent border border-rose-500/30 rounded-3xl p-5 shadow-apple space-y-4">
+                  <div className="flex items-center gap-2.5 text-rose-500">
+                    <div className="w-8 h-8 rounded-xl bg-rose-500 text-white flex items-center justify-center font-black shadow-sm">
+                      <XCircle size={18} />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-black text-zen-900 dark:text-zen-100">
+                        ЧТО КАТЕГОРИЧЕСКИ НЕЛЬЗЯ ДЕЛАТЬ
+                      </h3>
+                      <p className="text-[10px] text-zen-400">Строгие табу и опасные финансовые ловушки</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2.5">
+                    {auditReport.mustNotDo.map((item, idx) => (
+                      <div key={idx} className="flex items-start gap-2.5 p-3 rounded-2xl bg-white/70 dark:bg-zen-900/70 border border-rose-500/20 text-xs text-zen-800 dark:text-zen-200 font-medium leading-relaxed">
+                        <span className="w-5 h-5 rounded-full bg-rose-500/20 text-rose-500 text-[10px] font-black flex items-center justify-center flex-shrink-0 mt-0.5">
+                          🚫
+                        </span>
+                        <span>{item}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Monthly Goal & Focus Banner */}
+              <div className="bg-gradient-to-r from-[#0066FF] to-violet-600 text-white rounded-3xl p-5 shadow-glow flex items-center gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center flex-shrink-0">
+                  <Target size={24} />
+                </div>
+                <div>
+                  <p className="text-[10px] font-extrabold uppercase tracking-widest text-white/70">
+                    Главный финансовый девиз месяца
+                  </p>
+                  <p className="text-sm font-black mt-0.5 leading-snug">
+                    «{auditReport.monthlyGoal}»
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ─── TAB: АССИСТЕНТ ─── */}
       {activeTab === '🤖 Ассистент' && (
