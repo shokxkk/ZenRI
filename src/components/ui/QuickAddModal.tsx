@@ -423,25 +423,38 @@ export function QuickAddModal({ open, onClose }: QuickAddModalProps) {
             {/* Category Selector (For Expense / Income) */}
             {mode !== 'TRANSFER' && filteredCategories.length > 0 && (
               <div>
-                <label className="text-[11px] font-bold text-zen-400 uppercase tracking-wider mb-1 block">Категория</label>
-                <div className="flex gap-2 overflow-x-auto pb-1 max-w-full">
-                  {filteredCategories.slice(0, 10).map((cat) => (
-                    <button
-                      key={cat.id}
-                      type="button"
-                      onClick={() => setSelectedCategoryId(cat.id)}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all border ${
-                        selectedCategoryId === cat.id
-                          ? 'bg-[#0066FF] text-white border-[#0066FF] shadow-sm'
-                          : 'bg-zen-50 dark:bg-zen-900 text-zen-700 dark:text-zen-300 border-zen-200 dark:border-zen-800'
-                      }`}
-                    >
-                      {cat.name}
-                    </button>
-                  ))}
+                <label className="text-[11px] font-bold text-zen-400 uppercase tracking-wider mb-2 block">
+                  Категория {mode === 'EXPENSE' ? 'расхода' : 'дохода'}
+                </label>
+                <div className="flex gap-2 overflow-x-auto pb-2 max-w-full -mx-1 px-1"
+                  style={{ scrollbarWidth: 'none' }}>
+                  {filteredCategories.map((cat) => {
+                    const isSelected = selectedCategoryId === cat.id;
+                    const color = cat.color || (mode === 'EXPENSE' ? '#EF4444' : '#10B981');
+                    return (
+                      <button
+                        key={cat.id}
+                        type="button"
+                        onClick={() => setSelectedCategoryId(cat.id)}
+                        className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all border flex-shrink-0 ${
+                          isSelected
+                            ? 'text-white shadow-sm'
+                            : 'bg-zen-50 dark:bg-zen-900 text-zen-700 dark:text-zen-300 border-zen-200 dark:border-zen-800 hover:border-[#0066FF]/50'
+                        }`}
+                        style={isSelected ? { backgroundColor: color, borderColor: color } : { borderColor: isSelected ? color : undefined }}
+                      >
+                        <span
+                          className="w-2 h-2 rounded-full flex-shrink-0"
+                          style={{ backgroundColor: isSelected ? 'rgba(255,255,255,0.7)' : color }}
+                        />
+                        {cat.name}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             )}
+
 
             {/* Comment */}
             <div>

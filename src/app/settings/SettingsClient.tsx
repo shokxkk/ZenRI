@@ -9,7 +9,7 @@ import {
 import { soundFx } from '@/lib/soundEffects';
 import { Modal } from '@/components/ui/Modal';
 import { Badge } from '@/components/ui/Badge';
-import { updateUserProfile, createCategory, resetAllUserData, seedDemoDataAction, updateAvatar } from '@/app/actions/analyticsActions';
+import { updateUserProfile, createCategory, deleteCategory, seedDefaultCategories, resetAllUserData, seedDemoDataAction, updateAvatar } from '@/app/actions/analyticsActions';
 import { signOut, useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
@@ -79,6 +79,24 @@ export function SettingsClient({ user, categories }: SettingsClientProps) {
   const [catName, setCatName] = useState('');
   const [catType, setCatType] = useState<'INCOME' | 'EXPENSE'>('EXPENSE');
   const [catColor, setCatColor] = useState('#EF4444');
+  const [catTab, setCatTab] = useState<'EXPENSE' | 'INCOME'>('EXPENSE');
+  const [seedingCats, setSeedingCats] = useState(false);
+
+  const handleSeedDefaultCategories = () => {
+    setSeedingCats(true);
+    startTransition(async () => {
+      await seedDefaultCategories();
+      setSeedingCats(false);
+      router.refresh();
+    });
+  };
+
+  const handleDeleteCategory = (id: string) => {
+    startTransition(async () => {
+      await deleteCategory(id);
+      router.refresh();
+    });
+  };
 
   const handleSaveProfile = () => {
     startTransition(async () => {
@@ -363,22 +381,79 @@ export function SettingsClient({ user, categories }: SettingsClientProps) {
         </div>
       </Section>
 
-      {/* Categories */}
+      {/* Categories — tabbed management */}
       <Section title={t('settings_categories')}>
-        <div className="px-5 py-3 space-y-2 max-h-60 overflow-y-auto">
-          {categories.length === 0 && <p className="text-xs text-zen-400 py-4 text-center">{t('settings_no_categories')}</p>}
-          {categories.map((cat) => (
-            <div key={cat.id} className="flex items-center gap-2 py-1">
-              <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: cat.color || '#71717A' }} />
-              <span className="text-sm text-zen-700 dark:text-zen-300 font-medium">{cat.name}</span>
-              <Badge variant="neutral" size="sm">{cat.type === 'EXPENSE' ? t('settings_expense_type') : t('settings_income_type')}</Badge>
-            </div>
-          ))}
+        {/* Type tabs */}
+        <div className="px-5 pt-4 flex gap-2">
+          <button
+            onClick={() => { setCatTab('EXPENSE'); setShowNewCat(false); }}
+            className={`flex-1 py-2 text-xs font-extrabold rounded-xl transition-all border ${
+              catTab === 'EXPENSE' ? 'bg-expense text-white border-expense shadow-sm' : 'bg-zen-50 dark:bg-zen-900 text-zen-400 border-zen-200 dark:border-zen-800 hover:border-expense/50'
+            }`}
+          >− {t('settings_expense_type')}</button>
+          <button
+            onClick={() => { setCatTab('INCOME'); setShowNewCat(false); }}
+            className={`flex-1 py-2 text-xs font-extrabold rounded-xl transition-all border ${
+              catTab === 'INCOME' ? 'bg-income text-white border-income shadow-sm' : 'bg-zen-50 dark:bg-zen-900 text-zen-400 border-zen-200 dark:border-zen-800 hover:border-income/50'
+            }`}
+          >+ {t('settings_income_type')}</button>
         </div>
-        <div className="px-5 pb-4">
-          <button onClick={() => setShowNewCat(true)} className="flex items-center gap-2 text-xs font-bold text-[#0066FF] hover:underline min-h-[36px]">
+
+        {/* Category chips */}
+        <div className="px-5 pt-3 pb-2 min-h-[80px]">
+          {categories.filter((c) => c.type === catTab).length === 0 ? (
+            <div className="text-center py-4">
+              <p className="text-xs text-zen-400">{t('settings_no_categories')}</p>
+              <button
+                onClick={handleSeedDefaultCategories}
+                disabled={seedingCats || isPending}
+                className="mt-2 text-xs font-bold text-[#0066FF] hover:underline"
+              >
+                {seedingCats ? 'Загрузка...' : '✨ Загрузить стандартные категории'}
+              </button>
+            </div>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {categories
+                .filter((c) => c.type === catTab)
+                .map((cat) => (
+                  <div
+                    key={cat.id}
+                    className="flex items-center gap-1.5 pl-2.5 pr-1.5 py-1.5 rounded-xl border text-xs font-bold group"
+                    style={{ borderColor: cat.color || '#71717A', backgroundColor: `${cat.color || '#71717A'}18` }}
+                  >
+                    <span className="w-2 h-2 rounded-full" style={{ backgroundColor: cat.color || '#71717A' }} />
+                    <span style={{ color: cat.color || '#71717A' }}>{cat.name}</span>
+                    <button
+                      onClick={() => handleDeleteCategory(cat.id)}
+                      className="w-4 h-4 rounded-full bg-zen-200 dark:bg-zen-700 text-zen-500 hover:bg-expense hover:text-white flex items-center justify-center transition-all ml-0.5 opacity-0 group-hover:opacity-100 text-[10px] font-black"
+                      title="Удалить"
+                    >×</button>
+                  </div>
+                ))
+              }
+            </div>
+          )}
+        </div>
+
+        {/* Add + Seed buttons */}
+        <div className="px-5 pb-4 flex items-center gap-3">
+          <button
+            onClick={() => setShowNewCat(true)}
+            className="flex items-center gap-1.5 text-xs font-bold text-[#0066FF] hover:underline min-h-[36px]"
+          >
             <Plus size={14} /> {t('settings_add_category')}
           </button>
+          {categories.length > 0 && (
+            <button
+              onClick={handleSeedDefaultCategories}
+              disabled={seedingCats || isPending}
+              className="flex items-center gap-1.5 text-xs font-bold text-zen-400 hover:text-zen-600 dark:hover:text-zen-200 min-h-[36px]"
+              title="Добавить стандартные категории"
+            >
+              {seedingCats ? '...' : '✨ Добавить стандартные'}
+            </button>
+          )}
         </div>
       </Section>
 

@@ -1,19 +1,21 @@
 import { AppShell } from '@/components/layout/AppShell';
 import { auth } from '@/lib/auth';
 import { redirect } from 'next/navigation';
-import { getUserSettings, getExpenseCategories } from '@/app/actions/analyticsActions';
+import { getUserSettings, getAllCategories } from '@/app/actions/analyticsActions';
 import { SettingsClient } from './SettingsClient';
 
 export default async function SettingsPage() {
   const session = await auth();
   if (!session?.user) redirect('/login');
 
-  const [user, categories] = await Promise.all([
+  const [user, categoriesData] = await Promise.all([
     getUserSettings(),
-    getExpenseCategories(),
+    getAllCategories(),
   ]);
 
-  const serializedCategories = categories.map((c) => ({
+  const allCategories = [...categoriesData.expense, ...categoriesData.income];
+
+  const serializedCategories = allCategories.map((c) => ({
     ...c,
     createdAt: c.createdAt.toISOString(),
     updatedAt: c.updatedAt.toISOString(),
@@ -36,4 +38,3 @@ export default async function SettingsPage() {
     </AppShell>
   );
 }
-

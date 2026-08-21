@@ -180,6 +180,18 @@ export async function getExpenseCategories() {
   });
 }
 
+export async function getAllCategories() {
+  const userId = await getUserId();
+  const cats = await prisma.category.findMany({
+    where: { userId, isHidden: false },
+    orderBy: [{ type: 'asc' }, { name: 'asc' }],
+  });
+  return {
+    expense: cats.filter((c) => c.type === 'EXPENSE'),
+    income: cats.filter((c) => c.type === 'INCOME'),
+  };
+}
+
 export async function createCategory(data: {
   name: string;
   type: 'INCOME' | 'EXPENSE';
@@ -198,6 +210,157 @@ export async function createCategory(data: {
   });
   revalidatePath('/settings');
   revalidatePath('/finances');
+}
+
+export async function deleteCategory(categoryId: string) {
+  const userId = await getUserId();
+  await prisma.category.updateMany({
+    where: { id: categoryId, userId },
+    data: { isHidden: true },
+  });
+  revalidatePath('/settings');
+  revalidatePath('/finances');
+}
+
+export async function seedDefaultCategories() {
+  const userId = await getUserId();
+  const existing = await prisma.category.count({ where: { userId } });
+  if (existing > 0) return { already: true };
+
+  const expenseCategories = [
+    { name: 'Еда и рестораны', color: '#F97316', icon: 'utensils' },
+    { name: 'Такси и транспорт', color: '#3B82F6', icon: 'car' },
+    { name: 'Продукты', color: '#10B981', icon: 'shopping-cart' },
+    { name: 'Одежда и обувь', color: '#8B5CF6', icon: 'shopping-bag' },
+    { name: 'Аптека', color: '#EF4444', icon: 'heart-pulse' },
+    { name: 'Развлечения', color: '#EC4899', icon: 'party-popper' },
+    { name: 'Кафе и кофе', color: '#D97706', icon: 'coffee' },
+    { name: 'Коммунальные услуги', color: '#06B6D4', icon: 'home' },
+    { name: 'Мобильная связь', color: '#6366F1', icon: 'phone' },
+    { name: 'Интернет', color: '#14B8A6', icon: 'wifi' },
+    { name: 'Спорт', color: '#84CC16', icon: 'dumbbell' },
+    { name: 'Образование', color: '#F59E0B', icon: 'book-open' },
+    { name: 'Красота и уход', color: '#F472B6', icon: 'sparkles' },
+    { name: 'Подарки', color: '#A855F7', icon: 'gift' },
+    { name: 'Прочее', color: '#71717A', icon: 'tag' },
+  ];
+
+  const incomeCategories = [
+    { name: 'Зарплата', color: '#10B981', icon: 'briefcase' },
+    { name: 'Фриланс', color: '#3B82F6', icon: 'laptop' },
+    { name: 'Проект', color: '#8B5CF6', icon: 'target' },
+    { name: 'Инвестиции', color: '#F59E0B', icon: 'trending-up' },
+    { name: 'Аренда', color: '#06B6D4', icon: 'home' },
+    { name: 'Бонус', color: '#F97316', icon: 'star' },
+    { name: 'Продажа', color: '#EC4899', icon: 'tag' },
+    { name: 'Прочее', color: '#71717A', icon: 'plus-circle' },
+  ];
+
+  await prisma.category.createMany({
+    data: [
+      ...expenseCategories.map((c) => ({ ...c, userId, type: 'EXPENSE' as const })),
+      ...incomeCategories.map((c) => ({ ...c, userId, type: 'INCOME' as const })),
+    ],
+    skipDuplicates: true,
+  });
+
+  revalidatePath('/settings');
+  revalidatePath('/finances');
+  return { created: true };
+}
+
+export async function getFullAnalytics() {
+  const userId = await getUserId();
+  const now = new Date();
+
+  // Last 6 months
+  const months = [];
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    months.push({
+      label: d.toLocaleString('ru', { month: 'short', year: '2-digit' }),
+      start: new Date(d.getFullYear(), d.getMonth(), 1),
+      end: new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59),
+    });
+  }
+
+  const monthlyData = await Promise.all(
+    months.map(async (m) => {
+      const [income, expense] = await Promise.all([
+        prisma.transaction.aggregate({ where: { userId, type: 'INCOME', date: { gte: m.start, lte: m.end } }, _sum: { amount: true } }),
+        prisma.transaction.aggregate({ where: { userId, type: 'EXPENSE', date: { gte: m.start, lte: m.end } }, _sum: { amount: true } }),
+      ]);
+      return { month: m.label, income: Number(income._sum.amount || 0), expense: Number(expense._sum.amount || 0) };
+    })
+  );
+
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+  // Top expense categories this month
+  const expenseGroups = await prisma.transaction.groupBy({
+    by: ['categoryId'],
+    where: { userId, type: 'EXPENSE', date: { gte: startOfMonth }, categoryId: { not: null } },
+    _sum: { amount: true },
+    orderBy: { _sum: { amount: 'desc' } },
+    take: 8,
+  });
+
+  const totalExpenseMonth = expenseGroups.reduce((s, g) => s + Number(g._sum.amount || 0), 0);
+
+  const topExpenseCategories = await Promise.all(
+    expenseGroups.map(async (g) => {
+      const cat = g.categoryId ? await prisma.category.findUnique({ where: { id: g.categoryId } }) : null;
+      const amount = Number(g._sum.amount || 0);
+      return {
+        name: cat?.name || 'Без категории',
+        color: cat?.color || '#71717A',
+        amount,
+        percent: totalExpenseMonth > 0 ? Math.round((amount / totalExpenseMonth) * 100) : 0,
+      };
+    })
+  );
+
+  // Top income categories this month
+  const incomeGroups = await prisma.transaction.groupBy({
+    by: ['categoryId'],
+    where: { userId, type: 'INCOME', date: { gte: startOfMonth }, categoryId: { not: null } },
+    _sum: { amount: true },
+    orderBy: { _sum: { amount: 'desc' } },
+    take: 6,
+  });
+
+  const totalIncomeMonth = incomeGroups.reduce((s, g) => s + Number(g._sum.amount || 0), 0);
+
+  const topIncomeCategories = await Promise.all(
+    incomeGroups.map(async (g) => {
+      const cat = g.categoryId ? await prisma.category.findUnique({ where: { id: g.categoryId } }) : null;
+      const amount = Number(g._sum.amount || 0);
+      return {
+        name: cat?.name || 'Без категории',
+        color: cat?.color || '#10B981',
+        amount,
+        percent: totalIncomeMonth > 0 ? Math.round((amount / totalIncomeMonth) * 100) : 0,
+      };
+    })
+  );
+
+  // Last month summary
+  const lastMonth = monthlyData[monthlyData.length - 1] || { income: 0, expense: 0, month: '' };
+  const totalIncome6m = monthlyData.reduce((s, m) => s + m.income, 0);
+  const totalExpense6m = monthlyData.reduce((s, m) => s + m.expense, 0);
+  const savingsRate = totalIncome6m > 0 ? Math.round(((totalIncome6m - totalExpense6m) / totalIncome6m) * 100) : 0;
+
+  return {
+    monthlyData,
+    topExpenseCategories,
+    topIncomeCategories,
+    totalExpenseMonth,
+    totalIncomeMonth,
+    lastMonth,
+    totalIncome6m,
+    totalExpense6m,
+    savingsRate,
+  };
 }
 
 export async function resetAllUserData() {
