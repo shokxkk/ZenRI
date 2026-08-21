@@ -32,11 +32,14 @@ import { clsx } from 'clsx';
 import { Modal } from '@/components/ui/Modal';
 import { addTransaction } from '@/app/actions/financeActions';
 import { AIPredictWidget } from '@/components/ui/AIPredictWidget';
-import { WishlistWidget } from '@/components/ui/WishlistWidget';
-import { DailyFinancialQuote } from '@/components/ui/DailyFinancialQuote';
 import { BooksWidget } from '@/components/ui/BooksWidget';
 import { MascotScale } from '@/components/ui/MascotScale';
 import { soundFx } from '@/lib/soundEffects';
+import { triggerFlyingCoins, triggerHaptic } from '@/lib/coinAnimation';
+import { getStreakInfo, recordStreakActivity, StreakInfo } from '@/lib/streakTracker';
+import { BarsikVoiceModal } from '@/components/ui/BarsikVoiceModal';
+import { StreakModal } from '@/components/ui/StreakModal';
+import { Mic, Bot } from 'lucide-react';
 
 function formatMoney(v: number) {
   return v.toLocaleString('ru-RU');
@@ -105,7 +108,20 @@ export function DashboardClient({ data }: { data: DashboardData }) {
     budgets: false,
     habits: false,
   });
-  const [showWidgetSettings, setShowWidgetSettings] = useState(false);
+  // Streak & Interactive Voice Modals State
+  const [streakInfo, setStreakInfo] = useState<StreakInfo>({
+    currentStreak: 1,
+    bestStreak: 1,
+    lastActiveDate: '',
+    levelName: 'Новичок 🔥',
+    accessory: 'Базовый худи 7.',
+  });
+  const [isStreakModalOpen, setIsStreakModalOpen] = useState(false);
+  const [isVoiceModalOpen, setIsVoiceModalOpen] = useState(false);
+
+  useEffect(() => {
+    setStreakInfo(getStreakInfo());
+  }, []);
 
   useEffect(() => {
     const stored = localStorage.getItem('zenri_hidden_widgets');
@@ -164,13 +180,21 @@ export function DashboardClient({ data }: { data: DashboardData }) {
     });
   };
 
-  const handleQuickTxSubmit = () => {
+  const handleQuickTxSubmit = (e?: React.MouseEvent) => {
     if (!amount || !activeModal) return;
-    if (activeModal === 'INCOME') {
+    const isInc = activeModal === 'INCOME';
+    if (isInc) {
       soundFx.playIncomeSound();
     } else {
       soundFx.playExpenseSound();
     }
+
+    if (e) {
+      triggerFlyingCoins(e.clientX, e.clientY, isInc);
+    } else {
+      triggerFlyingCoins(undefined, undefined, isInc);
+    }
+
     startTransition(async () => {
       await addTransaction({
         type: activeModal as never,
@@ -179,6 +203,7 @@ export function DashboardClient({ data }: { data: DashboardData }) {
         categoryId: activeModal !== 'TRANSFER' ? categoryId || undefined : undefined,
         comment: comment || undefined,
       });
+      setStreakInfo(recordStreakActivity());
       setAmount('');
       setComment('');
       setCategoryId('');
@@ -201,19 +226,42 @@ export function DashboardClient({ data }: { data: DashboardData }) {
           <p className="text-xs text-zen-400 capitalize mt-0.5">{todayDateStr}</p>
         </div>
 
-        {/* Widget Manager Button */}
-        <button
-          onClick={() => setShowWidgetSettings(true)}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zen-100 dark:bg-[#131C2E] border border-zen-200 dark:border-zen-800 text-xs font-bold text-zen-700 dark:text-zen-300 hover:text-[#0066FF] transition-all"
-        >
-          <Settings2 size={15} />
-          <span>Настроить виджеты</span>
-          {hiddenCount > 0 && (
-            <span className="w-5 h-5 rounded-full bg-[#0066FF] text-white text-[10px] flex items-center justify-center font-bold">
-              {hiddenCount}
-            </span>
-          )}
-        </button>
+        {/* Top Header Buttons: Voice AI + Streak Badge + Widget Settings */}
+        <div className="flex items-center gap-2">
+          {/* 🔥 Daily Financial Streak Badge */}
+          <button
+            onClick={() => setIsStreakModalOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-xs font-black text-amber-400 hover:bg-amber-500/20 transition-all shadow-sm active:scale-95"
+            title="Огненный страйк активности"
+          >
+            <Flame size={15} className="fill-amber-400 animate-pulse text-amber-400" />
+            <span>{streakInfo.currentStreak} дн.</span>
+          </button>
+
+          {/* 🎤 Voice AI Assistant Button */}
+          <button
+            onClick={() => setIsVoiceModalOpen(true)}
+            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-[#0066FF] to-[#00C2FF] text-white text-xs font-black shadow-glow hover:brightness-110 transition-all active:scale-95"
+            title="Голосовой ИИ Барсик"
+          >
+            <Mic size={14} className="animate-pulse" />
+            <span className="hidden sm:inline">Барсик AI</span>
+          </button>
+
+          {/* Widget Manager Button */}
+          <button
+            onClick={() => setShowWidgetSettings(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zen-100 dark:bg-[#131C2E] border border-zen-200 dark:border-zen-800 text-xs font-bold text-zen-700 dark:text-zen-300 hover:text-[#0066FF] transition-all"
+          >
+            <Settings2 size={15} />
+            <span className="hidden md:inline">Виджеты</span>
+            {hiddenCount > 0 && (
+              <span className="w-5 h-5 rounded-full bg-[#0066FF] text-white text-[10px] flex items-center justify-center font-bold">
+                {hiddenCount}
+              </span>
+            )}
+          </button>
+        </div>
       </div>
 
       {/* Quote of the Day (Financial Wisdom Widget - Requirement match) */}
@@ -309,21 +357,30 @@ export function DashboardClient({ data }: { data: DashboardData }) {
 
               <div className="grid grid-cols-3 gap-3 mt-6 z-10">
                 <button
-                  onClick={() => setActiveModal('EXPENSE')}
+                  onClick={(e) => {
+                    triggerFlyingCoins(e.clientX, e.clientY, false);
+                    setActiveModal('EXPENSE');
+                  }}
                   className="flex items-center justify-center gap-2 py-3 px-4 rounded-2xl bg-[#0066FF] hover:bg-[#0052CC] text-white font-medium text-xs shadow-glow transition-all active:scale-95"
                 >
                   <ArrowDownRight size={16} />
                   <span>Расход</span>
                 </button>
                 <button
-                  onClick={() => setActiveModal('INCOME')}
+                  onClick={(e) => {
+                    triggerFlyingCoins(e.clientX, e.clientY, true);
+                    setActiveModal('INCOME');
+                  }}
                   className="flex items-center justify-center gap-2 py-3 px-4 rounded-2xl bg-[#10B981] hover:bg-[#059669] text-white font-medium text-xs shadow-glow-green transition-all active:scale-95"
                 >
                   <ArrowUpRight size={16} />
                   <span>Доход</span>
                 </button>
                 <button
-                  onClick={() => setActiveModal('TRANSFER')}
+                  onClick={(e) => {
+                    triggerFlyingCoins(e.clientX, e.clientY, false);
+                    setActiveModal('TRANSFER');
+                  }}
                   className="flex items-center justify-center gap-2 py-3 px-4 rounded-2xl bg-zen-800/90 hover:bg-zen-700 text-zen-100 font-medium text-xs border border-zen-700 transition-all active:scale-95"
                 >
                   <ArrowLeftRight size={16} />
@@ -790,7 +847,7 @@ export function DashboardClient({ data }: { data: DashboardData }) {
             />
           </div>
           <button
-            onClick={handleQuickTxSubmit}
+            onClick={(e) => handleQuickTxSubmit(e)}
             disabled={isPending || !amount}
             className={`w-full py-3.5 rounded-xl font-semibold text-sm text-white transition-all ${
               activeModal === 'INCOME'
@@ -804,6 +861,22 @@ export function DashboardClient({ data }: { data: DashboardData }) {
           </button>
         </div>
       </Modal>
+
+      {/* Voice AI Barsik Interactive Dialog Modal */}
+      <BarsikVoiceModal
+        isOpen={isVoiceModalOpen}
+        onClose={() => setIsVoiceModalOpen(false)}
+        totalBalance={data.totalBalance}
+        monthlyIncome={data.thisMonthIncome}
+        monthlyExpense={data.thisMonthExpense}
+      />
+
+      {/* Daily Financial Streak Rewards Modal */}
+      <StreakModal
+        isOpen={isStreakModalOpen}
+        onClose={() => setIsStreakModalOpen(false)}
+        streakInfo={streakInfo}
+      />
     </div>
   );
 }
