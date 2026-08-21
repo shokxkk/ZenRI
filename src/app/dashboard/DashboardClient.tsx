@@ -232,83 +232,107 @@ export function DashboardClient({ data }: { data: DashboardData }) {
 
       {/* Main Grid: Hero Card + Finances Widget */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-        {/* Left Column: Hero Total Balance Card (7 cols) */}
-        <div className="lg:col-span-7 bg-gradient-to-br from-[#0F1E36] via-[#122442] to-[#0A1527] rounded-card p-6 text-white border border-slate-200/50 dark:border-zen-800/80 shadow-xl relative overflow-hidden flex flex-col justify-between min-h-[280px]">
-          <div>
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-zen-400 uppercase tracking-widest flex items-center gap-2">
-                Общий баланс
+        {/* Left Column: Hero Total Balance Card (7 cols) with Dynamic Mood Theme */}
+        {(() => {
+          const isNegative = data.totalBalance <= 0;
+          const isHigh = data.totalBalance >= 10_000_000;
+          const cardBg = isNegative
+            ? 'bg-gradient-to-br from-[#1C080E] via-[#2A0D15] to-[#0F0407] border-rose-500/40 shadow-[0_0_30px_rgba(244,63,94,0.18)]'
+            : isHigh
+            ? 'bg-gradient-to-br from-[#261A05] via-[#1F1504] to-[#0D0902] border-amber-400/40 shadow-[0_0_30px_rgba(245,158,11,0.22)]'
+            : 'bg-gradient-to-br from-[#0F1E36] via-[#122442] to-[#0A1527] border-slate-200/50 dark:border-zen-800/80 shadow-xl';
+
+          const strokeColor = isNegative ? '#EF4444' : isHigh ? '#F59E0B' : '#00C2FF';
+          const badgeClass = isNegative
+            ? 'bg-rose-500/20 text-rose-400 border-rose-500/30 animate-pulse font-bold'
+            : isHigh
+            ? 'bg-amber-500/20 text-amber-300 border-amber-500/30 font-bold'
+            : 'bg-income/15 text-income border-income/30 font-medium';
+          const badgeText = isNegative
+            ? '⚠️ Зона риска: Минус'
+            : isHigh
+            ? '👑 Высокий капитал'
+            : '+2.5% с прошлого месяца';
+
+          return (
+            <div className={`lg:col-span-7 rounded-card p-6 text-white border shadow-xl relative overflow-hidden flex flex-col justify-between min-h-[280px] transition-all duration-500 ${cardBg}`}>
+              <div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-zen-400 uppercase tracking-widest flex items-center gap-2">
+                    Общий баланс
+                    <button
+                      onClick={() => setShowBalance(!showBalance)}
+                      className="text-zen-400 hover:text-white transition-colors"
+                    >
+                      {showBalance ? <Eye size={14} /> : <EyeOff size={14} />}
+                    </button>
+                  </span>
+                  <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] border ${badgeClass}`}>
+                    <TrendingUp size={12} />
+                    <span>{badgeText}</span>
+                  </div>
+                </div>
+
+                <div className="mt-3">
+                  <p className="text-4xl font-extrabold tracking-tight">
+                    {showBalance ? formatMoney(data.totalBalance) : '••••••••'}{' '}
+                    <span className="text-xl font-normal text-zen-400">сум</span>
+                  </p>
+                </div>
+
+                {/* Dynamic Financial Balance Scale held by Mascot (Барсик) */}
+                <MascotScale totalBalance={data.totalBalance} />
+              </div>
+
+              <div className="absolute inset-x-0 bottom-24 h-20 opacity-40 pointer-events-none">
+                <svg viewBox="0 0 500 100" className="w-full h-full" preserveAspectRatio="none">
+                  <defs>
+                    <linearGradient id="balanceCurve" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor={strokeColor} stopOpacity="0.4" />
+                      <stop offset="100%" stopColor={strokeColor} stopOpacity="0.0" />
+                    </linearGradient>
+                  </defs>
+                  <path
+                    d="M 0,80 Q 80,40 160,65 T 320,30 T 500,10 L 500,100 L 0,100 Z"
+                    fill="url(#balanceCurve)"
+                  />
+                  <path
+                    d="M 0,80 Q 80,40 160,65 T 320,30 T 500,10"
+                    fill="none"
+                    stroke={strokeColor}
+                    strokeWidth="3"
+                  />
+                  <circle cx="500" cy="10" r="5" fill={strokeColor} className="animate-ping" />
+                  <circle cx="500" cy="10" r="4" fill="#FFFFFF" />
+                </svg>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3 mt-6 z-10">
                 <button
-                  onClick={() => setShowBalance(!showBalance)}
-                  className="text-zen-400 hover:text-white transition-colors"
+                  onClick={() => setActiveModal('EXPENSE')}
+                  className="flex items-center justify-center gap-2 py-3 px-4 rounded-2xl bg-[#0066FF] hover:bg-[#0052CC] text-white font-medium text-xs shadow-glow transition-all active:scale-95"
                 >
-                  {showBalance ? <Eye size={14} /> : <EyeOff size={14} />}
+                  <ArrowDownRight size={16} />
+                  <span>Расход</span>
                 </button>
-              </span>
-              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-income/15 border border-income/30 text-income text-[11px] font-medium">
-                <TrendingUp size={12} />
-                <span>+2.5% с прошлого месяца</span>
+                <button
+                  onClick={() => setActiveModal('INCOME')}
+                  className="flex items-center justify-center gap-2 py-3 px-4 rounded-2xl bg-[#10B981] hover:bg-[#059669] text-white font-medium text-xs shadow-glow-green transition-all active:scale-95"
+                >
+                  <ArrowUpRight size={16} />
+                  <span>Доход</span>
+                </button>
+                <button
+                  onClick={() => setActiveModal('TRANSFER')}
+                  className="flex items-center justify-center gap-2 py-3 px-4 rounded-2xl bg-zen-800/90 hover:bg-zen-700 text-zen-100 font-medium text-xs border border-zen-700 transition-all active:scale-95"
+                >
+                  <ArrowLeftRight size={16} />
+                  <span>Перевод</span>
+                </button>
               </div>
             </div>
-
-            <div className="mt-3">
-              <p className="text-4xl font-extrabold tracking-tight">
-                {showBalance ? formatMoney(data.totalBalance) : '••••••••'}{' '}
-                <span className="text-xl font-normal text-zen-400">сум</span>
-              </p>
-            </div>
-
-            {/* Dynamic Financial Balance Scale held by Mascot (Барсик) */}
-            <MascotScale totalBalance={data.totalBalance} />
-          </div>
-
-          <div className="absolute inset-x-0 bottom-24 h-20 opacity-40 pointer-events-none">
-            <svg viewBox="0 0 500 100" className="w-full h-full" preserveAspectRatio="none">
-              <defs>
-                <linearGradient id="balanceCurve" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#00C2FF" stopOpacity="0.4" />
-                  <stop offset="100%" stopColor="#0055FF" stopOpacity="0.0" />
-                </linearGradient>
-              </defs>
-              <path
-                d="M 0,80 Q 80,40 160,65 T 320,30 T 500,10 L 500,100 L 0,100 Z"
-                fill="url(#balanceCurve)"
-              />
-              <path
-                d="M 0,80 Q 80,40 160,65 T 320,30 T 500,10"
-                fill="none"
-                stroke="#00C2FF"
-                strokeWidth="3"
-              />
-              <circle cx="500" cy="10" r="5" fill="#00C2FF" className="animate-ping" />
-              <circle cx="500" cy="10" r="4" fill="#FFFFFF" />
-            </svg>
-          </div>
-
-          <div className="grid grid-cols-3 gap-3 mt-6 z-10">
-            <button
-              onClick={() => setActiveModal('EXPENSE')}
-              className="flex items-center justify-center gap-2 py-3 px-4 rounded-2xl bg-[#0066FF] hover:bg-[#0052CC] text-white font-medium text-xs shadow-glow transition-all active:scale-95"
-            >
-              <ArrowDownRight size={16} />
-              <span>Расход</span>
-            </button>
-            <button
-              onClick={() => setActiveModal('INCOME')}
-              className="flex items-center justify-center gap-2 py-3 px-4 rounded-2xl bg-[#10B981] hover:bg-[#059669] text-white font-medium text-xs shadow-glow-green transition-all active:scale-95"
-            >
-              <ArrowUpRight size={16} />
-              <span>Доход</span>
-            </button>
-            <button
-              onClick={() => setActiveModal('TRANSFER')}
-              className="flex items-center justify-center gap-2 py-3 px-4 rounded-2xl bg-zen-800/90 hover:bg-zen-700 text-zen-100 font-medium text-xs border border-zen-700 transition-all active:scale-95"
-            >
-              <ArrowLeftRight size={16} />
-              <span>Перевод</span>
-            </button>
-          </div>
-        </div>
+          );
+        })()}
 
         {/* Right Column: "Финансы сегодня" Widget (Hideable) */}
         {!hiddenWidgets.finances && (
