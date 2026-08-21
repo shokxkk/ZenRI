@@ -1,9 +1,10 @@
 'use client';
 
-import React from 'react';
-import { X, Trophy, Crown, Share2, Shield, Sparkles, Flame, CheckCircle2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Trophy, Crown, Share2, Shield, Sparkles, Flame, CheckCircle2, Loader2 } from 'lucide-react';
 import { soundFx } from '@/lib/soundEffects';
-import { calculateSavingsRate, getUserDivision, getLeaderboardData } from '@/lib/savingsLeague';
+import { calculateSavingsRate, getUserDivision, getLeaderboardData, LeagueMember } from '@/lib/savingsLeague';
+import { getRealLeagueLeaderboard, RealLeagueMember } from '@/app/actions/leagueActions';
 
 interface SavingsLeagueModalProps {
   isOpen: boolean;
@@ -20,11 +21,32 @@ export const SavingsLeagueModal: React.FC<SavingsLeagueModalProps> = ({
   monthlyIncome,
   monthlyExpense,
 }) => {
-  if (!isOpen) return null;
+  const [leaderboard, setLeaderboard] = useState<LeagueMember[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const savingsRate = calculateSavingsRate(monthlyIncome, monthlyExpense);
   const division = getUserDivision(savingsRate);
-  const leaderboard = getLeaderboardData(userName, savingsRate);
+
+  useEffect(() => {
+    if (isOpen) {
+      setLoading(true);
+      getRealLeagueLeaderboard()
+        .then((realData) => {
+          if (realData && realData.length > 0) {
+            setLeaderboard(realData as LeagueMember[]);
+          } else {
+            setLeaderboard(getLeaderboardData(userName, savingsRate));
+          }
+        })
+        .catch(() => {
+          setLeaderboard(getLeaderboardData(userName, savingsRate));
+        })
+        .finally(() => setLoading(false));
+    }
+  }, [isOpen, userName, savingsRate]);
+
+  if (!isOpen) return null;
+
   const userRankEntry = leaderboard.find((m) => m.isUser);
 
   const handleShareLeague = () => {
@@ -54,8 +76,8 @@ export const SavingsLeagueModal: React.FC<SavingsLeagueModalProps> = ({
               <Trophy size={22} className="animate-bounce" />
             </div>
             <div>
-              <h3 className="font-extrabold text-base text-white">Анонимная Лига Сбережений</h3>
-              <p className="text-[11px] text-amber-300">Сезонный чемпионат ZenRI Community</p>
+              <h3 className="font-extrabold text-base text-white">Лига Сбережений ZenRI</h3>
+              <p className="text-[11px] text-amber-300">Реальный рейтинг зарегистрированных пользователей</p>
             </div>
           </div>
 
@@ -82,52 +104,61 @@ export const SavingsLeagueModal: React.FC<SavingsLeagueModalProps> = ({
 
           <div className="text-right">
             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Место в рейтинге</span>
-            <div className="text-3xl font-black text-amber-400 font-mono">#{userRankEntry?.rank || 1}</div>
+            <div className="text-3xl font-black text-amber-400 font-mono">
+              {loading ? <Loader2 size={24} className="animate-spin text-amber-400" /> : `#${userRankEntry?.rank || 1}`}
+            </div>
           </div>
         </div>
 
         {/* Leaderboard Table */}
         <div className="space-y-2 relative z-10">
           <div className="flex justify-between items-center px-1">
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Лидеры Чемпионата</span>
-            <span className="text-[10px] text-amber-300 font-mono">Обновлено только что</span>
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Реальные Участники ZenRI</span>
+            <span className="text-[10px] text-amber-300 font-mono">🟢 В сети</span>
           </div>
 
           <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
-            {leaderboard.map((m) => (
-              <div
-                key={m.rank}
-                className={`p-3 rounded-2xl border flex items-center justify-between transition-all ${
-                  m.isUser
-                    ? 'bg-amber-500/20 border-amber-400/60 shadow-[0_0_15px_rgba(245,158,11,0.2)]'
-                    : 'bg-black/40 border-white/10 opacity-80'
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <span className={`w-6 text-center font-black text-xs ${
-                    m.rank === 1 ? 'text-amber-400 text-sm font-extrabold' : m.rank === 2 ? 'text-slate-300' : m.rank === 3 ? 'text-amber-600' : 'text-slate-500'
-                  }`}>
-                    {m.rank === 1 ? '🥇' : m.rank === 2 ? '🥈' : m.rank === 3 ? '🥉' : `#${m.rank}`}
-                  </span>
-
-                  <div className="w-8 h-8 rounded-xl overflow-hidden border border-white/20 bg-black/60 flex-shrink-0">
-                    <img src={m.avatarUrl} alt={m.name} className="w-full h-full object-cover" />
-                  </div>
-
-                  <div>
-                    <p className={`text-xs font-bold ${m.isUser ? 'text-amber-300 font-black' : 'text-white'}`}>
-                      {m.name}
-                    </p>
-                    <span className="text-[9px] text-slate-400">{m.badge}</span>
-                  </div>
-                </div>
-
-                <div className="text-right">
-                  <span className="text-xs font-mono font-black text-amber-400">{m.savingsRate}%</span>
-                  <span className="block text-[9px] text-slate-500">сбережений</span>
-                </div>
+            {loading ? (
+              <div className="py-12 flex flex-col items-center justify-center space-y-2 text-slate-400 text-xs">
+                <Loader2 size={24} className="animate-spin text-amber-400" />
+                <span>Загрузка реальных пользователей...</span>
               </div>
-            ))}
+            ) : (
+              leaderboard.map((m) => (
+                <div
+                  key={m.rank}
+                  className={`p-3 rounded-2xl border flex items-center justify-between transition-all ${
+                    m.isUser
+                      ? 'bg-amber-500/20 border-amber-400/60 shadow-[0_0_15px_rgba(245,158,11,0.2)]'
+                      : 'bg-black/40 border-white/10 opacity-80'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <span className={`w-6 text-center font-black text-xs ${
+                      m.rank === 1 ? 'text-amber-400 text-sm font-extrabold' : m.rank === 2 ? 'text-slate-300' : m.rank === 3 ? 'text-amber-600' : 'text-slate-500'
+                    }`}>
+                      {m.rank === 1 ? '🥇' : m.rank === 2 ? '🥈' : m.rank === 3 ? '🥉' : `#${m.rank}`}
+                    </span>
+
+                    <div className="w-8 h-8 rounded-xl overflow-hidden border border-white/20 bg-black/60 flex-shrink-0">
+                      <img src={m.avatarUrl || '/images/mascot_happy_hoodie.png'} alt={m.name} className="w-full h-full object-cover" />
+                    </div>
+
+                    <div>
+                      <p className={`text-xs font-bold ${m.isUser ? 'text-amber-300 font-black' : 'text-white'}`}>
+                        {m.name}
+                      </p>
+                      <span className="text-[9px] text-slate-400">{m.badge}</span>
+                    </div>
+                  </div>
+
+                  <div className="text-right">
+                    <span className="text-xs font-mono font-black text-amber-400">{m.savingsRate}%</span>
+                    <span className="block text-[9px] text-slate-500">сбережений</span>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
 
