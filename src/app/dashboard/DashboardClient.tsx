@@ -41,7 +41,8 @@ import { triggerFlyingCoins, triggerHaptic } from '@/lib/coinAnimation';
 import { getStreakInfo, recordStreakActivity, StreakInfo } from '@/lib/streakTracker';
 import { BarsikVoiceModal } from '@/components/ui/BarsikVoiceModal';
 import { StreakModal } from '@/components/ui/StreakModal';
-import { Mic, Bot } from 'lucide-react';
+import { ZenRIPersonalCardModal } from '@/components/ui/ZenRIPersonalCardModal';
+import { Mic, Bot, CreditCard } from 'lucide-react';
 
 function formatMoney(v: number) {
   return v.toLocaleString('ru-RU');
@@ -115,7 +116,7 @@ export function DashboardClient({ data }: { data: DashboardData }) {
   // View Mode State (iOS Style Tabs: OVERVIEW vs ALL_WIDGETS)
   const [viewMode, setViewMode] = useState<'OVERVIEW' | 'ALL_WIDGETS'>('OVERVIEW');
 
-  // Streak & Interactive Voice Modals State
+  // Streak, Voice & VIP Personal Card Modals State
   const [streakInfo, setStreakInfo] = useState<StreakInfo>({
     currentStreak: 1,
     bestStreak: 1,
@@ -125,6 +126,7 @@ export function DashboardClient({ data }: { data: DashboardData }) {
   });
   const [isStreakModalOpen, setIsStreakModalOpen] = useState(false);
   const [isVoiceModalOpen, setIsVoiceModalOpen] = useState(false);
+  const [isCardModalOpen, setIsCardModalOpen] = useState(false);
 
   useEffect(() => {
     setStreakInfo(getStreakInfo());
@@ -243,6 +245,16 @@ export function DashboardClient({ data }: { data: DashboardData }) {
           >
             <Flame size={15} className="fill-amber-400 animate-pulse text-amber-400" />
             <span>{streakInfo.currentStreak} дн.</span>
+          </button>
+
+          {/* 📇 VIP Personal Card Button */}
+          <button
+            onClick={() => setIsCardModalOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500/20 via-rose-500/20 to-purple-500/20 border border-amber-500/40 text-xs font-black text-amber-300 hover:brightness-110 transition-all shadow-sm active:scale-95"
+            title="Моя персональная VIP-Карта"
+          >
+            <CreditCard size={14} className="text-amber-400" />
+            <span className="hidden sm:inline">VIP Карта</span>
           </button>
 
           {/* 🎤 Voice AI Assistant Button */}
@@ -912,6 +924,15 @@ export function DashboardClient({ data }: { data: DashboardData }) {
         isOpen={isStreakModalOpen}
         onClose={() => setIsStreakModalOpen(false)}
         streakInfo={streakInfo}
+      />
+
+      {/* 📇 ZenRI Personal VIP 3D Hologram Card Modal */}
+      <ZenRIPersonalCardModal
+        isOpen={isCardModalOpen}
+        onClose={() => setIsCardModalOpen(false)}
+        userName={currentUserName}
+        totalBalance={data.totalBalance}
+        currentStreak={streakInfo.currentStreak}
       />
     </div>
   );
