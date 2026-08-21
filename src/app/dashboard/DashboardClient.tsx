@@ -39,12 +39,8 @@ import { MascotScale } from '@/components/ui/MascotScale';
 import { soundFx } from '@/lib/soundEffects';
 import { triggerFlyingCoins, triggerHaptic } from '@/lib/coinAnimation';
 import { getStreakInfo, recordStreakActivity, StreakInfo } from '@/lib/streakTracker';
-import { BarsikVoiceModal } from '@/components/ui/BarsikVoiceModal';
 import { StreakModal } from '@/components/ui/StreakModal';
-import { ZenRIPersonalCardModal } from '@/components/ui/ZenRIPersonalCardModal';
-import { BarsikMemeModal } from '@/components/ui/BarsikMemeModal';
-import { getRandomMemeForCategory, BarsikMeme } from '@/lib/barsikMemes';
-import { Mic, Bot, CreditCard, Laugh } from 'lucide-react';
+import { BarsikHubModal } from '@/components/ui/BarsikHubModal';
 
 function formatMoney(v: number) {
   return v.toLocaleString('ru-RU');
@@ -115,10 +111,7 @@ export function DashboardClient({ data }: { data: DashboardData }) {
   });
   const [showWidgetSettings, setShowWidgetSettings] = useState(false);
 
-  // View Mode State (iOS Style Tabs: OVERVIEW vs ALL_WIDGETS)
-  const [viewMode, setViewMode] = useState<'OVERVIEW' | 'ALL_WIDGETS'>('OVERVIEW');
-
-  // Streak, Voice & VIP Personal Card Modals State
+  // Modals & Hub State
   const [streakInfo, setStreakInfo] = useState<StreakInfo>({
     currentStreak: 1,
     bestStreak: 1,
@@ -127,10 +120,8 @@ export function DashboardClient({ data }: { data: DashboardData }) {
     accessory: 'Базовый худи 7.',
   });
   const [isStreakModalOpen, setIsStreakModalOpen] = useState(false);
-  const [isVoiceModalOpen, setIsVoiceModalOpen] = useState(false);
-  const [isCardModalOpen, setIsCardModalOpen] = useState(false);
-  const [isMemeModalOpen, setIsMemeModalOpen] = useState(false);
-  const [currentMeme, setCurrentMeme] = useState<BarsikMeme | null>(null);
+  const [isHubOpen, setIsHubOpen] = useState(false);
+  const [hubTab, setHubTab] = useState<'CARD' | 'MEME' | 'VOICE'>('CARD');
 
   useEffect(() => {
     setStreakInfo(getStreakInfo());
@@ -239,58 +230,25 @@ export function DashboardClient({ data }: { data: DashboardData }) {
           <p className="text-xs text-zen-400 capitalize mt-0.5">{todayDateStr}</p>
         </div>
 
-        {/* Top Header Buttons: VIP Card + Meme + Voice AI + Streak Badge + Settings */}
-        <div className="flex items-center gap-1.5 flex-wrap justify-end">
+        {/* Top Header Buttons: Clean & Spacious (Streak Badge + Gear Icon) */}
+        <div className="flex items-center gap-2">
           {/* 🔥 Daily Financial Streak Badge */}
           <button
             onClick={() => setIsStreakModalOpen(true)}
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-xs font-black text-amber-400 hover:bg-amber-500/20 transition-all shadow-sm active:scale-95"
+            className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-xs font-black text-amber-400 hover:bg-amber-500/20 transition-all shadow-sm active:scale-95"
             title="Огненный страйк активности"
           >
-            <Flame size={14} className="fill-amber-400 animate-pulse text-amber-400" />
-            <span>{streakInfo.currentStreak}d</span>
-          </button>
-
-          {/* 📇 VIP Personal Card Button */}
-          <button
-            onClick={() => setIsCardModalOpen(true)}
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500/20 via-rose-500/20 to-purple-500/20 border border-amber-500/40 text-xs font-black text-amber-300 hover:brightness-110 transition-all shadow-sm active:scale-95"
-            title="Моя персональная VIP-Карта"
-          >
-            <CreditCard size={14} className="text-amber-400" />
-            <span>VIP Карта</span>
-          </button>
-
-          {/* 🎭 Barsik Meme Lab Button */}
-          <button
-            onClick={() => {
-              setCurrentMeme(getRandomMemeForCategory());
-              setIsMemeModalOpen(true);
-            }}
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-purple-500/20 border border-purple-500/40 text-xs font-black text-purple-300 hover:bg-purple-500/30 transition-all shadow-sm active:scale-95"
-            title="Мем-Лаборатория Барсика"
-          >
-            <Laugh size={14} className="text-purple-400" />
-            <span>Мем</span>
-          </button>
-
-          {/* 🎤 Voice AI Assistant Button */}
-          <button
-            onClick={() => setIsVoiceModalOpen(true)}
-            className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-gradient-to-r from-[#0066FF] to-[#00C2FF] text-white text-xs font-black shadow-glow hover:brightness-110 transition-all active:scale-95"
-            title="Голосовой ИИ Барсик"
-          >
-            <Mic size={14} className="animate-pulse" />
-            <span>Барсик AI</span>
+            <Flame size={15} className="fill-amber-400 animate-pulse text-amber-400" />
+            <span>{streakInfo.currentStreak} дн.</span>
           </button>
 
           {/* Sleek Compact Widget Settings Icon Button ⚙️ */}
           <button
             onClick={() => setShowWidgetSettings(true)}
-            className="p-1.5 rounded-xl bg-zen-100 dark:bg-[#131C2E] border border-zen-200 dark:border-zen-800 text-zen-700 dark:text-zen-300 hover:text-[#00C2FF] transition-all relative active:scale-95"
+            className="p-2 rounded-xl bg-zen-100 dark:bg-[#131C2E] border border-zen-200 dark:border-zen-800 text-zen-700 dark:text-zen-300 hover:text-[#00C2FF] transition-all relative active:scale-95"
             title="Настроить виджеты"
           >
-            <Settings2 size={15} />
+            <Settings2 size={16} />
             {hiddenCount > 0 && (
               <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#0066FF] text-white text-[9px] flex items-center justify-center font-black">
                 {hiddenCount}
@@ -300,32 +258,8 @@ export function DashboardClient({ data }: { data: DashboardData }) {
         </div>
       </div>
 
-      {/* iOS Style View Mode Selector (📌 Обзор vs 📊 Все виджеты) */}
-      <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-slate-900/60 border border-white/10 w-fit">
-        <button
-          onClick={() => setViewMode('OVERVIEW')}
-          className={`px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition-all ${
-            viewMode === 'OVERVIEW'
-              ? 'bg-gradient-to-r from-[#0066FF] to-[#00C2FF] text-white shadow-md'
-              : 'text-slate-400 hover:text-white'
-          }`}
-        >
-          📌 Обзор
-        </button>
-        <button
-          onClick={() => setViewMode('ALL_WIDGETS')}
-          className={`px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition-all ${
-            viewMode === 'ALL_WIDGETS'
-              ? 'bg-gradient-to-r from-[#0066FF] to-[#00C2FF] text-white shadow-md'
-              : 'text-slate-400 hover:text-white'
-          }`}
-        >
-          📊 Все виджеты
-        </button>
-      </div>
-
-      {/* Quote of the Day (Shown in All Widgets mode or if quote is active) */}
-      {viewMode === 'ALL_WIDGETS' && !hiddenWidgets.quote && (
+      {/* Quote of the Day */}
+      {!hiddenWidgets.quote && (
         <div className="relative group">
           <button
             onClick={() => toggleWidgetHide('quote')}
@@ -389,7 +323,13 @@ export function DashboardClient({ data }: { data: DashboardData }) {
                 </div>
 
                 {/* Dynamic Financial Balance Scale held by Mascot (Барсик) */}
-                <MascotScale totalBalance={data.totalBalance} />
+            <MascotScale
+              totalBalance={data.totalBalance}
+              onOpenHub={(tab) => {
+                setHubTab(tab || 'CARD');
+                setIsHubOpen(true);
+              }}
+            />
               </div>
 
               <div className="absolute inset-x-0 bottom-24 h-20 opacity-40 pointer-events-none">
@@ -524,57 +464,52 @@ export function DashboardClient({ data }: { data: DashboardData }) {
         )}
       </div>
 
-      {/* Extra Widgets (Shown in "Все виджеты" mode) */}
-      {viewMode === 'ALL_WIDGETS' && (
-        <>
-          {/* AI Predict Feature (Hideable) */}
-          {!hiddenWidgets.aiPredict && (
-            <div className="relative group">
-              <button
-                onClick={() => toggleWidgetHide('aiPredict')}
-                className="absolute top-4 right-4 p-1.5 rounded-lg bg-zen-900/80 text-zen-400 hover:text-white z-20 opacity-0 group-hover:opacity-100 transition-opacity"
-                title="Скрыть виджет"
-              >
-                <X size={15} />
-              </button>
-              <AIPredictWidget
-                totalBalance={data.totalBalance}
-                monthlyIncome={data.thisMonthIncome}
-                monthlyExpense={data.thisMonthExpense}
-                topCategoryName={data.topCategoryName || 'Расходы'}
-                topCategoryAmount={data.topCategoryAmount || 0}
-              />
-            </div>
-          )}
+      {/* AI Predict Feature (Hideable) */}
+      {!hiddenWidgets.aiPredict && (
+        <div className="relative group">
+          <button
+            onClick={() => toggleWidgetHide('aiPredict')}
+            className="absolute top-4 right-4 p-1.5 rounded-lg bg-zen-900/80 text-zen-400 hover:text-white z-20 opacity-0 group-hover:opacity-100 transition-opacity"
+            title="Скрыть виджет"
+          >
+            <X size={15} />
+          </button>
+          <AIPredictWidget
+            totalBalance={data.totalBalance}
+            monthlyIncome={data.thisMonthIncome}
+            monthlyExpense={data.thisMonthExpense}
+            topCategoryName={data.topCategoryName || 'Расходы'}
+            topCategoryAmount={data.topCategoryAmount || 0}
+          />
+        </div>
+      )}
 
-          {/* Wishlist Хотелки Widget (Hideable & AI Scoring Integrated) */}
-          {!hiddenWidgets.wishlist && (
-            <div className="relative group">
-              <button
-                onClick={() => toggleWidgetHide('wishlist')}
-                className="absolute top-4 right-4 p-1.5 rounded-lg bg-zen-900/80 text-zen-400 hover:text-white z-20 opacity-0 group-hover:opacity-100 transition-opacity"
-                title="Скрыть виджет"
-              >
-                <X size={15} />
-              </button>
-              <WishlistWidget monthlyNetSavings={Math.max(1000000, (data.thisMonthIncome || 12000000) - (data.thisMonthExpense || 545000))} />
-            </div>
-          )}
+      {/* Wishlist Хотелки Widget (Hideable & AI Scoring Integrated) */}
+      {!hiddenWidgets.wishlist && (
+        <div className="relative group">
+          <button
+            onClick={() => toggleWidgetHide('wishlist')}
+            className="absolute top-4 right-4 p-1.5 rounded-lg bg-zen-900/80 text-zen-400 hover:text-white z-20 opacity-0 group-hover:opacity-100 transition-opacity"
+            title="Скрыть виджет"
+          >
+            <X size={15} />
+          </button>
+          <WishlistWidget monthlyNetSavings={Math.max(1000000, (data.thisMonthIncome || 12000000) - (data.thisMonthExpense || 545000))} />
+        </div>
+      )}
 
-          {/* Books & Reading Tracker Widget (Hideable) */}
-          {!hiddenWidgets.books && (
-            <div className="relative group">
-              <button
-                onClick={() => toggleWidgetHide('books')}
-                className="absolute top-4 right-4 p-1.5 rounded-lg bg-zen-900/80 text-zen-400 hover:text-white z-20 opacity-0 group-hover:opacity-100 transition-opacity"
-                title="Скрыть виджет"
-              >
-                <X size={15} />
-              </button>
-              <BooksWidget />
-            </div>
-          )}
-        </>
+      {/* Books & Reading Tracker Widget (Hideable) */}
+      {!hiddenWidgets.books && (
+        <div className="relative group">
+          <button
+            onClick={() => toggleWidgetHide('books')}
+            className="absolute top-4 right-4 p-1.5 rounded-lg bg-zen-900/80 text-zen-400 hover:text-white z-20 opacity-0 group-hover:opacity-100 transition-opacity"
+            title="Скрыть виджет"
+          >
+            <X size={15} />
+          </button>
+          <BooksWidget />
+        </div>
       )}
 
 
@@ -927,15 +862,6 @@ export function DashboardClient({ data }: { data: DashboardData }) {
         </div>
       </Modal>
 
-      {/* Voice AI Barsik Interactive Dialog Modal */}
-      <BarsikVoiceModal
-        isOpen={isVoiceModalOpen}
-        onClose={() => setIsVoiceModalOpen(false)}
-        totalBalance={data.totalBalance}
-        monthlyIncome={data.thisMonthIncome}
-        monthlyExpense={data.thisMonthExpense}
-      />
-
       {/* Daily Financial Streak Rewards Modal */}
       <StreakModal
         isOpen={isStreakModalOpen}
@@ -943,20 +869,16 @@ export function DashboardClient({ data }: { data: DashboardData }) {
         streakInfo={streakInfo}
       />
 
-      {/* 📇 ZenRI Personal VIP 3D Hologram Card Modal */}
-      <ZenRIPersonalCardModal
-        isOpen={isCardModalOpen}
-        onClose={() => setIsCardModalOpen(false)}
+      {/* 🐆 Barsik Unified Center Modal (VIP Card + Meme Lab + Voice AI) */}
+      <BarsikHubModal
+        isOpen={isHubOpen}
+        onClose={() => setIsHubOpen(false)}
         userName={currentUserName}
         totalBalance={data.totalBalance}
+        monthlyIncome={data.thisMonthIncome}
+        monthlyExpense={data.thisMonthExpense}
         currentStreak={streakInfo.currentStreak}
-      />
-
-      {/* 🎭 Barsik Meme Lab Popup Modal */}
-      <BarsikMemeModal
-        isOpen={isMemeModalOpen}
-        onClose={() => setIsMemeModalOpen(false)}
-        meme={currentMeme}
+        initialTab={hubTab}
       />
     </div>
   );

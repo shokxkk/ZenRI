@@ -4,9 +4,10 @@ import React from 'react';
 
 interface MascotScaleProps {
   totalBalance: number;
+  onOpenHub?: (tab?: 'CARD' | 'MEME' | 'VOICE') => void;
 }
 
-export const MascotScale: React.FC<MascotScaleProps> = ({ totalBalance }) => {
+export const MascotScale: React.FC<MascotScaleProps> = ({ totalBalance, onOpenHub }) => {
   // Scale pointer percentage (6% to 94%)
   let pct = 25;
   if (totalBalance <= 0) {
@@ -50,10 +51,14 @@ export const MascotScale: React.FC<MascotScaleProps> = ({ totalBalance }) => {
   return (
     <div className="mt-4 pt-2 border-t border-white/10 z-20 relative">
       {/* 3-Zone Dynamic Track with Neon Pointer Arrow & Dressed Snow Leopard Mascot */}
-      <div className="relative pt-14 pb-1">
+      <div
+        onClick={() => onOpenHub?.('CARD')}
+        className="relative pt-14 pb-1 cursor-pointer group"
+        title="Нажмите на Барсика для открытия центра VIP-Карты, Мема и Голоса ИИ"
+      >
         {/* Animated Neon Arrow Pointer & Mascot Avatar */}
         <div
-          className="absolute top-0 transition-all duration-700 ease-out z-20 flex flex-col items-center pointer-events-none"
+          className="absolute top-0 transition-all duration-700 ease-out z-20 flex flex-col items-center group-hover:scale-110"
           style={{ left: `${pct}%`, transform: 'translateX(-50%)' }}
         >
           {/* Mascot avatar wearing black hoodie with logo 7. */}
