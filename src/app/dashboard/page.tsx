@@ -24,6 +24,7 @@ export default async function DashboardPage() {
     monthlyIncomeAgg,
     monthlyExpenseAgg,
     topExpenseGroup,
+    userCategories,
   ] = await Promise.all([
     getAccounts(),
     getTransactions(10),
@@ -44,6 +45,11 @@ export default async function DashboardPage() {
       _sum: { amount: true },
       orderBy: { _sum: { amount: 'desc' } },
       take: 1,
+    }),
+    prisma.category.findMany({
+      where: { userId, isHidden: false },
+      select: { id: true, name: true, type: true, color: true },
+      orderBy: { name: 'asc' },
     }),
   ]);
 
@@ -113,6 +119,7 @@ export default async function DashboardPage() {
     thisMonthExpense,
     topCategoryName,
     topCategoryAmount,
+    categories: userCategories,
   };
 
   return (

@@ -59,6 +59,7 @@ type DashboardData = {
   thisMonthExpense: number;
   topCategoryName?: string;
   topCategoryAmount?: number;
+  categories?: { id: string; name: string; type: string; color: string | null }[];
 };
 
 const HABIT_ICONS_MAP: Record<string, React.ElementType> = {
@@ -125,7 +126,20 @@ export function DashboardClient({ data }: { data: DashboardData }) {
   // Modal State
   const [amount, setAmount] = useState('');
   const [accountId, setAccountId] = useState(data.accounts[0]?.id || '');
+  const [categoryId, setCategoryId] = useState('');
   const [comment, setComment] = useState('');
+
+  useEffect(() => {
+    if (activeModal === 'EXPENSE') {
+      const expCat = data.categories?.find((c) => c.type === 'EXPENSE');
+      setCategoryId(expCat ? expCat.id : '');
+    } else if (activeModal === 'INCOME') {
+      const incCat = data.categories?.find((c) => c.type === 'INCOME');
+      setCategoryId(incCat ? incCat.id : '');
+    } else {
+      setCategoryId('');
+    }
+  }, [activeModal, data.categories]);
 
   const todayDateStr = new Date().toLocaleDateString('ru-RU', {
     weekday: 'long',
@@ -161,10 +175,12 @@ export function DashboardClient({ data }: { data: DashboardData }) {
         type: activeModal as never,
         amount: Number(amount),
         accountId: accountId || data.accounts[0]?.id || '',
+        categoryId: activeModal !== 'TRANSFER' ? categoryId || undefined : undefined,
         comment: comment || undefined,
       });
       setAmount('');
       setComment('');
+      setCategoryId('');
       setActiveModal(null);
       router.refresh();
     });
@@ -696,6 +712,43 @@ export function DashboardClient({ data }: { data: DashboardData }) {
               ))}
             </select>
           </div>
+
+          {/* Category Selector for Quick Expense / Quick Income */}
+          {activeModal !== 'TRANSFER' && data.categories && data.categories.filter((c) => c.type === activeModal).length > 0 && (
+            <div>
+              <label className="block text-xs font-medium text-zen-700 dark:text-zen-300 mb-1.5">
+                Категория {activeModal === 'EXPENSE' ? 'расхода' : 'дохода'}
+              </label>
+              <div className="flex gap-2 overflow-x-auto pb-2 max-w-full -mx-1 px-1" style={{ scrollbarWidth: 'none' }}>
+                {data.categories
+                  .filter((c) => c.type === activeModal)
+                  .map((cat) => {
+                    const isSelected = categoryId === cat.id;
+                    const color = cat.color || (activeModal === 'EXPENSE' ? '#EF4444' : '#10B981');
+                    return (
+                      <button
+                        key={cat.id}
+                        type="button"
+                        onClick={() => setCategoryId(cat.id)}
+                        className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all border flex-shrink-0 ${
+                          isSelected
+                            ? 'text-white shadow-sm'
+                            : 'bg-zen-50 dark:bg-zen-800 text-zen-700 dark:text-zen-300 border-zen-200 dark:border-zen-700 hover:border-[#0066FF]/50'
+                        }`}
+                        style={isSelected ? { backgroundColor: color, borderColor: color } : undefined}
+                      >
+                        <span
+                          className="w-2 h-2 rounded-full flex-shrink-0"
+                          style={{ backgroundColor: isSelected ? 'rgba(255,255,255,0.7)' : color }}
+                        />
+                        {cat.name}
+                      </button>
+                    );
+                  })}
+              </div>
+            </div>
+          )}
+
           <div>
             <label className="block text-xs font-medium text-zen-700 dark:text-zen-300 mb-1">
               Комментарий
