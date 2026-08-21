@@ -35,7 +35,7 @@ import { AIPredictWidget } from '@/components/ui/AIPredictWidget';
 import { WishlistWidget } from '@/components/ui/WishlistWidget';
 import { DailyFinancialQuote } from '@/components/ui/DailyFinancialQuote';
 import { BooksWidget } from '@/components/ui/BooksWidget';
-import { MascotWidget } from '@/components/ui/MascotWidget';
+import { MascotScale } from '@/components/ui/MascotScale';
 import { soundFx } from '@/lib/soundEffects';
 
 function formatMoney(v: number) {
@@ -72,11 +72,10 @@ const HABIT_ICONS_MAP: Record<string, React.ElementType> = {
   'Ранний подъём': Moon,
 };
 
-type WidgetKey = 'quote' | 'aiPredict' | 'wishlist' | 'books' | 'finances' | 'tasks' | 'budgets' | 'habits' | 'mascot';
+type WidgetKey = 'quote' | 'aiPredict' | 'wishlist' | 'books' | 'finances' | 'tasks' | 'budgets' | 'habits';
 
 const ALL_WIDGETS: { key: WidgetKey; label: string }[] = [
   { key: 'quote', label: 'Цитата дня (Финансовая мудрость)' },
-  { key: 'mascot', label: 'Маскот Барсик (Финансовое настроение)' },
   { key: 'aiPredict', label: 'ИИ Прогноз накоплений и бюджета' },
   { key: 'wishlist', label: 'Хотелки (Wishlist + ИИ Скоринг)' },
   { key: 'books', label: 'Книги & Чтение (Трекер страниц)' },
@@ -105,7 +104,6 @@ export function DashboardClient({ data }: { data: DashboardData }) {
     tasks: false,
     budgets: false,
     habits: false,
-    mascot: false,
   });
   const [showWidgetSettings, setShowWidgetSettings] = useState(false);
 
@@ -247,13 +245,9 @@ export function DashboardClient({ data }: { data: DashboardData }) {
                   {showBalance ? <Eye size={14} /> : <EyeOff size={14} />}
                 </button>
               </span>
-              <div className="flex items-center gap-2">
-                <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-income/15 border border-income/30 text-income text-[11px] font-medium">
-                  <TrendingUp size={12} />
-                  <span>+2.5% с прошлого месяца</span>
-                </div>
-                {/* Animated Snow Leopard Mascot (Барсик ZenRI) */}
-                <MascotWidget totalBalance={data.totalBalance} compact />
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-income/15 border border-income/30 text-income text-[11px] font-medium">
+                <TrendingUp size={12} />
+                <span>+2.5% с прошлого месяца</span>
               </div>
             </div>
 
@@ -263,6 +257,9 @@ export function DashboardClient({ data }: { data: DashboardData }) {
                 <span className="text-xl font-normal text-zen-400">сум</span>
               </p>
             </div>
+
+            {/* Dynamic Financial Balance Scale held by Mascot (Барсик) */}
+            <MascotScale totalBalance={data.totalBalance} />
           </div>
 
           <div className="absolute inset-x-0 bottom-24 h-20 opacity-40 pointer-events-none">
@@ -402,24 +399,6 @@ export function DashboardClient({ data }: { data: DashboardData }) {
             monthlyExpense={data.thisMonthExpense}
             topCategoryName={data.topCategoryName || 'Расходы'}
             topCategoryAmount={data.topCategoryAmount || 0}
-          />
-        </div>
-      )}
-
-      {/* Mascot Widget (Hideable & Dynamic Financial Mood) */}
-      {!hiddenWidgets.mascot && (
-        <div className="relative group">
-          <button
-            onClick={() => toggleWidgetHide('mascot')}
-            className="absolute top-4 right-4 p-1.5 rounded-lg bg-zen-900/80 text-zen-400 hover:text-white z-20 opacity-0 group-hover:opacity-100 transition-opacity"
-            title="Скрыть виджет"
-          >
-            <X size={15} />
-          </button>
-          <MascotWidget
-            totalBalance={data.totalBalance}
-            monthlyIncome={data.thisMonthIncome}
-            monthlyExpense={data.thisMonthExpense}
           />
         </div>
       )}
