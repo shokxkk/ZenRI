@@ -32,6 +32,8 @@ import { clsx } from 'clsx';
 import { Modal } from '@/components/ui/Modal';
 import { addTransaction } from '@/app/actions/financeActions';
 import { AIPredictWidget } from '@/components/ui/AIPredictWidget';
+import { WishlistWidget } from '@/components/ui/WishlistWidget';
+import { DailyFinancialQuote } from '@/components/ui/DailyFinancialQuote';
 import { BooksWidget } from '@/components/ui/BooksWidget';
 import { MascotScale } from '@/components/ui/MascotScale';
 import { soundFx } from '@/lib/soundEffects';
@@ -108,6 +110,8 @@ export function DashboardClient({ data }: { data: DashboardData }) {
     budgets: false,
     habits: false,
   });
+  const [showWidgetSettings, setShowWidgetSettings] = useState(false);
+
   // Streak & Interactive Voice Modals State
   const [streakInfo, setStreakInfo] = useState<StreakInfo>({
     currentStreak: 1,
