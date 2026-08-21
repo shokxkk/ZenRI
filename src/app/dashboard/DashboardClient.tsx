@@ -41,6 +41,10 @@ import { triggerFlyingCoins, triggerHaptic } from '@/lib/coinAnimation';
 import { getStreakInfo, recordStreakActivity, StreakInfo } from '@/lib/streakTracker';
 import { StreakModal } from '@/components/ui/StreakModal';
 import { BarsikHubModal } from '@/components/ui/BarsikHubModal';
+import { SavingsLeagueModal } from '@/components/ui/SavingsLeagueModal';
+import { DailyTabooModal } from '@/components/ui/DailyTabooModal';
+import { getTodayTaboo, TabooChallenge } from '@/lib/dailyTaboo';
+import { Trophy, ShieldAlert } from 'lucide-react';
 
 function formatMoney(v: number) {
   return v.toLocaleString('ru-RU');
@@ -122,6 +126,9 @@ export function DashboardClient({ data }: { data: DashboardData }) {
   const [isStreakModalOpen, setIsStreakModalOpen] = useState(false);
   const [isHubOpen, setIsHubOpen] = useState(false);
   const [hubTab, setHubTab] = useState<'CARD' | 'MEME' | 'VOICE'>('CARD');
+  const [isLeagueOpen, setIsLeagueOpen] = useState(false);
+  const [isTabooOpen, setIsTabooOpen] = useState(false);
+  const [todayTaboo, setTodayTaboo] = useState<TabooChallenge>(getTodayTaboo());
 
   useEffect(() => {
     setStreakInfo(getStreakInfo());
@@ -230,25 +237,45 @@ export function DashboardClient({ data }: { data: DashboardData }) {
           <p className="text-xs text-zen-400 capitalize mt-0.5">{todayDateStr}</p>
         </div>
 
-        {/* Top Header Buttons: Clean & Spacious (Streak Badge + Gear Icon) */}
-        <div className="flex items-center gap-2">
+        {/* Top Header Buttons: Clean & Spacious (Streak + League + Taboo + Settings) */}
+        <div className="flex items-center gap-1.5 flex-wrap justify-end">
+          {/* 🏆 Savings League Button */}
+          <button
+            onClick={() => setIsLeagueOpen(true)}
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500/20 to-purple-500/20 border border-amber-500/30 text-xs font-black text-amber-300 hover:brightness-110 transition-all shadow-sm active:scale-95"
+            title="Анонимная Лига Сбережений ZenRI"
+          >
+            <Trophy size={14} className="text-amber-400" />
+            <span className="hidden sm:inline">Лига</span>
+          </button>
+
+          {/* 🚫 Daily Taboo Button */}
+          <button
+            onClick={() => setIsTabooOpen(true)}
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-rose-500/15 border border-rose-500/30 text-xs font-black text-rose-300 hover:bg-rose-500/25 transition-all shadow-sm active:scale-95"
+            title="ИИ-Табу Дня"
+          >
+            <ShieldAlert size={14} className="text-rose-400" />
+            <span className="hidden sm:inline">Табу</span>
+          </button>
+
           {/* 🔥 Daily Financial Streak Badge */}
           <button
             onClick={() => setIsStreakModalOpen(true)}
-            className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-xs font-black text-amber-400 hover:bg-amber-500/20 transition-all shadow-sm active:scale-95"
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-xs font-black text-amber-400 hover:bg-amber-500/20 transition-all shadow-sm active:scale-95"
             title="Огненный страйк активности"
           >
-            <Flame size={15} className="fill-amber-400 animate-pulse text-amber-400" />
-            <span>{streakInfo.currentStreak} дн.</span>
+            <Flame size={14} className="fill-amber-400 animate-pulse text-amber-400" />
+            <span>{streakInfo.currentStreak}d</span>
           </button>
 
           {/* Sleek Compact Widget Settings Icon Button ⚙️ */}
           <button
             onClick={() => setShowWidgetSettings(true)}
-            className="p-2 rounded-xl bg-zen-100 dark:bg-[#131C2E] border border-zen-200 dark:border-zen-800 text-zen-700 dark:text-zen-300 hover:text-[#00C2FF] transition-all relative active:scale-95"
+            className="p-1.5 rounded-xl bg-zen-100 dark:bg-[#131C2E] border border-zen-200 dark:border-zen-800 text-zen-700 dark:text-zen-300 hover:text-[#00C2FF] transition-all relative active:scale-95"
             title="Настроить виджеты"
           >
-            <Settings2 size={16} />
+            <Settings2 size={15} />
             {hiddenCount > 0 && (
               <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#0066FF] text-white text-[9px] flex items-center justify-center font-black">
                 {hiddenCount}
@@ -879,6 +906,23 @@ export function DashboardClient({ data }: { data: DashboardData }) {
         monthlyExpense={data.thisMonthExpense}
         currentStreak={streakInfo.currentStreak}
         initialTab={hubTab}
+      />
+
+      {/* 🏆 ZenRI Savings League Gaming Leaderboard Modal */}
+      <SavingsLeagueModal
+        isOpen={isLeagueOpen}
+        onClose={() => setIsLeagueOpen(false)}
+        userName={currentUserName}
+        monthlyIncome={data.thisMonthIncome}
+        monthlyExpense={data.thisMonthExpense}
+      />
+
+      {/* 🚫 AI Daily Expense Taboo Challenge Modal */}
+      <DailyTabooModal
+        isOpen={isTabooOpen}
+        onClose={() => setIsTabooOpen(false)}
+        taboo={todayTaboo}
+        onRewardClaimed={() => setTodayTaboo(getTodayTaboo())}
       />
     </div>
   );
