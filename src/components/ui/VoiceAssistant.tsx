@@ -622,8 +622,8 @@ export function VoiceAssistant({ size = 'sm' }: VoiceAssistantProps) {
         {/* Overlay card portal */}
         {renderCard()}
 
-        {/* Language Switcher — responsive small pill with clean SVG flags next to button */}
-        <div className="flex items-center gap-0.5 sm:gap-1 ml-0.5 sm:ml-1 bg-black/40 dark:bg-[#070D1E] p-0.5 sm:p-1 rounded-2xl border border-white/10 shadow-sm flex-shrink-0">
+        {/* Language Switcher — responsive small pill with clean SVG flags next to button (desktop/tablet) */}
+        <div className="hidden sm:flex items-center gap-0.5 sm:gap-1 ml-0.5 sm:ml-1 bg-black/40 dark:bg-[#070D1E] p-0.5 sm:p-1 rounded-2xl border border-white/10 shadow-sm flex-shrink-0">
           <button
             type="button"
             onClick={() => setVoiceLang('uz')}

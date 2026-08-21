@@ -3,9 +3,10 @@ import React from 'react';
 interface ZenLogoProps {
   size?: 'sm' | 'md' | 'lg';
   showTagline?: boolean;
+  hideTextOnMobile?: boolean;
 }
 
-export const ZenLogo: React.FC<ZenLogoProps> = ({ size = 'md' }) => {
+export const ZenLogo: React.FC<ZenLogoProps> = ({ size = 'md', hideTextOnMobile = false }) => {
   const sizeClasses = {
     sm: 'w-7 h-7',
     md: 'w-9 h-9',
@@ -19,7 +20,7 @@ export const ZenLogo: React.FC<ZenLogoProps> = ({ size = 'md' }) => {
   };
 
   return (
-    <div className="flex items-center gap-3 select-none">
+    <div className="flex items-center gap-2 sm:gap-3 select-none">
       <div className={`relative flex items-center justify-center flex-shrink-0 ${sizeClasses[size]}`}>
         <svg
           viewBox="0 0 100 100"
@@ -46,7 +47,7 @@ export const ZenLogo: React.FC<ZenLogoProps> = ({ size = 'md' }) => {
         </svg>
       </div>
 
-      <div className="flex flex-col justify-center">
+      <div className={`flex flex-col justify-center ${hideTextOnMobile ? 'hidden sm:flex' : ''}`}>
         <span className={`font-black tracking-tight text-zen-900 dark:text-white ${textClasses[size]}`}>
           Zen<span className="bg-gradient-to-r from-[#00E5FF] via-[#00A3FF] to-[#0066FF] bg-clip-text text-transparent">RI</span>
         </span>

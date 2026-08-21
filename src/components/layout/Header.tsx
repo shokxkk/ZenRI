@@ -45,7 +45,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenQuickAdd }) => {
       <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
         {/* Mobile logo */}
         <div className="md:hidden flex-shrink-0">
-          <ZenLogo size="sm" />
+          <ZenLogo size="sm" hideTextOnMobile={true} />
         </div>
         {/* Desktop greeting */}
         <span className="hidden md:block text-sm font-bold text-zen-900 dark:text-zen-100 whitespace-nowrap">
