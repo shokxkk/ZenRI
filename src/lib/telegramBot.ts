@@ -103,6 +103,46 @@ export async function sendTelegramMessage(
   }
 }
 
+export async function answerCallbackQuery(callbackQueryId: string, text?: string) {
+  try {
+    await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/answerCallbackQuery`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        callback_query_id: callbackQueryId,
+        text,
+      }),
+    });
+  } catch (err) {
+    console.error('Failed to answer callback query:', err);
+  }
+}
+
+export async function editTelegramMessageText(
+  chatId: number | string,
+  messageId: number,
+  text: string,
+  replyMarkup?: Record<string, unknown>
+) {
+  try {
+    const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/editMessageText`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: chatId,
+        message_id: messageId,
+        text,
+        parse_mode: 'HTML',
+        reply_markup: replyMarkup,
+      }),
+    });
+    return await res.json();
+  } catch (err) {
+    console.error('Failed to edit Telegram message:', err);
+    return null;
+  }
+}
+
 export async function getTelegramAvatarUrl(telegramUserId: number | string): Promise<string | null> {
   try {
     const photosRes = await fetch(

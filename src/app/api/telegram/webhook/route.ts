@@ -3,6 +3,8 @@ import { prisma } from '@/lib/prisma';
 import { CurrencyCode } from '@prisma/client';
 import {
   sendTelegramMessage,
+  answerCallbackQuery,
+  editTelegramMessageText,
   createMagicLoginToken,
   getTelegramAvatarUrl,
   saveTelegramAuthCode,
@@ -11,29 +13,30 @@ import {
 export async function POST(req: NextRequest) {
   try {
     const update = await req.json();
-    const message = update?.message || update?.edited_message;
 
-    if (!message || !message.from) {
-      return NextResponse.json({ ok: true });
-    }
+    // ─── 1. Handle Inline Button Callback Queries (Approve / Reject / Edit) ───
+    if (update.callback_query) {
+      const cb = update.callback_query;
+      const cbId = cb.id;
+      const dataStr = cb.data || '';
+      const chatId = cb.message?.chat?.id;
+      const messageId = cb.message?.message_id;
+      const telegramId = String(cb.from?.id);
 
-    const { id: telegramIdNum, first_name, last_name, username } = message.from;
-    const chatId = message.chat.id;
-    const telegramId = String(telegramIdNum);
-    const text = (message.text || '').trim();
+      await answerCallbackQuery(cbId);
 
-    // Check if user exists
-    let user = await prisma.user.findUnique({ where: { telegramId } });
+      const user = await prisma.user.findUnique({ where: { telegramId } });
+      if (!user || !chatId || !messageId) {
+        return NextResponse.json({ ok: true });
+      }
 
-    // Handle Quick Expense / Income logging directly from Telegram messages (e.g., "Такси 25000" or "Кофе 15000")
-    if (text && !text.startsWith('/start') && user) {
-      const match = text.match(/([a-zA-Zа-яА-ЯёЁ\s]+)?\s*(\d+[\d\s]*)/);
-      if (match) {
-        const categoryOrComment = (match[1] || 'Расход').trim();
-        const rawAmount = match[2].replace(/\s/g, '');
-        const amount = parseInt(rawAmount, 10);
+      if (dataStr.startsWith('approve:')) {
+        // Format: approve:TYPE:AMOUNT:CATEGORY
+        const [, type, amountStr, categoryName] = dataStr.split(':');
+        const amount = parseInt(amountStr, 10) || 0;
+        const txType = (type === 'INCOME' ? 'INCOME' : 'EXPENSE') as 'INCOME' | 'EXPENSE';
 
-        if (!isNaN(amount) && amount > 0) {
+        if (amount > 0) {
           // Find default account
           let account = await prisma.account.findFirst({ where: { userId: user.id } });
           if (!account) {
@@ -54,31 +57,116 @@ export async function POST(req: NextRequest) {
             data: {
               userId: user.id,
               accountId: account.id,
-              type: 'EXPENSE',
+              type: txType,
               amount,
-              comment: categoryOrComment,
+              comment: categoryName || (txType === 'INCOME' ? 'Доход' : 'Расход'),
               date: new Date(),
             },
           });
 
-          // Deduct from account
-          await prisma.account.update({
-            where: { id: account.id },
-            data: {
-              currentBalance: {
-                decrement: amount,
-              },
-            },
-          });
+          // Update account balance
+          if (txType === 'INCOME') {
+            await prisma.account.update({
+              where: { id: account.id },
+              data: { currentBalance: { increment: amount } },
+            });
+          } else {
+            await prisma.account.update({
+              where: { id: account.id },
+              data: { currentBalance: { decrement: amount } },
+            });
+          }
 
-          const reply =
-            `✅ <b>Записано в ZenRI!</b>\n\n` +
-            `💸 <b>Расход:</b> ${amount.toLocaleString('ru-RU')} сум\n` +
-            `🏷 <b>Категория / Заметка:</b> ${categoryOrComment}\n` +
+          const approvedNotice =
+            `✅ <b>Транзакция успешно одобрена и записана!</b>\n\n` +
+            `📌 <b>Тип:</b> ${txType === 'INCOME' ? 'Доход 💰' : 'Расход 💸'}\n` +
+            `💰 <b>Сумма:</b> ${amount.toLocaleString('ru-RU')} сум\n` +
+            `🏷 <b>Категория:</b> ${categoryName || 'Общее'}\n` +
             `───────────────\n` +
-            `Баланс автоматически обновлён на сайте www.zenri.uz 🎯`;
+            `🎯 Баланс обновлён на сайте www.zenri.uz`;
 
-          await sendTelegramMessage(chatId, reply);
+          await editTelegramMessageText(chatId, messageId, approvedNotice);
+        }
+      } else if (dataStr === 'reject') {
+        const rejectedNotice =
+          `❌ <b>Транзакция отклонена и отменена.</b>\n\n` +
+          `Никаких изменений в вашем балансе не произведено.`;
+
+        await editTelegramMessageText(chatId, messageId, rejectedNotice);
+      } else if (dataStr === 'edit') {
+        const editNotice =
+          `✏️ <b>Редактирование записи:</b>\n\n` +
+          `Отправьте скорректированную запись текстом прямо в чат в формате:\n` +
+          `• <code>Расход 25000 Такси</code>\n` +
+          `• <code>Доход 500000 Зарплата</code>\n` +
+          `• <code>Еда 35000</code>`;
+
+        await sendTelegramMessage(chatId, editNotice);
+      }
+
+      return NextResponse.json({ ok: true });
+    }
+
+    // ─── 2. Handle Text & Voice Messages ───
+    const message = update?.message || update?.edited_message;
+    if (!message || !message.from) {
+      return NextResponse.json({ ok: true });
+    }
+
+    const { id: telegramIdNum, first_name, last_name, username } = message.from;
+    const chatId = message.chat.id;
+    const telegramId = String(telegramIdNum);
+    const text = (message.text || '').trim();
+
+    let user = await prisma.user.findUnique({ where: { telegramId } });
+
+    // AI Parsing Algorithm for Quick Expense/Income messages
+    if (text && !text.startsWith('/start') && user) {
+      const isIncomeKeyword = text.toLowerCase().includes('доход') || text.toLowerCase().includes('приход') || text.toLowerCase().includes('зарплата') || text.toLowerCase().includes('получил');
+      const txType = isIncomeKeyword ? 'INCOME' : 'EXPENSE';
+
+      // Match amount digits
+      const match = text.match(/(\d+[\d\s]*)/);
+      if (match) {
+        const rawAmount = match[1].replace(/\s/g, '');
+        const amount = parseInt(rawAmount, 10);
+
+        if (!isNaN(amount) && amount > 0) {
+          // Extract category word
+          let categoryName = text.replace(/(\d+[\d\s]*)/, '').replace(/(расход|доход|приход|сум|сумов|сомони|uzs)/gi, '').trim();
+          if (!categoryName) {
+            categoryName = txType === 'INCOME' ? 'Доход' : 'Такси / Еда / Разное';
+          }
+
+          // Render AI Draft Confirmation Card with Interactive Inline Buttons
+          const draftNotice =
+            `🤖 <b>ИИ-Анализ транзакции</b>\n\n` +
+            `📌 <b>Тип:</b> ${txType === 'INCOME' ? 'Доход 💰' : 'Расход 💸'}\n` +
+            `💰 <b>Сумма:</b> ${amount.toLocaleString('ru-RU')} сум\n` +
+            `🏷 <b>Категория:</b> ${categoryName}\n` +
+            `───────────────\n` +
+            `<i>Проверьте данные и выберите действие:</i>`;
+
+          const inlineKeyboard = {
+            inline_keyboard: [
+              [
+                {
+                  text: '✅ Одобрить',
+                  callback_data: `approve:${txType}:${amount}:${categoryName}`,
+                },
+                {
+                  text: '✏️ Изменить',
+                  callback_data: `edit`,
+                },
+                {
+                  text: '❌ Отклонить',
+                  callback_data: `reject`,
+                },
+              ],
+            ],
+          };
+
+          await sendTelegramMessage(chatId, draftNotice, inlineKeyboard);
           return NextResponse.json({ ok: true });
         }
       }
@@ -92,7 +180,6 @@ export async function POST(req: NextRequest) {
     const expiresAt = Date.now() + 15 * 60 * 1000;
     const codePayload = `TGCODE:${sixDigitCode}:${expiresAt}`;
 
-    // Fetch avatar safely
     let avatarUrl: string | null = null;
     try {
       avatarUrl = await getTelegramAvatarUrl(telegramIdNum);
@@ -102,7 +189,6 @@ export async function POST(req: NextRequest) {
 
     let userId: string = telegramId;
 
-    // Find or create user in DB safely
     try {
       if (!user) {
         const existingByEmail = await prisma.user.findUnique({ where: { email: syntheticEmail } });
@@ -139,7 +225,6 @@ export async function POST(req: NextRequest) {
               },
             });
 
-            // Default categories
             const defaultCategories = [
               { name: 'Продукты', type: 'EXPENSE' as const, icon: 'shopping-cart', color: '#3B82F6' },
               { name: 'Кафе и рестораны', type: 'EXPENSE' as const, icon: 'coffee', color: '#F59E0B' },
@@ -205,21 +290,19 @@ export async function POST(req: NextRequest) {
       console.error('DB user creation/update error in webhook:', dbErr);
     }
 
-    // Also save in fast memory store
     saveTelegramAuthCode(sixDigitCode, userId, telegramId, displayName);
 
-    // Generate Magic Token for instant 1-click web login
     const magicToken = createMagicLoginToken(userId, telegramId);
     const loginUrl = `https://www.zenri.uz/auth/telegram-callback?token=${magicToken}`;
 
-    // Reply to user in Telegram with 6-digit Code + 1-Click Button
     const welcomeText =
       `👋 Здравствуйте, <b>${displayName}</b>!\n\n` +
       `✨ Добро пожаловать в <b>ZenRI Life OS</b>.\n\n` +
       `🔑 <b>Ваш 6-значный код для входа на сайт:</b>\n\n` +
       `👉 <code>${sixDigitCode}</code> 👈\n\n` +
       `<i>(Нажмите на код чтобы скопировать. Введите его на сайте www.zenri.uz — номер телефона вводить не нужно!)</i>\n\n` +
-      `💡 <b>Совет:</b> Вы можете писать прямо в этот бот свои расходы (например: <code>Такси 25000</code> или <code>Обед 45000</code>) — они автоматически запишутся на ваш сайт!\n\n` +
+      `💡 <b>Умный учёт через Telegram:</b>\n` +
+      `Напишите прямо в этот чат, например: <code>Такси 25000</code> или <code>Доход 500000 Зарплата</code> — ИИ распознает сумму, тип и категорию, и пришлёт карточку для подтверждения с кнопками [✅ Одобрить] [✏️ Изменить] [❌ Отклонить]!\n\n` +
       `⏱ Код действует 15 минут.\n` +
       `───────────────\n` +
       `Или нажмите кнопку ниже для входа в 1 клик:`;
