@@ -42,7 +42,9 @@ import { getStreakInfo, recordStreakActivity, StreakInfo } from '@/lib/streakTra
 import { BarsikVoiceModal } from '@/components/ui/BarsikVoiceModal';
 import { StreakModal } from '@/components/ui/StreakModal';
 import { ZenRIPersonalCardModal } from '@/components/ui/ZenRIPersonalCardModal';
-import { Mic, Bot, CreditCard } from 'lucide-react';
+import { BarsikMemeModal } from '@/components/ui/BarsikMemeModal';
+import { getRandomMemeForCategory, BarsikMeme } from '@/lib/barsikMemes';
+import { Mic, Bot, CreditCard, Laugh } from 'lucide-react';
 
 function formatMoney(v: number) {
   return v.toLocaleString('ru-RU');
@@ -127,6 +129,8 @@ export function DashboardClient({ data }: { data: DashboardData }) {
   const [isStreakModalOpen, setIsStreakModalOpen] = useState(false);
   const [isVoiceModalOpen, setIsVoiceModalOpen] = useState(false);
   const [isCardModalOpen, setIsCardModalOpen] = useState(false);
+  const [isMemeModalOpen, setIsMemeModalOpen] = useState(false);
+  const [currentMeme, setCurrentMeme] = useState<BarsikMeme | null>(null);
 
   useEffect(() => {
     setStreakInfo(getStreakInfo());
@@ -255,6 +259,19 @@ export function DashboardClient({ data }: { data: DashboardData }) {
           >
             <CreditCard size={14} className="text-amber-400" />
             <span className="hidden sm:inline">VIP Карта</span>
+          </button>
+
+          {/* 🎭 Barsik Meme Lab Button */}
+          <button
+            onClick={() => {
+              setCurrentMeme(getRandomMemeForCategory());
+              setIsMemeModalOpen(true);
+            }}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-500/20 border border-purple-500/40 text-xs font-black text-purple-300 hover:bg-purple-500/30 transition-all shadow-sm active:scale-95"
+            title="Мем-Лаборатория Барсика"
+          >
+            <Laugh size={14} className="text-purple-400" />
+            <span className="hidden sm:inline">Мем</span>
           </button>
 
           {/* 🎤 Voice AI Assistant Button */}
@@ -933,6 +950,13 @@ export function DashboardClient({ data }: { data: DashboardData }) {
         userName={currentUserName}
         totalBalance={data.totalBalance}
         currentStreak={streakInfo.currentStreak}
+      />
+
+      {/* 🎭 Barsik Meme Lab Popup Modal */}
+      <BarsikMemeModal
+        isOpen={isMemeModalOpen}
+        onClose={() => setIsMemeModalOpen(false)}
+        meme={currentMeme}
       />
     </div>
   );
