@@ -225,6 +225,20 @@ class SoundEffects {
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
+  // SOUND 3.5: COIN PICKUP / EXPLOSION — Звон вылетающих 3D монет
+  // ═══════════════════════════════════════════════════════════════════════════
+  public playCoin() {
+    this.triggerVibration([20, 10, 20]);
+    const ctx = this.getContext();
+    const out = this.getOutput();
+    if (!ctx || !out) return;
+
+    const t = ctx.currentTime;
+    this.createTone(ctx, out, 987.77, 0.15, t, 0.12, 'sine');
+    this.createTone(ctx, out, 1318.51, 0.18, t + 0.08, 0.25, 'sine');
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
   // SOUND 4: EXPENSE — Лёгкий нисходящий звук (ненавязчивый, не пугающий)
   // ═══════════════════════════════════════════════════════════════════════════
   public playExpenseSound() {
