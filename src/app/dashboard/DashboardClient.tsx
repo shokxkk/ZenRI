@@ -47,6 +47,7 @@ import { BarsikShopModal } from '@/components/ui/BarsikShopModal';
 import { AIDailyLimitWidget } from '@/components/ui/AIDailyLimitWidget';
 import { AIImpulseGuardModal } from '@/components/ui/AIImpulseGuardModal';
 import { ZenRICommunityModal } from '@/components/ui/ZenRICommunityModal';
+import { AIFinancialTarotModal } from '@/components/ui/AIFinancialTarotModal';
 import { MoneyPulseSpheresWidget } from '@/components/ui/MoneyPulseSpheresWidget';
 import { FinancialSurvivalDialWidget } from '@/components/ui/FinancialSurvivalDialWidget';
 import { CARD_THEMES, CardThemeId, getSavedCardTheme, saveCardTheme } from '@/lib/cardThemeStore';
@@ -147,6 +148,7 @@ export function DashboardClient({ data }: { data: DashboardData }) {
   const [shopData, setShopData] = useState<UserShopData>(getUserShopData());
   const [isImpulseModalOpen, setIsImpulseModalOpen] = useState(false);
   const [isCommunityOpen, setIsCommunityOpen] = useState(false);
+  const [isTarotOpen, setIsTarotOpen] = useState(false);
 
   // 3D Holographic Card Theme State
   const [cardTheme, setCardTheme] = useState<CardThemeId>('CYBERPUNK');
@@ -271,6 +273,17 @@ export function DashboardClient({ data }: { data: DashboardData }) {
 
         {/* Top Header Buttons: Clean & Spacious */}
         <div className="flex items-center gap-1.5 flex-wrap justify-end">
+          {/* 🎴 AI Financial Tarot Card Button */}
+          <button
+            onClick={() => setIsTarotOpen(true)}
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-purple-600/30 via-pink-600/30 to-amber-500/30 border border-amber-400/50 text-xs font-black text-amber-300 hover:brightness-110 transition-all shadow-sm active:scale-95 animate-pulse"
+            title="ИИ-Таро Карта Удачи Дня"
+          >
+            <span className="text-sm">🎴</span>
+            <span className="hidden sm:inline">Карта Дня</span>
+            <span className="text-[10px] text-amber-300 font-mono">+50🪙</span>
+          </button>
+
           {/* 💬 ZenRI Club & Community Button */}
           <button
             onClick={() => setIsCommunityOpen(true)}
@@ -1058,6 +1071,13 @@ export function DashboardClient({ data }: { data: DashboardData }) {
         userName={currentUserName}
         badge="Алмазный Дивизион 💎"
         currentStreak={streakInfo.currentStreak}
+      />
+
+      {/* 🎴 AI Financial Tarot Destiny Card Modal */}
+      <AIFinancialTarotModal
+        isOpen={isTarotOpen}
+        onClose={() => setIsTarotOpen(false)}
+        onCoinsAwarded={() => setShopData(getUserShopData())}
       />
     </div>
   );
