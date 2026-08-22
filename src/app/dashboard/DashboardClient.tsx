@@ -46,12 +46,13 @@ import { DailyTabooModal } from '@/components/ui/DailyTabooModal';
 import { BarsikShopModal } from '@/components/ui/BarsikShopModal';
 import { AIDailyLimitWidget } from '@/components/ui/AIDailyLimitWidget';
 import { AIImpulseGuardModal } from '@/components/ui/AIImpulseGuardModal';
+import { ZenRICommunityModal } from '@/components/ui/ZenRICommunityModal';
 import { MoneyPulseSpheresWidget } from '@/components/ui/MoneyPulseSpheresWidget';
 import { FinancialSurvivalDialWidget } from '@/components/ui/FinancialSurvivalDialWidget';
 import { CARD_THEMES, CardThemeId, getSavedCardTheme, saveCardTheme } from '@/lib/cardThemeStore';
 import { getUserShopData, UserShopData } from '@/lib/barsikShopStore';
 import { getTodayTaboo, TabooChallenge } from '@/lib/dailyTaboo';
-import { Trophy, ShieldAlert, Palette, ShoppingBag, Coins, Brain } from 'lucide-react';
+import { Trophy, ShieldAlert, Palette, ShoppingBag, Coins, Brain, MessageSquare } from 'lucide-react';
 
 function formatMoney(v: number) {
   return v.toLocaleString('ru-RU');
@@ -145,6 +146,7 @@ export function DashboardClient({ data }: { data: DashboardData }) {
   const [isShopOpen, setIsShopOpen] = useState(false);
   const [shopData, setShopData] = useState<UserShopData>(getUserShopData());
   const [isImpulseModalOpen, setIsImpulseModalOpen] = useState(false);
+  const [isCommunityOpen, setIsCommunityOpen] = useState(false);
 
   // 3D Holographic Card Theme State
   const [cardTheme, setCardTheme] = useState<CardThemeId>('CYBERPUNK');
@@ -269,6 +271,16 @@ export function DashboardClient({ data }: { data: DashboardData }) {
 
         {/* Top Header Buttons: Clean & Spacious */}
         <div className="flex items-center gap-1.5 flex-wrap justify-end">
+          {/* 💬 ZenRI Club & Community Button */}
+          <button
+            onClick={() => setIsCommunityOpen(true)}
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-[#0066FF]/20 to-[#00C2FF]/20 border border-[#00C2FF]/40 text-xs font-black text-[#00C2FF] hover:brightness-110 transition-all shadow-sm active:scale-95"
+            title="Сообщество ZenRI Club"
+          >
+            <MessageSquare size={14} className="text-[#00C2FF]" />
+            <span className="hidden sm:inline">Клуб</span>
+          </button>
+
           {/* 🧠 AI Impulse Buy Detector Button */}
           <button
             onClick={() => setIsImpulseModalOpen(true)}
@@ -1037,6 +1049,15 @@ export function DashboardClient({ data }: { data: DashboardData }) {
         isOpen={isImpulseModalOpen}
         onClose={() => setIsImpulseModalOpen(false)}
         totalBalance={data.totalBalance}
+      />
+
+      {/* 💬 ZenRI Community Hub & Live Chat Modal */}
+      <ZenRICommunityModal
+        isOpen={isCommunityOpen}
+        onClose={() => setIsCommunityOpen(false)}
+        userName={currentUserName}
+        badge="Алмазный Дивизион 💎"
+        currentStreak={streakInfo.currentStreak}
       />
     </div>
   );
