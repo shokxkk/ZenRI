@@ -85,12 +85,14 @@ const HABIT_ICONS_MAP: Record<string, React.ElementType> = {
   'Ранний подъём': Moon,
 };
 
-type WidgetKey = 'quote' | 'aiPredict' | 'wishlist' | 'books' | 'finances' | 'tasks' | 'budgets' | 'habits';
+type WidgetKey = 'quote' | 'aiPredict' | 'wishlist' | 'books' | 'finances' | 'tasks' | 'budgets' | 'habits' | 'spheres' | 'speedometer';
 
 const ALL_WIDGETS: { key: WidgetKey; label: string }[] = [
   { key: 'quote', label: 'Цитата дня (Финансовая мудрость)' },
   { key: 'aiPredict', label: 'ИИ Прогноз накоплений и бюджета' },
   { key: 'wishlist', label: 'Хотелки (Wishlist + ИИ Скоринг)' },
+  { key: 'spheres', label: 'Пульсирующие Сферы Расходов' },
+  { key: 'speedometer', label: 'Спидометр Подушки Безопасности' },
   { key: 'books', label: 'Книги & Чтение (Трекер страниц)' },
   { key: 'finances', label: 'Финансы сегодня' },
   { key: 'tasks', label: 'Задачи на сегодня' },
@@ -117,6 +119,8 @@ export function DashboardClient({ data }: { data: DashboardData }) {
     tasks: false,
     budgets: false,
     habits: false,
+    spheres: false,
+    speedometer: false,
   });
   const [showWidgetSettings, setShowWidgetSettings] = useState(false);
 
@@ -555,14 +559,58 @@ export function DashboardClient({ data }: { data: DashboardData }) {
         </div>
       )}
 
-      {/* 🎯 Tesla-Style Financial Survival Autonomy Gauge */}
-      <FinancialSurvivalDialWidget
-        totalBalance={data.totalBalance}
-        monthlyExpense={data.thisMonthExpense}
-      />
+      {/* 🎯 Tesla-Style Financial Survival Autonomy Gauge (Hideable) */}
+      {!hiddenWidgets.speedometer && (
+        <div className="relative group">
+          <button
+            onClick={() => toggleWidgetHide('speedometer')}
+            className="absolute top-4 right-4 p-1.5 rounded-lg bg-zen-900/80 text-zen-400 hover:text-white z-20 opacity-0 group-hover:opacity-100 transition-opacity"
+            title="Скрыть виджет"
+          >
+            <X size={15} />
+          </button>
+          <FinancialSurvivalDialWidget
+            totalBalance={data.totalBalance}
+            monthlyExpense={data.thisMonthExpense}
+          />
+        </div>
+      )}
 
-      {/* 🔮 Interactive Money Pulse Spheres Category Bubbles */}
-      <MoneyPulseSpheresWidget />
+      {/* 🔮 Interactive Money Pulse Spheres Category Bubbles (Hideable & Computed from Real Data) */}
+      {(() => {
+        const categoryMap: Record<string, { name: string; amount: number; color: string }> = {};
+        const palette = ['#F59E0B', '#3B82F6', '#10B981', '#A855F7', '#EC4899', '#00C2FF', '#EF4444'];
+        let colorIdx = 0;
+
+        for (const tx of data.recentTransactions || []) {
+          if (tx.type === 'EXPENSE') {
+            const name = tx.categoryName || 'Прочие расходы';
+            const amt = parseFloat(tx.amount) || 0;
+            if (!categoryMap[name]) {
+              categoryMap[name] = { name, amount: 0, color: palette[colorIdx % palette.length] };
+              colorIdx++;
+            }
+            categoryMap[name].amount += amt;
+          }
+        }
+
+        const realCategories = Object.values(categoryMap).sort((a, b) => b.amount - a.amount);
+
+        return (
+          !hiddenWidgets.spheres && (
+            <div className="relative group">
+              <button
+                onClick={() => toggleWidgetHide('spheres')}
+                className="absolute top-4 right-4 p-1.5 rounded-lg bg-zen-900/80 text-zen-400 hover:text-white z-20 opacity-0 group-hover:opacity-100 transition-opacity"
+                title="Скрыть виджет"
+              >
+                <X size={15} />
+              </button>
+              <MoneyPulseSpheresWidget categories={realCategories} />
+            </div>
+          )
+        );
+      })()}
 
 
       {/* Middle Row: 3 Widgets (Hideable) */}
