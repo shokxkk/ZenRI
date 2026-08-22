@@ -20,6 +20,7 @@ import {
   X,
   Volume2,
   VolumeX,
+  Users,
 } from 'lucide-react';
 import { useLanguage } from '@/components/ui/LanguageProvider';
 import { soundFx } from '@/lib/soundEffects';
@@ -46,6 +47,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ onOpenQuickAdd }) => {
 
   const allItems = [
     { href: '/dashboard', labelKey: 'nav_today' as const, icon: LayoutDashboard },
+    { href: '/club', labelKey: 'nav_club' as const, icon: Users },
     { href: '/finances', labelKey: 'nav_finances' as const, icon: Wallet },
     { href: '/calculator', labelKey: 'nav_calculator' as const, icon: Calculator },
     { href: '/tasks', labelKey: 'nav_tasks' as const, icon: CheckSquare },

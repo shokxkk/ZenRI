@@ -19,6 +19,7 @@ import {
   ChevronRight,
   LogOut,
   User as UserIcon,
+  Users,
 } from 'lucide-react';
 import { ZenLogo } from '@/components/ui/ZenLogo';
 import { signOut, useSession } from 'next-auth/react';
@@ -32,6 +33,7 @@ export const Sidebar: React.FC = () => {
 
   const navItems = [
     { href: '/dashboard', labelKey: 'nav_today' as const, icon: LayoutDashboard },
+    { href: '/club', labelKey: 'nav_club' as const, icon: Users },
     { href: '/finances', labelKey: 'nav_finances' as const, icon: Wallet },
     { href: '/calculator', labelKey: 'nav_calculator' as const, icon: Calculator },
     { href: '/tasks', labelKey: 'nav_tasks' as const, icon: CheckSquare },
