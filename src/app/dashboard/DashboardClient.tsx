@@ -44,12 +44,14 @@ import { BarsikHubModal } from '@/components/ui/BarsikHubModal';
 import { SavingsLeagueModal } from '@/components/ui/SavingsLeagueModal';
 import { DailyTabooModal } from '@/components/ui/DailyTabooModal';
 import { BarsikShopModal } from '@/components/ui/BarsikShopModal';
+import { AIDailyLimitWidget } from '@/components/ui/AIDailyLimitWidget';
+import { AIImpulseGuardModal } from '@/components/ui/AIImpulseGuardModal';
 import { MoneyPulseSpheresWidget } from '@/components/ui/MoneyPulseSpheresWidget';
 import { FinancialSurvivalDialWidget } from '@/components/ui/FinancialSurvivalDialWidget';
 import { CARD_THEMES, CardThemeId, getSavedCardTheme, saveCardTheme } from '@/lib/cardThemeStore';
 import { getUserShopData, UserShopData } from '@/lib/barsikShopStore';
 import { getTodayTaboo, TabooChallenge } from '@/lib/dailyTaboo';
-import { Trophy, ShieldAlert, Palette, ShoppingBag, Coins } from 'lucide-react';
+import { Trophy, ShieldAlert, Palette, ShoppingBag, Coins, Brain } from 'lucide-react';
 
 function formatMoney(v: number) {
   return v.toLocaleString('ru-RU');
@@ -85,9 +87,10 @@ const HABIT_ICONS_MAP: Record<string, React.ElementType> = {
   'Ранний подъём': Moon,
 };
 
-type WidgetKey = 'quote' | 'aiPredict' | 'wishlist' | 'books' | 'finances' | 'tasks' | 'budgets' | 'habits' | 'spheres' | 'speedometer';
+type WidgetKey = 'quote' | 'aiPredict' | 'wishlist' | 'books' | 'finances' | 'tasks' | 'budgets' | 'habits' | 'spheres' | 'speedometer' | 'autolimit';
 
 const ALL_WIDGETS: { key: WidgetKey; label: string }[] = [
+  { key: 'autolimit', label: 'ИИ-Автопилот и Дневной Безопасный Лимит' },
   { key: 'quote', label: 'Цитата дня (Финансовая мудрость)' },
   { key: 'aiPredict', label: 'ИИ Прогноз накоплений и бюджета' },
   { key: 'wishlist', label: 'Хотелки (Wishlist + ИИ Скоринг)' },
@@ -121,6 +124,7 @@ export function DashboardClient({ data }: { data: DashboardData }) {
     habits: false,
     spheres: false,
     speedometer: false,
+    autolimit: false,
   });
   const [showWidgetSettings, setShowWidgetSettings] = useState(false);
 
@@ -140,6 +144,7 @@ export function DashboardClient({ data }: { data: DashboardData }) {
   const [todayTaboo, setTodayTaboo] = useState<TabooChallenge>(getTodayTaboo());
   const [isShopOpen, setIsShopOpen] = useState(false);
   const [shopData, setShopData] = useState<UserShopData>(getUserShopData());
+  const [isImpulseModalOpen, setIsImpulseModalOpen] = useState(false);
 
   // 3D Holographic Card Theme State
   const [cardTheme, setCardTheme] = useState<CardThemeId>('CYBERPUNK');
@@ -262,8 +267,18 @@ export function DashboardClient({ data }: { data: DashboardData }) {
           <p className="text-xs text-zen-400 capitalize mt-0.5">{todayDateStr}</p>
         </div>
 
-        {/* Top Header Buttons: Clean & Spacious (Shop + League + Taboo + Streak + Settings) */}
+        {/* Top Header Buttons: Clean & Spacious */}
         <div className="flex items-center gap-1.5 flex-wrap justify-end">
+          {/* 🧠 AI Impulse Buy Detector Button */}
+          <button
+            onClick={() => setIsImpulseModalOpen(true)}
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-purple-500/20 border border-purple-500/30 text-xs font-black text-purple-300 hover:brightness-110 transition-all shadow-sm active:scale-95"
+            title="ИИ-Детектор Импульсивных Покупок"
+          >
+            <Brain size={14} className="text-purple-400" />
+            <span className="hidden sm:inline">ИИ Оценка</span>
+          </button>
+
           {/* 🛍️ Barsik Shop Button */}
           <button
             onClick={() => setIsShopOpen(true)}
@@ -321,19 +336,31 @@ export function DashboardClient({ data }: { data: DashboardData }) {
         </div>
       </div>
 
-      {/* Quote of the Day */}
-      {!hiddenWidgets.quote && (
-        <div className="relative group">
-          <button
-            onClick={() => toggleWidgetHide('quote')}
-            className="absolute top-3 right-3 p-1 rounded-lg bg-zen-900/80 text-zen-400 hover:text-white z-20 opacity-0 group-hover:opacity-100 transition-opacity"
-            title="Скрыть виджет"
-          >
-            <X size={14} />
-          </button>
-          <DailyFinancialQuote />
-        </div>
-      )}
+      {/* 🤖 AI Expense Autopilot & Daily Safe Limit Widget (Hideable) */}
+      {(() => {
+        const todaySpent = (data.recentTransactions || [])
+          .filter((t) => t.type === 'EXPENSE')
+          .reduce((acc, t) => acc + (parseFloat(t.amount) || 0), 0);
+
+        return (
+          !hiddenWidgets.autolimit && (
+            <div className="relative group">
+              <button
+                onClick={() => toggleWidgetHide('autolimit')}
+                className="absolute top-4 right-4 p-1.5 rounded-lg bg-zen-900/80 text-zen-400 hover:text-white z-20 opacity-0 group-hover:opacity-100 transition-opacity"
+                title="Скрыть виджет"
+              >
+                <X size={15} />
+              </button>
+              <AIDailyLimitWidget
+                totalBalance={data.totalBalance}
+                monthlyExpense={data.thisMonthExpense}
+                todayExpense={todaySpent}
+              />
+            </div>
+          )
+        );
+      })()}
 
       {/* Main Grid: Hero Card + Finances Widget */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
@@ -1003,6 +1030,13 @@ export function DashboardClient({ data }: { data: DashboardData }) {
         isOpen={isShopOpen}
         onClose={() => setIsShopOpen(false)}
         onDataChanged={setShopData}
+      />
+
+      {/* 🧠 AI Impulse Buy Cooldown Detector Modal */}
+      <AIImpulseGuardModal
+        isOpen={isImpulseModalOpen}
+        onClose={() => setIsImpulseModalOpen(false)}
+        totalBalance={data.totalBalance}
       />
     </div>
   );
