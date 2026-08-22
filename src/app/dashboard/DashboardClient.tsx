@@ -43,11 +43,13 @@ import { StreakModal } from '@/components/ui/StreakModal';
 import { BarsikHubModal } from '@/components/ui/BarsikHubModal';
 import { SavingsLeagueModal } from '@/components/ui/SavingsLeagueModal';
 import { DailyTabooModal } from '@/components/ui/DailyTabooModal';
+import { BarsikShopModal } from '@/components/ui/BarsikShopModal';
 import { MoneyPulseSpheresWidget } from '@/components/ui/MoneyPulseSpheresWidget';
 import { FinancialSurvivalDialWidget } from '@/components/ui/FinancialSurvivalDialWidget';
 import { CARD_THEMES, CardThemeId, getSavedCardTheme, saveCardTheme } from '@/lib/cardThemeStore';
+import { getUserShopData, UserShopData } from '@/lib/barsikShopStore';
 import { getTodayTaboo, TabooChallenge } from '@/lib/dailyTaboo';
-import { Trophy, ShieldAlert, Palette } from 'lucide-react';
+import { Trophy, ShieldAlert, Palette, ShoppingBag, Coins } from 'lucide-react';
 
 function formatMoney(v: number) {
   return v.toLocaleString('ru-RU');
@@ -132,6 +134,8 @@ export function DashboardClient({ data }: { data: DashboardData }) {
   const [isLeagueOpen, setIsLeagueOpen] = useState(false);
   const [isTabooOpen, setIsTabooOpen] = useState(false);
   const [todayTaboo, setTodayTaboo] = useState<TabooChallenge>(getTodayTaboo());
+  const [isShopOpen, setIsShopOpen] = useState(false);
+  const [shopData, setShopData] = useState<UserShopData>(getUserShopData());
 
   // 3D Holographic Card Theme State
   const [cardTheme, setCardTheme] = useState<CardThemeId>('CYBERPUNK');
@@ -254,8 +258,19 @@ export function DashboardClient({ data }: { data: DashboardData }) {
           <p className="text-xs text-zen-400 capitalize mt-0.5">{todayDateStr}</p>
         </div>
 
-        {/* Top Header Buttons: Clean & Spacious (Streak + League + Taboo + Settings) */}
+        {/* Top Header Buttons: Clean & Spacious (Shop + League + Taboo + Streak + Settings) */}
         <div className="flex items-center gap-1.5 flex-wrap justify-end">
+          {/* 🛍️ Barsik Shop Button */}
+          <button
+            onClick={() => setIsShopOpen(true)}
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-purple-500/20 via-pink-500/20 to-amber-500/20 border border-purple-400/40 text-xs font-black text-purple-200 hover:brightness-110 transition-all shadow-sm active:scale-95"
+            title="Магазин и Гардероб Барсика"
+          >
+            <ShoppingBag size={14} className="text-purple-400" />
+            <span className="hidden sm:inline">Магазин</span>
+            <span className="text-[10px] text-amber-300 font-mono pl-0.5">{shopData.zenCoins}🪙</span>
+          </button>
+
           {/* 🏆 Savings League Button */}
           <button
             onClick={() => setIsLeagueOpen(true)}
@@ -933,6 +948,13 @@ export function DashboardClient({ data }: { data: DashboardData }) {
         onClose={() => setIsTabooOpen(false)}
         taboo={todayTaboo}
         onRewardClaimed={() => setTodayTaboo(getTodayTaboo())}
+      />
+
+      {/* 🛍️ Barsik Mascot Shop & Customizer Modal */}
+      <BarsikShopModal
+        isOpen={isShopOpen}
+        onClose={() => setIsShopOpen(false)}
+        onDataChanged={setShopData}
       />
     </div>
   );
