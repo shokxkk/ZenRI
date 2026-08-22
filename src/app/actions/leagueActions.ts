@@ -11,6 +11,8 @@ export interface RealLeagueMember {
   division: 'BRONZE' | 'SILVER' | 'GOLD' | 'DIAMOND';
   badge: string;
   isUser: boolean;
+  isOnline: boolean;
+  lastSeenText: string;
 }
 
 export async function getRealLeagueLeaderboard(currentUserId?: string): Promise<RealLeagueMember[]> {
@@ -24,6 +26,7 @@ export async function getRealLeagueLeaderboard(currentUserId?: string): Promise<
         name: true,
         telegramUsername: true,
         avatarUrl: true,
+        updatedAt: true,
         transactions: {
           select: {
             type: true,
@@ -81,6 +84,23 @@ export async function getRealLeagueLeaderboard(currentUserId?: string): Promise<
         displayName = `${displayName} (ВЫ)`;
       }
 
+      // Calculate Real Presence: Active within 5 minutes or current session user
+      const diffMs = now.getTime() - new Date(u.updatedAt).getTime();
+      const isOnline = isCurrent || diffMs < 5 * 60 * 1000;
+      const minutesAgo = Math.floor(diffMs / 60000);
+      const hoursAgo = Math.floor(minutesAgo / 60);
+
+      let lastSeenText = 'онлайн';
+      if (!isOnline) {
+        if (minutesAgo < 60) {
+          lastSeenText = `был ${minutesAgo}м назад`;
+        } else if (hoursAgo < 24) {
+          lastSeenText = `был ${hoursAgo}ч назад`;
+        } else {
+          lastSeenText = 'оффлайн';
+        }
+      }
+
       return {
         userId: u.id,
         name: displayName,
@@ -89,11 +109,16 @@ export async function getRealLeagueLeaderboard(currentUserId?: string): Promise<
         division,
         badge,
         isUser: isCurrent,
+        isOnline,
+        lastSeenText,
       };
     });
 
-    // Sort by savingsRate descending
-    members.sort((a, b) => b.savingsRate - a.savingsRate);
+    // Sort by online status first, then savingsRate descending
+    members.sort((a, b) => {
+      if (a.isOnline !== b.isOnline) return a.isOnline ? -1 : 1;
+      return b.savingsRate - a.savingsRate;
+    });
 
     // Assign dynamic ranks
     const rankedMembers: RealLeagueMember[] = members.map((m, idx) => ({

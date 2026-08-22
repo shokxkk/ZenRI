@@ -296,27 +296,31 @@ export function ClubClient() {
               <span>Участники Клуба</span>
               <span className="text-[10px] text-emerald-400 font-mono flex items-center gap-1">
                 <Circle size={8} className="fill-emerald-400 animate-ping" />
-                {realUsers.length > 0 ? realUsers.length : 8} онлайн
+                {realUsers.filter((u: RealLeagueMember) => u.isOnline).length} онлайн
               </span>
             </h3>
 
-            <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-              {(realUsers.length > 0 ? realUsers : [
-                { name: 'PRODAX', points: 14, rank: 1, percent: 54 },
-                { name: 'CyberShark', points: 9, rank: 2, percent: 48 },
-                { name: 'ZenTrader', points: 21, rank: 3, percent: 42 },
-                { name: 'Samurai #777', points: 7, rank: 4, percent: 38 },
-              ]).map((u: any, idx: number) => (
-                <div key={idx} className="flex items-center justify-between p-2 rounded-xl bg-zen-50 dark:bg-slate-950/70 border border-zen-100 dark:border-zen-800/60 text-xs">
+            <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+              {realUsers.map((u: RealLeagueMember, idx: number) => (
+                <div key={u.userId || idx} className="flex items-center justify-between p-2 rounded-xl bg-zen-50 dark:bg-slate-950/70 border border-zen-100 dark:border-zen-800/60 text-xs">
                   <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-full bg-[#0066FF]/20 text-[#0066FF] flex items-center justify-center text-[10px] font-extrabold">
+                    <div className="w-6.5 h-6.5 rounded-full bg-[#0066FF]/20 text-[#0066FF] flex items-center justify-center text-[10px] font-extrabold flex-shrink-0">
                       {u.name.charAt(0).toUpperCase()}
                     </div>
-                    <span className="font-bold text-zen-900 dark:text-white">{u.name}</span>
+                    <span className="font-bold text-zen-900 dark:text-white truncate max-w-[120px]">{u.name}</span>
                   </div>
-                  <span className="text-[9px] font-bold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded-full border border-emerald-500/20">
-                    🟢 онлайн
-                  </span>
+
+                  {u.isOnline ? (
+                    <span className="text-[9px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20 flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                      <span>онлайн</span>
+                    </span>
+                  ) : (
+                    <span className="text-[9px] font-medium text-slate-400 bg-slate-500/10 px-2 py-0.5 rounded-full border border-slate-500/20 flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-slate-500" />
+                      <span>{u.lastSeenText || 'оффлайн'}</span>
+                    </span>
+                  )}
                 </div>
               ))}
             </div>
