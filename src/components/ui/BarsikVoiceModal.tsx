@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Mic, MicOff, Volume2, VolumeX, X, Sparkles, Send, Bot, TrendingDown, Wallet, PieChart as PieIcon } from 'lucide-react';
 import { soundFx } from '@/lib/soundEffects';
+import { speakBarsikVoice } from '@/lib/barsikVoice';
 
 interface BarsikVoiceModalProps {
   isOpen: boolean;
@@ -62,20 +63,9 @@ export const BarsikVoiceModal: React.FC<BarsikVoiceModalProps> = ({
     }
   }, []);
 
-  // Speak AI answer out loud using SpeechSynthesis
+  // Speak AI answer out loud using Neural SpeechSynthesis
   const speakText = (text: string) => {
-    if (isMuted || typeof window === 'undefined' || !('speechSynthesis' in window)) return;
-
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = 'ru-RU';
-    utterance.rate = 1.0;
-
-    utterance.onstart = () => setIsSpeaking(true);
-    utterance.onend = () => setIsSpeaking(false);
-    utterance.onerror = () => setIsSpeaking(false);
-
-    window.speechSynthesis.speak(utterance);
+    speakBarsikVoice(text, isMuted);
   };
 
   const toggleListening = () => {

@@ -63,7 +63,6 @@ export async function registerUser(formData: {
         { name: 'Продукты', type: 'EXPENSE' as const, icon: 'shopping-cart', color: '#3B82F6' },
         { name: 'Кафе и рестораны', type: 'EXPENSE' as const, icon: 'coffee', color: '#F59E0B' },
         { name: 'Бензин / Авто', type: 'EXPENSE' as const, icon: 'car', color: '#EF4444' },
-        { name: 'Коммунальные / Аренда', type: 'EXPENSE' as const, icon: 'home', color: '#8B5CF6' },
         { name: 'Зарплата', type: 'INCOME' as const, icon: 'briefcase', color: '#10B981' },
         { name: 'Бизнес / Фриланс', type: 'INCOME' as const, icon: 'trending-up', color: '#059669' },
       ];

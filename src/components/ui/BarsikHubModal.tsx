@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { X, Crown, Laugh, Mic, Share2, Download, CheckCircle2, Sparkles, Wifi, Cpu, Bot, Volume2, VolumeX, Send, MicOff } from 'lucide-react';
 import { soundFx } from '@/lib/soundEffects';
-import { getRandomMemeForCategory, BarsikMeme } from '@/lib/barsikMemes';
+import { speakBarsikVoice } from '@/lib/barsikVoice';
 
 interface BarsikHubModalProps {
   isOpen: boolean;
@@ -71,14 +71,6 @@ export const BarsikHubModal: React.FC<BarsikHubModalProps> = ({
     }
   }, []);
 
-  const speakText = (text: string) => {
-    if (isMuted || typeof window === 'undefined' || !('speechSynthesis' in window)) return;
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = 'ru-RU';
-    window.speechSynthesis.speak(utterance);
-  };
-
   const handleVoiceQuery = async (queryStr?: string) => {
     const textToSend = queryStr || inputText;
     if (!textToSend.trim()) return;
@@ -96,7 +88,7 @@ export const BarsikHubModal: React.FC<BarsikHubModalProps> = ({
       const data = await res.json();
       if (data.success) {
         setAiResponse(data);
-        speakText(data.answerText);
+        speakBarsikVoice(data.answerText, isMuted);
       }
     } catch {} finally {
       setLoadingVoice(false);

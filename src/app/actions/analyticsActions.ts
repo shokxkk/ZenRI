@@ -235,7 +235,6 @@ export async function seedDefaultCategories() {
     { name: 'Аптека', color: '#EF4444', icon: 'heart-pulse' },
     { name: 'Развлечения', color: '#EC4899', icon: 'party-popper' },
     { name: 'Кафе и кофе', color: '#D97706', icon: 'coffee' },
-    { name: 'Коммунальные услуги', color: '#06B6D4', icon: 'home' },
     { name: 'Мобильная связь', color: '#6366F1', icon: 'phone' },
     { name: 'Интернет', color: '#14B8A6', icon: 'wifi' },
     { name: 'Спорт', color: '#84CC16', icon: 'dumbbell' },
@@ -491,7 +490,6 @@ export async function seedDemoDataAction() {
     const catGroceries = await tx.category.create({ data: { userId, name: 'Продукты', type: 'EXPENSE', icon: 'shopping-cart', color: '#0066FF', isSystem: true } });
     const catFuel = await tx.category.create({ data: { userId, name: 'Бензин / Авто', type: 'EXPENSE', icon: 'car', color: '#10B981', isSystem: true } });
     const catCafe = await tx.category.create({ data: { userId, name: 'Кафе и рестораны', type: 'EXPENSE', icon: 'coffee', color: '#F59E0B', isSystem: true } });
-    const catUtilities = await tx.category.create({ data: { userId, name: 'Коммунальные', type: 'EXPENSE', icon: 'home', color: '#EF4444', isSystem: true } });
 
     // 4. Create Transactions
     await tx.transaction.create({
