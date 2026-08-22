@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { X, Crown, Laugh, Mic, Share2, Download, CheckCircle2, Sparkles, Wifi, Cpu, Bot, Volume2, VolumeX, Send, MicOff } from 'lucide-react';
 import { soundFx } from '@/lib/soundEffects';
 import { speakBarsikVoice } from '@/lib/barsikVoice';
+import { getRandomMemeForCategory, BarsikMeme } from '@/lib/barsikMemes';
 
 interface BarsikHubModalProps {
   isOpen: boolean;
