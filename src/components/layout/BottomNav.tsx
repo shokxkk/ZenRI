@@ -47,7 +47,6 @@ export const BottomNav: React.FC<BottomNavProps> = ({ onOpenQuickAdd }) => {
 
   const allItems = [
     { href: '/dashboard', labelKey: 'nav_today' as const, icon: LayoutDashboard },
-    { href: '/club', labelKey: 'nav_club' as const, icon: Users },
     { href: '/finances', labelKey: 'nav_finances' as const, icon: Wallet },
     { href: '/calculator', labelKey: 'nav_calculator' as const, icon: Calculator },
     { href: '/tasks', labelKey: 'nav_tasks' as const, icon: CheckSquare },
@@ -58,6 +57,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ onOpenQuickAdd }) => {
     { href: '/ai', labelKey: 'nav_ai' as const, icon: Sparkles },
     { href: '/analytics', labelKey: 'nav_analytics' as const, icon: BarChart3 },
     { href: '/settings', labelKey: 'nav_settings' as const, icon: Settings },
+    { href: '/club', labelKey: 'nav_club' as const, icon: Users },
   ];
 
   return (
