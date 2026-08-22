@@ -107,7 +107,6 @@ export const BarsikVoiceModal: React.FC<BarsikVoiceModalProps> = ({
       const data = await res.json();
       if (data.success) {
         setAiResponse(data);
-        speakText(data.answerText);
       }
     } catch {
       // Error fallback

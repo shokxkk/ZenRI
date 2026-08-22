@@ -89,7 +89,6 @@ export const BarsikHubModal: React.FC<BarsikHubModalProps> = ({
       const data = await res.json();
       if (data.success) {
         setAiResponse(data);
-        speakBarsikVoice(data.answerText, isMuted);
       }
     } catch {} finally {
       setLoadingVoice(false);
