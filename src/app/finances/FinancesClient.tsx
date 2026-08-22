@@ -4,7 +4,6 @@ import React, { useState, useTransition } from 'react';
 import { Plus, ArrowUpRight, ArrowDownRight, ArrowLeftRight, Wallet, Edit2, Trash2 } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
 import { addTransaction, createAccount, updateTransaction, deleteTransaction } from '@/app/actions/financeActions';
-import { UtilityBillWidget } from '@/components/ui/UtilityBillWidget';
 import { AccountBrandLogo } from '@/components/ui/AccountBrandLogo';
 import { soundFx } from '@/lib/soundEffects';
 import { useRouter } from 'next/navigation';
@@ -224,8 +223,7 @@ export function FinancesClient({ accounts, transactions, categories }: FinancesC
         </div>
       </div>
 
-      {/* Utility Bills & Tax Accounts Manager */}
-      <UtilityBillWidget userAccounts={accounts} />
+
 
       {/* Accounts Grid with Custom Brand Logos */}
       <div>
