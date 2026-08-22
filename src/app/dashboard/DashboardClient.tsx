@@ -43,8 +43,11 @@ import { StreakModal } from '@/components/ui/StreakModal';
 import { BarsikHubModal } from '@/components/ui/BarsikHubModal';
 import { SavingsLeagueModal } from '@/components/ui/SavingsLeagueModal';
 import { DailyTabooModal } from '@/components/ui/DailyTabooModal';
+import { MoneyPulseSpheresWidget } from '@/components/ui/MoneyPulseSpheresWidget';
+import { FinancialSurvivalDialWidget } from '@/components/ui/FinancialSurvivalDialWidget';
+import { CARD_THEMES, CardThemeId, getSavedCardTheme, saveCardTheme } from '@/lib/cardThemeStore';
 import { getTodayTaboo, TabooChallenge } from '@/lib/dailyTaboo';
-import { Trophy, ShieldAlert } from 'lucide-react';
+import { Trophy, ShieldAlert, Palette } from 'lucide-react';
 
 function formatMoney(v: number) {
   return v.toLocaleString('ru-RU');
@@ -130,9 +133,23 @@ export function DashboardClient({ data }: { data: DashboardData }) {
   const [isTabooOpen, setIsTabooOpen] = useState(false);
   const [todayTaboo, setTodayTaboo] = useState<TabooChallenge>(getTodayTaboo());
 
+  // 3D Holographic Card Theme State
+  const [cardTheme, setCardTheme] = useState<CardThemeId>('CYBERPUNK');
+
   useEffect(() => {
     setStreakInfo(getStreakInfo());
+    setCardTheme(getSavedCardTheme());
   }, []);
+
+  const handleNextTheme = () => {
+    soundFx.playClick();
+    const themesList: CardThemeId[] = ['CYBERPUNK', 'DUBAI_GOLD', 'APPLE_GLASS', 'BLACK_OPS'];
+    const currentIdx = themesList.indexOf(cardTheme);
+    const nextIdx = (currentIdx + 1) % themesList.length;
+    const nextTheme = themesList[nextIdx];
+    setCardTheme(nextTheme);
+    saveCardTheme(nextTheme);
+  };
 
   useEffect(() => {
     const stored = localStorage.getItem('zenri_hidden_widgets');
@@ -301,41 +318,39 @@ export function DashboardClient({ data }: { data: DashboardData }) {
 
       {/* Main Grid: Hero Card + Finances Widget */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-        {/* Left Column: Hero Total Balance Card (7 cols) with Dynamic Mood Theme */}
+        {/* Left Column: Hero Total Balance Card (7 cols) with 3D Holographic Theme Selector */}
         {(() => {
-          const isNegative = data.totalBalance <= 0;
-          const isHigh = data.totalBalance >= 10_000_000;
-          const cardBg = isNegative
-            ? 'bg-gradient-to-br from-[#1C080E] via-[#2A0D15] to-[#0F0407] border-rose-500/40 shadow-[0_0_30px_rgba(244,63,94,0.18)]'
-            : isHigh
-            ? 'bg-gradient-to-br from-[#261A05] via-[#1F1504] to-[#0D0902] border-amber-400/40 shadow-[0_0_30px_rgba(245,158,11,0.22)]'
-            : 'bg-gradient-to-br from-[#0F1E36] via-[#122442] to-[#0A1527] border-slate-200/50 dark:border-zen-800/80 shadow-xl';
-
-          const strokeColor = isNegative ? '#EF4444' : isHigh ? '#F59E0B' : '#00C2FF';
-          const badgeClass = isNegative
-            ? 'bg-rose-500/20 text-rose-400 border-rose-500/30 animate-pulse font-bold'
-            : isHigh
-            ? 'bg-amber-500/20 text-amber-300 border-amber-500/30 font-bold'
-            : 'bg-income/15 text-income border-income/30 font-medium';
-          const badgeText = isNegative
-            ? '⚠️ Зона риска: Минус'
-            : isHigh
-            ? '👑 Высокий капитал'
-            : '+2.5% с прошлого месяца';
+          const currentThemeObj = CARD_THEMES[cardTheme] || CARD_THEMES.CYBERPUNK;
+          const cardBg = currentThemeObj.bgClass;
+          const badgeClass = currentThemeObj.badgeClass;
+          const strokeColor = currentThemeObj.accentColor;
+          const badgeText = data.totalBalance <= 0 ? '⚠️ Зона риска: Минус' : data.totalBalance >= 10000000 ? '👑 Высокий капитал' : '+2.5% с прошлого месяца';
 
           return (
-            <div className={`lg:col-span-7 rounded-card p-6 text-white border shadow-xl relative overflow-hidden flex flex-col justify-between min-h-[280px] transition-all duration-500 ${cardBg}`}>
+            <div className={`lg:col-span-7 rounded-card p-6 text-white border shadow-xl relative overflow-hidden flex flex-col justify-between min-h-[280px] transition-all duration-500 ${cardBg} ${currentThemeObj.borderColor}`}>
               <div>
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-zen-400 uppercase tracking-widest flex items-center gap-2">
-                    Общий баланс
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs font-semibold text-zen-400 uppercase tracking-widest flex items-center gap-2">
+                      Общий баланс
+                      <button
+                        onClick={() => setShowBalance(!showBalance)}
+                        className="text-zen-400 hover:text-white transition-colors"
+                      >
+                        {showBalance ? <Eye size={14} /> : <EyeOff size={14} />}
+                      </button>
+                    </span>
+
+                    {/* 3D Theme Switcher Button 🎨 */}
                     <button
-                      onClick={() => setShowBalance(!showBalance)}
-                      className="text-zen-400 hover:text-white transition-colors"
+                      onClick={handleNextTheme}
+                      className="px-2 py-1 rounded-xl bg-white/10 hover:bg-white/20 text-[10px] font-black text-amber-300 border border-white/15 flex items-center gap-1 transition-all active:scale-95"
+                      title="Сменить 3D-Тему Оформления Карты"
                     >
-                      {showBalance ? <Eye size={14} /> : <EyeOff size={14} />}
+                      <Palette size={12} />
+                      <span>{currentThemeObj.icon} {currentThemeObj.name.split(' ')[0]}</span>
                     </button>
-                  </span>
+                  </div>
                   <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] border ${badgeClass}`}>
                     <TrendingUp size={12} />
                     <span>{badgeText}</span>
@@ -525,19 +540,14 @@ export function DashboardClient({ data }: { data: DashboardData }) {
         </div>
       )}
 
-      {/* Books & Reading Tracker Widget (Hideable) */}
-      {!hiddenWidgets.books && (
-        <div className="relative group">
-          <button
-            onClick={() => toggleWidgetHide('books')}
-            className="absolute top-4 right-4 p-1.5 rounded-lg bg-zen-900/80 text-zen-400 hover:text-white z-20 opacity-0 group-hover:opacity-100 transition-opacity"
-            title="Скрыть виджет"
-          >
-            <X size={15} />
-          </button>
-          <BooksWidget />
-        </div>
-      )}
+      {/* 🎯 Tesla-Style Financial Survival Autonomy Gauge */}
+      <FinancialSurvivalDialWidget
+        totalBalance={data.totalBalance}
+        monthlyExpense={data.thisMonthExpense}
+      />
+
+      {/* 🔮 Interactive Money Pulse Spheres Category Bubbles */}
+      <MoneyPulseSpheresWidget />
 
 
       {/* Middle Row: 3 Widgets (Hideable) */}
