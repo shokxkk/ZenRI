@@ -53,7 +53,7 @@ import { FinancialSurvivalDialWidget } from '@/components/ui/FinancialSurvivalDi
 import { CARD_THEMES, CardThemeId, getSavedCardTheme, saveCardTheme } from '@/lib/cardThemeStore';
 import { getUserShopData, UserShopData } from '@/lib/barsikShopStore';
 import { getTodayTaboo, TabooChallenge } from '@/lib/dailyTaboo';
-import { Trophy, ShieldAlert, Palette, ShoppingBag, Coins, Brain, MessageSquare, Sparkles, Flame } from 'lucide-react';
+import { Trophy, ShieldAlert, Palette, ShoppingBag, Coins, Brain, MessageSquare, Sparkles } from 'lucide-react';
 
 function formatMoney(v: number) {
   return v.toLocaleString('ru-RU');
