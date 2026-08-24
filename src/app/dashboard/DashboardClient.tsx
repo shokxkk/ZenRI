@@ -53,7 +53,7 @@ import { FinancialSurvivalDialWidget } from '@/components/ui/FinancialSurvivalDi
 import { CARD_THEMES, CardThemeId, getSavedCardTheme, saveCardTheme } from '@/lib/cardThemeStore';
 import { getUserShopData, UserShopData } from '@/lib/barsikShopStore';
 import { getTodayTaboo, TabooChallenge } from '@/lib/dailyTaboo';
-import { Trophy, ShieldAlert, Palette, ShoppingBag, Coins, Brain, MessageSquare } from 'lucide-react';
+import { Trophy, ShieldAlert, Palette, ShoppingBag, Coins, Brain, MessageSquare, Sparkles, Flame } from 'lucide-react';
 
 function formatMoney(v: number) {
   return v.toLocaleString('ru-RU');
@@ -114,19 +114,19 @@ export function DashboardClient({ data }: { data: DashboardData }) {
   const [showBalance, setShowBalance] = useState(true);
   const [activeModal, setActiveModal] = useState<'EXPENSE' | 'INCOME' | 'TRANSFER' | null>(null);
 
-  // Widget Manager State
+  // Widget Manager State — Default: Minimal & Clean Usability (secondary widgets hidden until toggled)
   const [hiddenWidgets, setHiddenWidgets] = useState<Record<WidgetKey, boolean>>({
-    quote: false,
-    aiPredict: false,
-    wishlist: false,
-    books: false,
+    quote: true,
+    aiPredict: true,
+    wishlist: true,
+    books: true,
     finances: false,
     tasks: false,
-    budgets: false,
-    habits: false,
-    spheres: false,
-    speedometer: false,
-    autolimit: false,
+    budgets: true,
+    habits: true,
+    spheres: true,
+    speedometer: true,
+    autolimit: true,
   });
   const [showWidgetSettings, setShowWidgetSettings] = useState(false);
 
@@ -271,92 +271,25 @@ export function DashboardClient({ data }: { data: DashboardData }) {
           <p className="text-xs text-zen-400 capitalize mt-0.5">{todayDateStr}</p>
         </div>
 
-        {/* Top Header Buttons: Clean & Spacious */}
-        <div className="flex items-center gap-1.5 flex-wrap justify-end">
-          {/* 🎴 AI Financial Tarot Card Button */}
-          <button
-            onClick={() => setIsTarotOpen(true)}
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-purple-600/30 via-pink-600/30 to-amber-500/30 border border-amber-400/50 text-xs font-black text-amber-300 hover:brightness-110 transition-all shadow-sm active:scale-95 animate-pulse"
-            title="ИИ-Таро Карта Удачи Дня"
-          >
-            <span className="text-sm">🎴</span>
-            <span className="hidden sm:inline">Карта Дня</span>
-            <span className="text-[10px] text-amber-300 font-mono">+50🪙</span>
-          </button>
-
-          {/* 💬 ZenRI Club & Community Button */}
-          <button
-            onClick={() => setIsCommunityOpen(true)}
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-[#0066FF]/20 to-[#00C2FF]/20 border border-[#00C2FF]/40 text-xs font-black text-[#00C2FF] hover:brightness-110 transition-all shadow-sm active:scale-95"
-            title="Сообщество ZenRI Club"
-          >
-            <MessageSquare size={14} className="text-[#00C2FF]" />
-            <span className="hidden sm:inline">Клуб</span>
-          </button>
-
-          {/* 🧠 AI Impulse Buy Detector Button */}
-          <button
-            onClick={() => setIsImpulseModalOpen(true)}
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-purple-500/20 border border-purple-500/30 text-xs font-black text-purple-300 hover:brightness-110 transition-all shadow-sm active:scale-95"
-            title="ИИ-Детектор Импульсивных Покупок"
-          >
-            <Brain size={14} className="text-purple-400" />
-            <span className="hidden sm:inline">ИИ Оценка</span>
-          </button>
-
-          {/* 🛍️ Barsik Shop Button */}
-          <button
-            onClick={() => setIsShopOpen(true)}
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-purple-500/20 via-pink-500/20 to-amber-500/20 border border-purple-400/40 text-xs font-black text-purple-200 hover:brightness-110 transition-all shadow-sm active:scale-95"
-            title="Магазин и Гардероб Барсика"
-          >
-            <ShoppingBag size={14} className="text-purple-400" />
-            <span className="hidden sm:inline">Магазин</span>
-            <span className="text-[10px] text-amber-300 font-mono pl-0.5">{shopData.zenCoins}🪙</span>
-          </button>
-
-          {/* 🏆 Savings League Button */}
-          <button
-            onClick={() => setIsLeagueOpen(true)}
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500/20 to-purple-500/20 border border-amber-500/30 text-xs font-black text-amber-300 hover:brightness-110 transition-all shadow-sm active:scale-95"
-            title="Анонимная Лига Сбережений ZenRI"
-          >
-            <Trophy size={14} className="text-amber-400" />
-            <span className="hidden sm:inline">Лига</span>
-          </button>
-
-          {/* 🚫 Daily Taboo Button */}
-          <button
-            onClick={() => setIsTabooOpen(true)}
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-rose-500/15 border border-rose-500/30 text-xs font-black text-rose-300 hover:bg-rose-500/25 transition-all shadow-sm active:scale-95"
-            title="ИИ-Табу Дня"
-          >
-            <ShieldAlert size={14} className="text-rose-400" />
-            <span className="hidden sm:inline">Табу</span>
-          </button>
-
-          {/* 🔥 Daily Financial Streak Badge */}
+        {/* Top Header Buttons: Clean, Minimal & Usable (Only Streak & Settings) */}
+        <div className="flex items-center gap-2">
+          {/* 🔥 Streak Button */}
           <button
             onClick={() => setIsStreakModalOpen(true)}
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-xs font-black text-amber-400 hover:bg-amber-500/20 transition-all shadow-sm active:scale-95"
-            title="Огненный страйк активности"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-xs font-black text-amber-400 hover:brightness-110 transition-all shadow-sm active:scale-95"
+            title="Ежедневный Огненный Страйк"
           >
-            <Flame size={14} className="fill-amber-400 animate-pulse text-amber-400" />
+            <Flame size={16} className="text-amber-400 fill-amber-400 animate-pulse" />
             <span>{streakInfo.currentStreak}d</span>
           </button>
 
-          {/* Sleek Compact Widget Settings Icon Button ⚙️ */}
+          {/* ⚙️ Widget & App Settings Button */}
           <button
             onClick={() => setShowWidgetSettings(true)}
-            className="p-1.5 rounded-xl bg-zen-100 dark:bg-[#131C2E] border border-zen-200 dark:border-zen-800 text-zen-700 dark:text-zen-300 hover:text-[#00C2FF] transition-all relative active:scale-95"
-            title="Настроить виджеты"
+            className="p-2.5 rounded-2xl bg-zen-100 dark:bg-zen-800 border border-zen-200 dark:border-zen-700 text-zen-600 dark:text-zen-300 hover:text-white transition-all active:scale-95"
+            title="Настройки виджетов"
           >
-            <Settings2 size={15} />
-            {hiddenCount > 0 && (
-              <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#0066FF] text-white text-[9px] flex items-center justify-center font-black">
-                {hiddenCount}
-              </span>
-            )}
+            <Palette size={16} />
           </button>
         </div>
       </div>
@@ -387,7 +320,74 @@ export function DashboardClient({ data }: { data: DashboardData }) {
         );
       })()}
 
-      {/* Main Grid: Hero Card + Finances Widget */}
+      {/* Unified «✨ ИИ Центр & Клуб» Hub Bar (Clean, Usable & Organized) */}
+      <div className="p-4 rounded-3xl bg-gradient-to-r from-slate-900/90 via-purple-950/80 to-slate-900/90 border border-purple-500/30 shadow-xl space-y-2.5">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Sparkles size={16} className="text-[#00C2FF] animate-pulse" />
+            <span className="text-xs font-extrabold text-white">Центр ИИ-Возможностей & Сообщества</span>
+          </div>
+          <span className="text-[10px] font-mono text-purple-300 font-bold bg-purple-500/20 px-2 py-0.5 rounded-full border border-purple-500/30">
+            ZenRI Hub ✨
+          </span>
+        </div>
+
+        <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 pt-1">
+          {/* 🎴 Карта Дня */}
+          <button
+            onClick={() => setIsTarotOpen(true)}
+            className="p-2.5 rounded-2xl bg-white/5 hover:bg-white/15 border border-white/10 flex flex-col items-center justify-center gap-1 transition-all active:scale-95 group"
+          >
+            <span className="text-lg group-hover:scale-110 transition-transform">🎴</span>
+            <span className="text-[11px] font-bold text-amber-300">Карта Дня</span>
+          </button>
+
+          {/* 💬 Клуб */}
+          <button
+            onClick={() => setIsCommunityOpen(true)}
+            className="p-2.5 rounded-2xl bg-white/5 hover:bg-white/15 border border-white/10 flex flex-col items-center justify-center gap-1 transition-all active:scale-95 group"
+          >
+            <MessageSquare size={18} className="text-[#00C2FF] group-hover:scale-110 transition-transform" />
+            <span className="text-[11px] font-bold text-[#00C2FF]">Клуб</span>
+          </button>
+
+          {/* 🧠 ИИ Оценка */}
+          <button
+            onClick={() => setIsImpulseModalOpen(true)}
+            className="p-2.5 rounded-2xl bg-white/5 hover:bg-white/15 border border-white/10 flex flex-col items-center justify-center gap-1 transition-all active:scale-95 group"
+          >
+            <Brain size={18} className="text-purple-400 group-hover:scale-110 transition-transform" />
+            <span className="text-[11px] font-bold text-purple-300">ИИ Оценка</span>
+          </button>
+
+          {/* 🛍️ Магазин */}
+          <button
+            onClick={() => setIsShopOpen(true)}
+            className="p-2.5 rounded-2xl bg-white/5 hover:bg-white/15 border border-white/10 flex flex-col items-center justify-center gap-1 transition-all active:scale-95 group"
+          >
+            <ShoppingBag size={18} className="text-purple-400 group-hover:scale-110 transition-transform" />
+            <span className="text-[11px] font-bold text-amber-300">{shopData.zenCoins}🪙</span>
+          </button>
+
+          {/* 🏆 Лига */}
+          <button
+            onClick={() => setIsLeagueOpen(true)}
+            className="p-2.5 rounded-2xl bg-white/5 hover:bg-white/15 border border-white/10 flex flex-col items-center justify-center gap-1 transition-all active:scale-95 group"
+          >
+            <Trophy size={18} className="text-amber-400 group-hover:scale-110 transition-transform" />
+            <span className="text-[11px] font-bold text-amber-300">Лига</span>
+          </button>
+
+          {/* 🚫 Табу */}
+          <button
+            onClick={() => setIsTabooOpen(true)}
+            className="p-2.5 rounded-2xl bg-white/5 hover:bg-white/15 border border-white/10 flex flex-col items-center justify-center gap-1 transition-all active:scale-95 group"
+          >
+            <ShieldAlert size={18} className="text-rose-400 group-hover:scale-110 transition-transform" />
+            <span className="text-[11px] font-bold text-rose-300">Табу</span>
+          </button>
+        </div>
+      </div>
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
         {/* Left Column: Hero Total Balance Card (7 cols) with 3D Holographic Theme Selector */}
         {(() => {
