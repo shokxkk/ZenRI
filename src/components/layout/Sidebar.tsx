@@ -43,6 +43,10 @@ export const Sidebar: React.FC = () => {
     { href: '/analytics', labelKey: 'nav_analytics' as const, icon: BarChart3 },
     { href: '/ai', labelKey: 'nav_ai' as const, icon: Sparkles },
     { href: '/settings', labelKey: 'nav_settings' as const, icon: Settings },
+  ];
+
+  // Business items shown with a divider
+  const businessItems = [
     { href: '/club', labelKey: 'nav_club' as const, icon: Users },
   ];
 
@@ -67,6 +71,13 @@ export const Sidebar: React.FC = () => {
 
       {/* Navigation Items */}
       <nav className="flex-1 px-3 py-4 space-y-1.5 overflow-y-auto">
+        {/* Personal Nav */}
+        {!collapsed && (
+          <p className="text-[9px] font-bold text-zen-400 uppercase tracking-widest px-3 pb-1 flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#0066FF] inline-block" />
+            Личные
+          </p>
+        )}
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href));
@@ -91,6 +102,41 @@ export const Sidebar: React.FC = () => {
             </Link>
           );
         })}
+
+        {/* Business Section Divider */}
+        <div className={`pt-2 ${collapsed ? 'px-1' : 'px-1'}`}>
+          <div className="border-t border-zen-100 dark:border-zen-800/60 pt-2">
+            {!collapsed && (
+              <p className="text-[9px] font-bold text-amber-500 uppercase tracking-widest px-2 pb-1 flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block" />
+                Бизнес
+              </p>
+            )}
+            {businessItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = pathname === item.href || pathname.startsWith(item.href);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`group flex items-center gap-3.5 px-3.5 py-3 rounded-2xl font-bold text-sm transition-all duration-200 ${
+                    isActive
+                      ? 'bg-amber-500 !text-white shadow-sm scale-[1.02]'
+                      : 'text-zen-600 dark:text-zen-400 hover:bg-amber-500/10 hover:text-amber-600 dark:hover:text-amber-400 hover:translate-x-1'
+                  }`}
+                >
+                  <Icon
+                    size={20}
+                    className={`transition-transform duration-200 group-hover:scale-110 ${
+                      isActive ? '!text-white' : 'text-zen-400 group-hover:text-amber-500'
+                    }`}
+                  />
+                  {!collapsed && <span className={isActive ? '!text-white' : ''}>{t(item.labelKey)}</span>}
+                </Link>
+              );
+            })}
+          </div>
+        </div>
       </nav>
 
       {/* User Profile Card */}

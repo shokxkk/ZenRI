@@ -8,6 +8,7 @@ import { AccountBrandLogo } from '@/components/ui/AccountBrandLogo';
 import { soundFx } from '@/lib/soundEffects';
 import { useRouter } from 'next/navigation';
 import { clsx } from 'clsx';
+import { useToast } from '@/components/ui/ToastProvider';
 
 const ACCOUNT_TYPE_LABELS: Record<string, string> = {
   UZCARD: 'Uzcard',
@@ -62,6 +63,7 @@ type TxType = 'INCOME' | 'EXPENSE' | 'TRANSFER';
 export function FinancesClient({ accounts, transactions, categories }: FinancesClientProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const toast = useToast();
   const [modalType, setModalType] = useState<TxType | null>(null);
   const [showNewAccount, setShowNewAccount] = useState(false);
 
@@ -120,6 +122,10 @@ export function FinancesClient({ accounts, transactions, categories }: FinancesC
         targetAccountId: targetAccountId || undefined,
         comment: comment || undefined,
       });
+      const fmtAmt = Number(amount).toLocaleString('ru-RU');
+      if (modalType === 'INCOME') toast.success(`✅ Доход +${fmtAmt} сум сохранён`);
+      else if (modalType === 'EXPENSE') toast.success(`✅ Расход −${fmtAmt} сум записан`);
+      else toast.success(`✅ Перевод ${fmtAmt} сум выполнен`);
       resetForm();
       setModalType(null);
       router.refresh();
@@ -134,6 +140,7 @@ export function FinancesClient({ accounts, transactions, categories }: FinancesC
         categoryId: editingTx.categoryId || undefined,
         comment: editingTx.comment || undefined,
       });
+      toast.success('✅ Транзакция обновлена');
       setEditingTx(null);
       router.refresh();
     });
@@ -143,6 +150,7 @@ export function FinancesClient({ accounts, transactions, categories }: FinancesC
     if (!confirm('Удалить эту транзакцию?')) return;
     startTransition(async () => {
       await deleteTransaction(id);
+      toast.warning('Транзакция удалена');
       router.refresh();
     });
   };
@@ -151,6 +159,7 @@ export function FinancesClient({ accounts, transactions, categories }: FinancesC
     if (!acctName) return;
     startTransition(async () => {
       await createAccount({ name: acctName, type: acctType, initialBalance: Number(acctBalance) });
+      toast.success(`✅ Счёт «${acctName}» создан`);
       setAcctName('');
       setAcctBalance('0');
       setShowNewAccount(false);

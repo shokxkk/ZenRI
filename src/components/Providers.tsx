@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { SessionProvider } from 'next-auth/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { LanguageProvider } from '@/components/ui/LanguageProvider';
+import { ToastProvider } from '@/components/ui/ToastProvider';
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(
@@ -21,7 +22,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <SessionProvider>
       <QueryClientProvider client={queryClient}>
-        <LanguageProvider>{children}</LanguageProvider>
+        <LanguageProvider>
+          <ToastProvider>{children}</ToastProvider>
+        </LanguageProvider>
       </QueryClientProvider>
     </SessionProvider>
   );

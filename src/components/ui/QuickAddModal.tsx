@@ -11,13 +11,16 @@ import {
   ChevronLeft,
   Check,
   Loader2,
-  Wallet,
+  Briefcase,
+  Receipt,
+  Users2,
 } from 'lucide-react';
 import { useLanguage } from '@/components/ui/LanguageProvider';
 import { soundFx } from '@/lib/soundEffects';
 import { addTransaction, getQuickAddDataAction } from '@/app/actions/financeActions';
 import { createTask } from '@/app/actions/taskActions';
 import { TransactionType, TaskPriority } from '@prisma/client';
+import { useToast } from '@/components/ui/ToastProvider';
 
 interface QuickAddModalProps {
   open: boolean;
@@ -40,9 +43,25 @@ interface CategoryOption {
   color: string | null;
 }
 
+// ── Smart Defaults helpers ──────────────────────────────────────────
+const STORAGE_KEY_ACCOUNT = 'zenri_last_account';
+const STORAGE_KEY_EXP_CAT = 'zenri_last_exp_cat';
+const STORAGE_KEY_INC_CAT = 'zenri_last_inc_cat';
+
+function saveDefault(key: string, value: string) {
+  try { localStorage.setItem(key, value); } catch {}
+}
+function loadDefault(key: string): string {
+  try { return localStorage.getItem(key) || ''; } catch { return ''; }
+}
+
+// ── Quick amount presets ──────────────────────────────────────────
+const QUICK_AMOUNTS = [5_000, 10_000, 50_000, 100_000, 500_000, 1_000_000];
+
 export function QuickAddModal({ open, onClose }: QuickAddModalProps) {
   const router = useRouter();
   const { t } = useLanguage();
+  const toast = useToast();
   const [isPending, startTransition] = useTransition();
 
   const [mode, setMode] = useState<ActionMode>('SELECT');
@@ -61,7 +80,6 @@ export function QuickAddModal({ open, onClose }: QuickAddModalProps) {
   const [taskTitle, setTaskTitle] = useState<string>('');
   const [taskPriority, setTaskPriority] = useState<TaskPriority>(TaskPriority.MEDIUM);
 
-  // Status message
   const [errorMsg, setErrorMsg] = useState<string>('');
 
   // Load user accounts & categories on modal open
@@ -78,11 +96,14 @@ export function QuickAddModal({ open, onClose }: QuickAddModalProps) {
         .then((res) => {
           setAccounts(res.accounts || []);
           setCategories(res.categories || []);
-          if (res.accounts && res.accounts.length > 0) {
-            setSelectedAccountId(res.accounts[0].id);
-            if (res.accounts.length > 1) {
-              setSelectedTargetAccountId(res.accounts[1].id);
-            }
+
+          // ── Smart Defaults ──
+          const savedAccount = loadDefault(STORAGE_KEY_ACCOUNT);
+          const firstAccount = res.accounts?.[0]?.id || '';
+          setSelectedAccountId(savedAccount || firstAccount);
+
+          if (res.accounts && res.accounts.length > 1) {
+            setSelectedTargetAccountId(res.accounts[1].id);
           }
         })
         .catch((err) => console.error('QuickAdd load error:', err))
@@ -97,14 +118,22 @@ export function QuickAddModal({ open, onClose }: QuickAddModalProps) {
     setMode(newMode);
     setErrorMsg('');
 
-    // Pre-select relevant category
     if (newMode === 'EXPENSE') {
-      const expCat = categories.find((c) => c.type === 'EXPENSE');
+      const saved = loadDefault(STORAGE_KEY_EXP_CAT);
+      const expCat = categories.find((c) => c.id === saved && c.type === 'EXPENSE')
+        || categories.find((c) => c.type === 'EXPENSE');
       if (expCat) setSelectedCategoryId(expCat.id);
     } else if (newMode === 'INCOME') {
-      const incCat = categories.find((c) => c.type === 'INCOME');
+      const saved = loadDefault(STORAGE_KEY_INC_CAT);
+      const incCat = categories.find((c) => c.id === saved && c.type === 'INCOME')
+        || categories.find((c) => c.type === 'INCOME');
       if (incCat) setSelectedCategoryId(incCat.id);
     }
+  };
+
+  const handleSetAmount = (val: number) => {
+    soundFx.playClick();
+    setAmount(String(val));
   };
 
   const handleAddThousands = (num: number) => {
@@ -120,13 +149,11 @@ export function QuickAddModal({ open, onClose }: QuickAddModalProps) {
       setErrorMsg('Укажите корректную сумму');
       return;
     }
-
     if (!selectedAccountId) {
       soundFx.playError();
       setErrorMsg('Выберите счёт');
       return;
     }
-
     if (mode === 'TRANSFER' && selectedAccountId === selectedTargetAccountId) {
       soundFx.playError();
       setErrorMsg('Счёт отправления и назначения должны различаться');
@@ -136,6 +163,11 @@ export function QuickAddModal({ open, onClose }: QuickAddModalProps) {
     let txType: TransactionType = TransactionType.EXPENSE;
     if (mode === 'INCOME') txType = TransactionType.INCOME;
     if (mode === 'TRANSFER') txType = TransactionType.TRANSFER;
+
+    // Save smart defaults
+    saveDefault(STORAGE_KEY_ACCOUNT, selectedAccountId);
+    if (mode === 'EXPENSE' && selectedCategoryId) saveDefault(STORAGE_KEY_EXP_CAT, selectedCategoryId);
+    if (mode === 'INCOME' && selectedCategoryId) saveDefault(STORAGE_KEY_INC_CAT, selectedCategoryId);
 
     startTransition(async () => {
       try {
@@ -151,12 +183,19 @@ export function QuickAddModal({ open, onClose }: QuickAddModalProps) {
           comment: comment.trim() || undefined,
         });
 
+        // ✅ Toast notification
+        const fmtAmt = numAmount.toLocaleString('ru-RU');
+        if (mode === 'INCOME') toast.success(`✅ Доход +${fmtAmt} сум сохранён`);
+        else if (mode === 'EXPENSE') toast.success(`✅ Расход −${fmtAmt} сум записан`);
+        else toast.success(`✅ Перевод ${fmtAmt} сум выполнен`);
+
         router.refresh();
         onClose();
       } catch (err: unknown) {
         soundFx.playError();
         const msg = err instanceof Error ? err.message : 'Ошибка создания записи';
         setErrorMsg(msg);
+        toast.error('Ошибка сохранения. Попробуйте ещё раз.');
       }
     });
   };
@@ -177,12 +216,14 @@ export function QuickAddModal({ open, onClose }: QuickAddModalProps) {
           description: comment.trim() || undefined,
         });
 
+        toast.success(`✅ Задача «${taskTitle.trim()}» создана`);
         router.refresh();
         onClose();
       } catch (err: unknown) {
         soundFx.playError();
         const msg = err instanceof Error ? err.message : 'Ошибка создания задачи';
         setErrorMsg(msg);
+        toast.error('Ошибка создания задачи');
       }
     });
   };
@@ -256,51 +297,89 @@ export function QuickAddModal({ open, onClose }: QuickAddModalProps) {
         {mode === 'SELECT' && (
           <div className="space-y-4">
             <p className="text-xs text-zen-400 mb-2">{t('quick_add_subtitle')}</p>
-            <div className="grid grid-cols-2 gap-3">
-              {/* + Расход */}
-              <button
-                type="button"
-                onClick={() => handleSelectMode('EXPENSE')}
-                className="p-4 rounded-2xl bg-[#0066FF] hover:bg-[#0052CC] text-white font-extrabold text-sm shadow-glow transition-all active:scale-95 flex flex-col items-center justify-center gap-2 min-h-[76px]"
-              >
-                <TrendingDown size={22} />
-                <span>{t('quick_add_expense')}</span>
-              </button>
 
-              {/* + Доход */}
-              <button
-                type="button"
-                onClick={() => handleSelectMode('INCOME')}
-                className="p-4 rounded-2xl bg-[#10B981] hover:bg-[#059669] text-white font-extrabold text-sm shadow-glow-green transition-all active:scale-95 flex flex-col items-center justify-center gap-2 min-h-[76px]"
-              >
-                <TrendingUp size={22} />
-                <span>{t('quick_add_income')}</span>
-              </button>
+            {/* Personal Finance */}
+            <div>
+              <p className="text-[10px] font-bold text-zen-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#0066FF] inline-block" />
+                Личные финансы
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => handleSelectMode('EXPENSE')}
+                  className="p-4 rounded-2xl bg-[#0066FF] hover:bg-[#0052CC] text-white font-extrabold text-sm shadow-glow transition-all active:scale-95 flex flex-col items-center justify-center gap-2 min-h-[76px]"
+                >
+                  <TrendingDown size={22} />
+                  <span>{t('quick_add_expense')}</span>
+                </button>
 
-              {/* ↔ Перевод */}
-              <button
-                type="button"
-                onClick={() => handleSelectMode('TRANSFER')}
-                className="p-4 rounded-2xl bg-zen-100 dark:bg-zen-800 text-zen-800 dark:text-zen-100 font-extrabold text-sm hover:bg-zen-200 dark:hover:bg-zen-700 transition-all active:scale-95 flex flex-col items-center justify-center gap-2 min-h-[76px] border border-zen-200 dark:border-zen-700/60"
-              >
-                <ArrowLeftRight size={22} className="text-[#0066FF]" />
-                <span>{t('quick_add_transfer')}</span>
-              </button>
+                <button
+                  type="button"
+                  onClick={() => handleSelectMode('INCOME')}
+                  className="p-4 rounded-2xl bg-[#10B981] hover:bg-[#059669] text-white font-extrabold text-sm shadow-glow-green transition-all active:scale-95 flex flex-col items-center justify-center gap-2 min-h-[76px]"
+                >
+                  <TrendingUp size={22} />
+                  <span>{t('quick_add_income')}</span>
+                </button>
 
-              {/* ✓ Задача */}
-              <button
-                type="button"
-                onClick={() => handleSelectMode('TASK')}
-                className="p-4 rounded-2xl bg-violet-600/15 text-violet-400 border border-violet-500/30 font-extrabold text-sm hover:bg-violet-600/25 transition-all active:scale-95 flex flex-col items-center justify-center gap-2 min-h-[76px]"
-              >
-                <CheckSquare size={22} />
-                <span>{t('quick_add_task')}</span>
-              </button>
+                <button
+                  type="button"
+                  onClick={() => handleSelectMode('TRANSFER')}
+                  className="p-4 rounded-2xl bg-zen-100 dark:bg-zen-800 text-zen-800 dark:text-zen-100 font-extrabold text-sm hover:bg-zen-200 dark:hover:bg-zen-700 transition-all active:scale-95 flex flex-col items-center justify-center gap-2 min-h-[76px] border border-zen-200 dark:border-zen-700/60"
+                >
+                  <ArrowLeftRight size={22} className="text-[#0066FF]" />
+                  <span>{t('quick_add_transfer')}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleSelectMode('TASK')}
+                  className="p-4 rounded-2xl bg-violet-600/15 text-violet-400 border border-violet-500/30 font-extrabold text-sm hover:bg-violet-600/25 transition-all active:scale-95 flex flex-col items-center justify-center gap-2 min-h-[76px]"
+                >
+                  <CheckSquare size={22} />
+                  <span>{t('quick_add_task')}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Business shortcuts */}
+            <div>
+              <p className="text-[10px] font-bold text-zen-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block" />
+                Для бизнеса
+              </p>
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  type="button"
+                  onClick={() => { handleSelectMode('INCOME'); setComment('Выручка'); }}
+                  className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/25 text-amber-600 dark:text-amber-400 font-bold text-xs hover:bg-amber-500/20 transition-all active:scale-95 flex flex-col items-center gap-1.5 min-h-[64px]"
+                >
+                  <Receipt size={18} />
+                  <span className="text-center leading-tight">Выручка</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { handleSelectMode('EXPENSE'); setComment('Бизнес расход'); }}
+                  className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/25 text-amber-600 dark:text-amber-400 font-bold text-xs hover:bg-amber-500/20 transition-all active:scale-95 flex flex-col items-center gap-1.5 min-h-[64px]"
+                >
+                  <Briefcase size={18} />
+                  <span className="text-center leading-tight">Расход бизнеса</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { handleSelectMode('EXPENSE'); setComment('Зарплата сотрудника'); }}
+                  className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/25 text-amber-600 dark:text-amber-400 font-bold text-xs hover:bg-amber-500/20 transition-all active:scale-95 flex flex-col items-center gap-1.5 min-h-[64px]"
+                >
+                  <Users2 size={18} />
+                  <span className="text-center leading-tight">Зарплата</span>
+                </button>
+              </div>
             </div>
           </div>
         )}
 
-        {/* ─── 2. FORM VIEW (FINANCE: EXPENSE / INCOME / TRANSFER) ─── */}
+        {/* ─── 2. FORM VIEW (FINANCE) ─── */}
         {(mode === 'EXPENSE' || mode === 'INCOME' || mode === 'TRANSFER') && (
           <div className="space-y-4">
             {/* Mode Switcher Tabs */}
@@ -352,29 +431,40 @@ export function QuickAddModal({ open, onClose }: QuickAddModalProps) {
                 className="w-full px-4 py-3 rounded-2xl bg-zen-50 dark:bg-zen-900 border border-zen-200 dark:border-zen-800 text-xl font-mono font-black text-zen-900 dark:text-zen-100 focus:outline-none focus:border-[#0066FF]"
               />
 
-              {/* Quick Multipliers */}
+              {/* ── Quick Amount Presets ── */}
               <div className="grid grid-cols-3 gap-2 mt-2">
-                <button
-                  type="button"
-                  onClick={() => handleAddThousands(1000)}
-                  className="py-1.5 rounded-xl bg-zen-100 dark:bg-zen-800 hover:bg-zen-200 text-zen-700 dark:text-zen-200 text-xs font-bold transition-all active:scale-95"
-                >
-                  +1 000
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleAddThousands(10000)}
-                  className="py-1.5 rounded-xl bg-zen-100 dark:bg-zen-800 hover:bg-zen-200 text-zen-700 dark:text-zen-200 text-xs font-bold transition-all active:scale-95"
-                >
-                  +10 000
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleAddThousands(100000)}
-                  className="py-1.5 rounded-xl bg-zen-100 dark:bg-zen-800 hover:bg-zen-200 text-zen-700 dark:text-zen-200 text-xs font-bold transition-all active:scale-95"
-                >
-                  +100 000
-                </button>
+                {QUICK_AMOUNTS.map((amt) => (
+                  <button
+                    key={amt}
+                    type="button"
+                    onClick={() => handleSetAmount(amt)}
+                    className={`py-2 rounded-xl text-xs font-bold transition-all active:scale-95 border ${
+                      Number(amount) === amt
+                        ? 'bg-[#0066FF] text-white border-[#0066FF] shadow-glow'
+                        : 'bg-zen-100 dark:bg-zen-800 hover:bg-zen-200 text-zen-700 dark:text-zen-200 border-transparent'
+                    }`}
+                  >
+                    {amt >= 1_000_000
+                      ? `${amt / 1_000_000} млн`
+                      : amt >= 1_000
+                      ? `${(amt / 1_000).toFixed(0)} тыс`
+                      : amt.toLocaleString('ru-RU')}
+                  </button>
+                ))}
+              </div>
+
+              {/* ── Add increments ── */}
+              <div className="flex gap-2 mt-1.5">
+                {[10_000, 100_000].map((inc) => (
+                  <button
+                    key={inc}
+                    type="button"
+                    onClick={() => handleAddThousands(inc)}
+                    className="flex-1 py-1.5 rounded-xl bg-zen-50 dark:bg-zen-900/60 border border-zen-200 dark:border-zen-700 text-zen-500 dark:text-zen-400 text-[11px] font-bold hover:bg-zen-100 transition-all active:scale-95"
+                  >
+                    +{inc >= 1_000 ? `${inc / 1_000}K` : inc}
+                  </button>
+                ))}
               </div>
             </div>
 
@@ -420,14 +510,13 @@ export function QuickAddModal({ open, onClose }: QuickAddModalProps) {
               </div>
             )}
 
-            {/* Category Selector (For Expense / Income) */}
+            {/* Category Chips */}
             {mode !== 'TRANSFER' && filteredCategories.length > 0 && (
               <div>
                 <label className="text-[11px] font-bold text-zen-400 uppercase tracking-wider mb-2 block">
                   Категория {mode === 'EXPENSE' ? 'расхода' : 'дохода'}
                 </label>
-                <div className="flex gap-2 overflow-x-auto pb-2 max-w-full -mx-1 px-1"
-                  style={{ scrollbarWidth: 'none' }}>
+                <div className="flex gap-2 overflow-x-auto pb-2 max-w-full -mx-1 px-1" style={{ scrollbarWidth: 'none' }}>
                   {filteredCategories.map((cat) => {
                     const isSelected = selectedCategoryId === cat.id;
                     const color = cat.color || (mode === 'EXPENSE' ? '#EF4444' : '#10B981');
@@ -441,7 +530,7 @@ export function QuickAddModal({ open, onClose }: QuickAddModalProps) {
                             ? 'text-white shadow-sm'
                             : 'bg-zen-50 dark:bg-zen-900 text-zen-700 dark:text-zen-300 border-zen-200 dark:border-zen-800 hover:border-[#0066FF]/50'
                         }`}
-                        style={isSelected ? { backgroundColor: color, borderColor: color } : { borderColor: isSelected ? color : undefined }}
+                        style={isSelected ? { backgroundColor: color, borderColor: color } : undefined}
                       >
                         <span
                           className="w-2 h-2 rounded-full flex-shrink-0"
@@ -454,7 +543,6 @@ export function QuickAddModal({ open, onClose }: QuickAddModalProps) {
                 </div>
               </div>
             )}
-
 
             {/* Comment */}
             <div>
@@ -470,18 +558,18 @@ export function QuickAddModal({ open, onClose }: QuickAddModalProps) {
               />
             </div>
 
-            {/* Submit button */}
+            {/* Submit */}
             <button
               type="button"
               onClick={handleSubmitFinance}
-              disabled={isPending}
+              disabled={isPending || !amount}
               className={`w-full py-3.5 rounded-2xl font-black text-sm text-white transition-all shadow-glow active:scale-95 flex items-center justify-center gap-2 ${
                 mode === 'EXPENSE'
                   ? 'bg-[#0066FF] hover:bg-[#0052CC]'
                   : mode === 'INCOME'
                   ? 'bg-[#10B981] hover:bg-[#059669]'
                   : 'bg-indigo-600 hover:bg-indigo-700'
-              } disabled:opacity-50 min-h-[48px]`}
+              } disabled:opacity-50 min-h-[52px]`}
             >
               {isPending ? (
                 <>
@@ -498,7 +586,7 @@ export function QuickAddModal({ open, onClose }: QuickAddModalProps) {
           </div>
         )}
 
-        {/* ─── 3. FORM VIEW (TASK) ─── */}
+        {/* ─── 3. TASK FORM ─── */}
         {mode === 'TASK' && (
           <div className="space-y-4">
             <div>
@@ -507,7 +595,7 @@ export function QuickAddModal({ open, onClose }: QuickAddModalProps) {
               </label>
               <input
                 type="text"
-                placeholder="Например: Оплатить счета, Купить продукты..."
+                placeholder="Например: Оплатить счета, Позвонить партнёру..."
                 value={taskTitle}
                 onChange={(e) => setTaskTitle(e.target.value)}
                 autoFocus
@@ -515,50 +603,37 @@ export function QuickAddModal({ open, onClose }: QuickAddModalProps) {
               />
             </div>
 
-            {/* Priority */}
             <div>
               <label className="text-[11px] font-bold text-zen-400 uppercase tracking-wider mb-1.5 block">Приоритет</label>
               <div className="grid grid-cols-3 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setTaskPriority(TaskPriority.LOW)}
-                  className={`py-2 rounded-xl text-xs font-bold transition-all border ${
-                    taskPriority === TaskPriority.LOW
-                      ? 'bg-blue-500/20 text-blue-400 border-blue-500/40 shadow-sm'
-                      : 'bg-zen-50 dark:bg-zen-900 text-zen-400 border-zen-200 dark:border-zen-800'
-                  }`}
-                >
-                  Низкий
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setTaskPriority(TaskPriority.MEDIUM)}
-                  className={`py-2 rounded-xl text-xs font-bold transition-all border ${
-                    taskPriority === TaskPriority.MEDIUM
-                      ? 'bg-amber-500/20 text-amber-400 border-amber-500/40 shadow-sm'
-                      : 'bg-zen-50 dark:bg-zen-900 text-zen-400 border-zen-200 dark:border-zen-800'
-                  }`}
-                >
-                  Средний
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setTaskPriority(TaskPriority.HIGH)}
-                  className={`py-2 rounded-xl text-xs font-bold transition-all border ${
-                    taskPriority === TaskPriority.HIGH
-                      ? 'bg-rose-500/20 text-rose-400 border-rose-500/40 shadow-sm'
-                      : 'bg-zen-50 dark:bg-zen-900 text-zen-400 border-zen-200 dark:border-zen-800'
-                  }`}
-                >
-                  Высокий
-                </button>
+                {([TaskPriority.LOW, TaskPriority.MEDIUM, TaskPriority.HIGH] as const).map((p) => {
+                  const labels = { LOW: 'Низкий', MEDIUM: 'Средний', HIGH: 'Высокий' };
+                  const activeColors = {
+                    LOW: 'bg-blue-500/20 text-blue-400 border-blue-500/40',
+                    MEDIUM: 'bg-amber-500/20 text-amber-400 border-amber-500/40',
+                    HIGH: 'bg-rose-500/20 text-rose-400 border-rose-500/40',
+                  };
+                  return (
+                    <button
+                      key={p}
+                      type="button"
+                      onClick={() => setTaskPriority(p)}
+                      className={`py-2 rounded-xl text-xs font-bold transition-all border ${
+                        taskPriority === p
+                          ? activeColors[p]
+                          : 'bg-zen-50 dark:bg-zen-900 text-zen-400 border-zen-200 dark:border-zen-800'
+                      }`}
+                    >
+                      {labels[p]}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
-            {/* Task Description / Notes */}
             <div>
               <label className="text-[11px] font-bold text-zen-400 uppercase tracking-wider mb-1 block">
-                Заметки к задаче (опционально)
+                Заметки (опционально)
               </label>
               <input
                 type="text"
@@ -569,12 +644,11 @@ export function QuickAddModal({ open, onClose }: QuickAddModalProps) {
               />
             </div>
 
-            {/* Submit button */}
             <button
               type="button"
               onClick={handleSubmitTask}
-              disabled={isPending}
-              className="w-full py-3.5 rounded-2xl font-black text-sm bg-violet-600 hover:bg-violet-700 text-white transition-all shadow-glow flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50 min-h-[48px]"
+              disabled={isPending || !taskTitle.trim()}
+              className="w-full py-3.5 rounded-2xl font-black text-sm bg-violet-600 hover:bg-violet-700 text-white transition-all shadow-glow flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50 min-h-[52px]"
             >
               {isPending ? (
                 <>
