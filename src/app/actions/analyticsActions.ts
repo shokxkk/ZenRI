@@ -4,11 +4,101 @@ import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
 import { CurrencyCode } from '@prisma/client';
+import { getPeriodRange } from './businessActions';
 
 async function getUserId(): Promise<string> {
   const session = await auth();
   if (!session?.user?.id) throw new Error('Unauthorized');
   return session.user.id;
+}
+
+// ─── Get Analytics by Period ─────────────────────────────────────────────────
+export async function getAnalyticsByPeriod(period = 'month') {
+  const userId = await getUserId();
+  const { start, end } = await getPeriodRange(period);
+
+  const [income, expense] = await Promise.all([
+    prisma.transaction.aggregate({
+      where: { userId, type: 'INCOME', date: { gte: start, lte: end } },
+      _sum: { amount: true },
+    }),
+    prisma.transaction.aggregate({
+      where: { userId, type: 'EXPENSE', date: { gte: start, lte: end } },
+      _sum: { amount: true },
+    }),
+  ]);
+
+  const totalIncome = Number(income._sum.amount || 0);
+  const totalExpense = Number(expense._sum.amount || 0);
+
+  // Category breakdown for expenses
+  const expenseGroups = await prisma.transaction.groupBy({
+    by: ['categoryId'],
+    where: { userId, type: 'EXPENSE', date: { gte: start, lte: end }, categoryId: { not: null } },
+    _sum: { amount: true },
+    orderBy: { _sum: { amount: 'desc' } },
+    take: 10,
+  });
+
+  const topExpenseCategories = await Promise.all(
+    expenseGroups.map(async (g) => {
+      const cat = g.categoryId ? await prisma.category.findUnique({ where: { id: g.categoryId } }) : null;
+      const amount = Number(g._sum.amount || 0);
+      return {
+        name: cat?.name || 'Без категории',
+        color: cat?.color || '#71717A',
+        amount,
+        percent: totalExpense > 0 ? Math.round((amount / totalExpense) * 100) : 0,
+      };
+    })
+  );
+
+  // Income breakdown
+  const incomeGroups = await prisma.transaction.groupBy({
+    by: ['categoryId'],
+    where: { userId, type: 'INCOME', date: { gte: start, lte: end }, categoryId: { not: null } },
+    _sum: { amount: true },
+    orderBy: { _sum: { amount: 'desc' } },
+    take: 6,
+  });
+
+  const topIncomeCategories = await Promise.all(
+    incomeGroups.map(async (g) => {
+      const cat = g.categoryId ? await prisma.category.findUnique({ where: { id: g.categoryId } }) : null;
+      const amount = Number(g._sum.amount || 0);
+      return {
+        name: cat?.name || 'Без категории',
+        color: cat?.color || '#10B981',
+        amount,
+        percent: totalIncome > 0 ? Math.round((amount / totalIncome) * 100) : 0,
+      };
+    })
+  );
+
+  // Business breakdown
+  const businessGroups = await prisma.transaction.groupBy({
+    by: ['businessId'],
+    where: { userId, date: { gte: start, lte: end }, businessId: { not: null } },
+    _sum: { amount: true },
+  });
+
+  const businessBreakdown = await Promise.all(
+    businessGroups.map(async (g) => {
+      const biz = g.businessId ? await prisma.business.findUnique({ where: { id: g.businessId } }) : null;
+      return { name: biz?.name || 'Бизнес', color: biz?.color || '#0066FF', amount: Number(g._sum.amount || 0) };
+    })
+  );
+
+  return {
+    totalIncome,
+    totalExpense,
+    profit: totalIncome - totalExpense,
+    savingsRate: totalIncome > 0 ? Math.round(((totalIncome - totalExpense) / totalIncome) * 100) : 0,
+    topExpenseCategories,
+    topIncomeCategories,
+    businessBreakdown,
+    period,
+  };
 }
 
 export async function getAnalytics() {

@@ -7,14 +7,24 @@ import {
 } from 'recharts';
 import {
   TrendingUp, TrendingDown, BarChart2, Sparkles, Loader2, RefreshCw,
-  PiggyBank, Zap,
+  PiggyBank, Zap, Calendar, Building2,
 } from 'lucide-react';
 import { LifeTimeAuditWidget } from '@/components/ui/LifeTimeAuditWidget';
 import { askChatGPT, Message } from '@/app/actions/aiActions';
+import { useRouter } from 'next/navigation';
 
 function fmt(v: number) {
   return v >= 1_000_000 ? `${(v / 1_000_000).toFixed(1)}M` : v >= 1000 ? `${(v / 1000).toFixed(0)}K` : String(Math.round(v));
 }
+
+const PERIOD_LABELS: Record<string, string> = {
+  day: 'Сегодня',
+  week: 'Неделя',
+  month: 'Месяц',
+  quarter: 'Квартал',
+  '6months': '6 месяцев',
+  year: 'Год',
+};
 
 type CatData = { name: string; color: string; amount: number; percent: number };
 
@@ -30,10 +40,22 @@ interface FullAnalyticsData {
   savingsRate: number;
 }
 
+interface PeriodData {
+  totalIncome: number;
+  totalExpense: number;
+  profit: number;
+  savingsRate: number;
+  topExpenseCategories: CatData[];
+  topIncomeCategories: CatData[];
+  businessBreakdown: { name: string; color: string; amount: number }[];
+  period: string;
+}
+
 const TABS = ['Обзор', 'Расходы', 'Доходы', 'ИИ Инсайты'] as const;
 type Tab = (typeof TABS)[number];
 
-export function AnalyticsClient({ data }: { data: FullAnalyticsData }) {
+export function AnalyticsClient({ data, periodData, currentPeriod }: { data: FullAnalyticsData; periodData: PeriodData; currentPeriod: string }) {
+  const router = useRouter();
   const {
     monthlyData, topExpenseCategories, topIncomeCategories,
     totalExpenseMonth, totalIncomeMonth,
@@ -43,31 +65,45 @@ export function AnalyticsClient({ data }: { data: FullAnalyticsData }) {
   const [activeTab, setActiveTab] = useState<Tab>('Обзор');
   const [aiInsight, setAiInsight] = useState<string>('');
   const [isPending, startTransition] = useTransition();
+  const [activePeriod, setActivePeriod] = useState(currentPeriod);
+
+  function changePeriod(p: string) {
+    setActivePeriod(p);
+    setAiInsight('');
+    router.push(`/analytics?period=${p}`);
+  }
 
   const handleGenerateInsight = () => {
+    // Use period data for AI analysis
+    const pd = periodData;
+    const periodLabel = PERIOD_LABELS[activePeriod] || 'Месяц';
     startTransition(async () => {
-      const topExpStr = topExpenseCategories.slice(0, 5)
+      const topExpStr = pd.topExpenseCategories.slice(0, 5)
         .map((c) => `${c.name}: ${c.amount.toLocaleString('ru-RU')} сум (${c.percent}%)`)
         .join(', ');
-      const topIncStr = topIncomeCategories.slice(0, 3)
+      const topIncStr = pd.topIncomeCategories.slice(0, 3)
         .map((c) => `${c.name}: ${c.amount.toLocaleString('ru-RU')} сум`)
+        .join(', ');
+      const bizStr = pd.businessBreakdown
+        .map((b) => `${b.name}: ${b.amount.toLocaleString('ru-RU')} сум`)
         .join(', ');
 
       const messages: Message[] = [{
         role: 'user',
-        content: `Ты — финансовый аналитик ZenRI. Проанализируй расходы пользователя за текущий месяц и дай конкретные советы.
+        content: `Ты — финансовый аналитик ZenRI. Проанализируй финансы пользователя за период "${periodLabel}" и дай конкретные советы.
 
-Доходы этого месяца: ${totalIncomeMonth.toLocaleString('ru-RU')} сум
-Расходы этого месяца: ${totalExpenseMonth.toLocaleString('ru-RU')} сум
+Доходы за период: ${pd.totalIncome.toLocaleString('ru-RU')} сум
+Расходы за период: ${pd.totalExpense.toLocaleString('ru-RU')} сум
+Чистая прибыль/убыток: ${pd.profit.toLocaleString('ru-RU')} сум
 Топ категории расходов: ${topExpStr || 'нет данных'}
 Источники дохода: ${topIncStr || 'нет данных'}
-Норма сбережений за 6 мес: ${savingsRate}%
+Бизнес активность: ${bizStr || 'бизнес-транзакций нет'}
 
-Напиши краткий анализ (5-7 предложений):
-1. Что занимает наибольшую долю расходов и как это оценить
-2. На чём можно сэкономить конкретно
-3. Один конкретный совет по оптимизации
-Пиши без markdown символов, живо и по делу.`,
+Напиши краткий анализ (6-8 предложений):
+• Что занимает наибольшую долю расходов
+• Где можно сэкономить
+• 3 конкретных рекомендации на основе реальных данных
+Цифры из данных, пиши без markdown символов.`,
       }];
 
       const customKey = typeof window !== 'undefined' ? localStorage.getItem('zenri_custom_openai_key') || undefined : undefined;
@@ -148,7 +184,7 @@ export function AnalyticsClient({ data }: { data: FullAnalyticsData }) {
         <div className="space-y-5">
           {/* Bar chart: income vs expense */}
           <div className="bg-white dark:bg-[#131C2E] border border-zen-200 dark:border-zen-800/80 rounded-2xl p-5 shadow-apple">
-            <h2 className="text-sm font-bold text-zen-900 dark:text-zen-100 mb-4">Доходы и расходы по месяцам</h2>
+            <h2 className="text-sm font-bold text-zen-900 dark:text-zen-100 mb-4">Доходы и расходы по месяцам (последние 6)</h2>
             {monthlyData.every((m) => m.income === 0 && m.expense === 0) ? (
               <div className="text-center py-10 text-zen-400 text-sm">Нет данных для отображения</div>
             ) : (
@@ -197,17 +233,17 @@ export function AnalyticsClient({ data }: { data: FullAnalyticsData }) {
       {/* ─── TAB: РАСХОДЫ ─── */}
       {activeTab === 'Расходы' && (
         <div className="space-y-5">
-          {topExpenseCategories.length === 0 ? (
+          {periodData.topExpenseCategories.length === 0 ? (
             <div className="text-center py-16 text-zen-400">
               <TrendingDown size={40} className="mx-auto mb-3 opacity-30" />
-              <p className="text-sm">Нет расходов в этом месяце</p>
+              <p className="text-sm">Нет расходов за выбранный период</p>
               <p className="text-xs mt-1">Добавьте первую транзакцию через кнопку ➕</p>
             </div>
           ) : (
             <div className="grid md:grid-cols-2 gap-5">
               {/* Donut */}
               <div className="bg-white dark:bg-[#131C2E] border border-zen-200 dark:border-zen-800/80 rounded-2xl p-5 shadow-apple flex flex-col items-center">
-                <h2 className="text-sm font-bold text-zen-900 dark:text-zen-100 mb-3 self-start">Структура расходов</h2>
+                <h2 className="text-sm font-bold text-zen-900 dark:text-zen-100 mb-3 self-start">Структура расходов — {PERIOD_LABELS[activePeriod]}</h2>
                 <ResponsiveContainer width="100%" height={200}>
                   <PieChart>
                     <Pie data={expensePieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} innerRadius={44}>
@@ -221,14 +257,14 @@ export function AnalyticsClient({ data }: { data: FullAnalyticsData }) {
                     />
                   </PieChart>
                 </ResponsiveContainer>
-                <p className="text-xs text-zen-400 mt-1">Итого: {totalExpenseMonth.toLocaleString('ru-RU')} сум</p>
+                <p className="text-xs text-zen-400 mt-1">Итого: {periodData.totalExpense.toLocaleString('ru-RU')} сум</p>
               </div>
 
               {/* Ranked list */}
               <div className="bg-white dark:bg-[#131C2E] border border-zen-200 dark:border-zen-800/80 rounded-2xl p-5 shadow-apple">
                 <h2 className="text-sm font-bold text-zen-900 dark:text-zen-100 mb-4">Топ категорий</h2>
                 <div className="space-y-3">
-                  {topExpenseCategories.map((cat, i) => (
+                  {periodData.topExpenseCategories.map((cat, i) => (
                     <div key={i}>
                       <div className="flex justify-between items-center mb-1">
                         <span className="text-xs font-bold text-zen-700 dark:text-zen-200 flex items-center gap-2">

@@ -64,6 +64,11 @@ enum CategoryType {
   EXPENSE
 }
 
+enum GoalType {
+  SHORT_TERM
+  LONG_TERM
+}
+
 model User {
   id                String                 @id @default(uuid())
   email             String                 @unique
@@ -72,8 +77,8 @@ model User {
   avatarUrl         String?
   telegramId        String?                @unique
   telegramUsername  String?
-  authProvider      String                 @default("email")  // "email" | "telegram"
-  role              String                 @default("USER")   // "USER" | "ADMIN"
+  authProvider      String                 @default("email")
+  role              String                 @default("USER")
   isBlocked         Boolean                @default(false)
   blockReason       String?
   blockedAt         DateTime?
@@ -94,19 +99,38 @@ model User {
   habitCompletions  HabitCompletion[]
   auditLogs         AuditLog[]
   aiConversations   AIConversation[]
+  businesses        Business[]
+  financialGoals    FinancialGoal[]
 }
 
 model UserSettings {
-  id               String       @id @default(uuid())
-  userId           String       @unique
-  user             User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  language         String       @default("ru")
-  theme            String       @default("light")
-  weekStart        String       @default("monday")
-  dailySummaryTime String       @default("09:00")
-  eveningSummaryTime String     @default("21:00")
-  createdAt        DateTime     @default(now())
-  updatedAt        DateTime     @updatedAt
+  id                 String       @id @default(uuid())
+  userId             String       @unique
+  user               User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  language           String       @default("ru")
+  theme              String       @default("light")
+  weekStart          String       @default("monday")
+  dailySummaryTime   String       @default("09:00")
+  eveningSummaryTime String       @default("21:00")
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+}
+
+model Business {
+  id          String        @id @default(uuid())
+  userId      String
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  color       String        @default("#0066FF")
+  icon        String        @default("briefcase")
+  isActive    Boolean       @default(true)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  transactions Transaction[]
+
+  @@index([userId])
 }
 
 model Account {
@@ -132,20 +156,20 @@ model Account {
 }
 
 model Category {
-  id          String       @id @default(uuid())
-  userId      String
-  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name        String
-  type        CategoryType @default(EXPENSE)
-  icon        String       @default("tag")
-  color       String?
-  parentId    String?
-  parent      Category?    @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
-  subcategories Category[]  @relation("CategoryHierarchy")
-  isSystem    Boolean      @default(false)
-  isHidden    Boolean      @default(false)
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  id            String       @id @default(uuid())
+  userId        String
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name          String
+  type          CategoryType @default(EXPENSE)
+  icon          String       @default("tag")
+  color         String?
+  parentId      String?
+  parent        Category?    @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  subcategories Category[]   @relation("CategoryHierarchy")
+  isSystem      Boolean      @default(false)
+  isHidden      Boolean      @default(false)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
 
   transactions     Transaction[]
   budgetCategories BudgetCategory[]
@@ -154,46 +178,49 @@ model Category {
 }
 
 model Transaction {
-  id               String          @id @default(uuid())
-  userId           String
-  user             User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  type             TransactionType
-  amount           Decimal         @db.Decimal(18, 2)
-  feeAmount        Decimal         @default(0) @db.Decimal(18, 2)
-  currency         CurrencyCode    @default(UZS)
-  accountId        String
-  account          Account         @relation("SourceAccount", fields: [accountId], references: [id], onDelete: Cascade)
+  id              String          @id @default(uuid())
+  userId          String
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type            TransactionType
+  amount          Decimal         @db.Decimal(18, 2)
+  feeAmount       Decimal         @default(0) @db.Decimal(18, 2)
+  currency        CurrencyCode    @default(UZS)
+  accountId       String
+  account         Account         @relation("SourceAccount", fields: [accountId], references: [id], onDelete: Cascade)
   targetAccountId String?
-  targetAccount    Account?        @relation("DestinationAccount", fields: [targetAccountId], references: [id], onDelete: SetNull)
-  categoryId       String?
-  category         Category?       @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-  date             DateTime        @default(now())
-  comment          String?
-  recipient        String?
-  isRecurring      Boolean         @default(false)
-  taskId           String?
-  task             Task?           @relation(fields: [taskId], references: [id], onDelete: SetNull)
-  isBudgetTracked  Boolean         @default(true)
-  createdAt        DateTime        @default(now())
-  updatedAt        DateTime        @updatedAt
+  targetAccount   Account?        @relation("DestinationAccount", fields: [targetAccountId], references: [id], onDelete: SetNull)
+  categoryId      String?
+  category        Category?       @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  businessId      String?
+  business        Business?       @relation(fields: [businessId], references: [id], onDelete: SetNull)
+  date            DateTime        @default(now())
+  comment         String?
+  recipient       String?
+  isRecurring     Boolean         @default(false)
+  taskId          String?
+  task            Task?           @relation(fields: [taskId], references: [id], onDelete: SetNull)
+  isBudgetTracked Boolean         @default(true)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
 
   @@index([userId])
   @@index([userId, date])
   @@index([userId, accountId])
+  @@index([userId, businessId])
 }
 
 model Budget {
   id            String   @id @default(uuid())
   userId        String
   user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  month         String   // YYYY-MM format
+  month         String
   totalLimit    Decimal  @db.Decimal(18, 2)
   reserveAmount Decimal  @default(0) @db.Decimal(18, 2)
   targetSavings Decimal  @default(0) @db.Decimal(18, 2)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  categories    BudgetCategory[]
+  categories BudgetCategory[]
 
   @@unique([userId, month])
   @@index([userId])
@@ -231,7 +258,7 @@ model Debt {
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
 
-  payments        DebtPayment[]
+  payments DebtPayment[]
 
   @@index([userId])
 }
@@ -271,8 +298,8 @@ model Task {
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
 
-  subtasks         Subtask[]
-  transactions     Transaction[]
+  subtasks     Subtask[]
+  transactions Transaction[]
 
   @@index([userId])
   @@index([userId, dueDate])
@@ -302,7 +329,7 @@ model Habit {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  completions   HabitCompletion[]
+  completions HabitCompletion[]
 
   @@index([userId])
 }
@@ -350,16 +377,16 @@ model AIMessage {
   id             String         @id @default(uuid())
   conversationId String
   conversation   AIConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  role           String         // user, assistant, system
+  role           String
   content        String
-  actionPreview  String?        // JSON string of proposed tool action
+  actionPreview  String?
   isConfirmed    Boolean?
   createdAt      DateTime       @default(now())
 }
 
 model TelegramAuthCode {
   id         String   @id @default(uuid())
-  code       String   // 6-digit code e.g. "482910"
+  code       String
   telegramId String
   userId     String
   expiresAt  DateTime
@@ -370,3 +397,21 @@ model TelegramAuthCode {
   @@index([telegramId])
 }
 
+model FinancialGoal {
+  id                 String    @id @default(uuid())
+  userId             String
+  user               User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name               String
+  description        String?
+  targetAmount       Decimal   @db.Decimal(18, 2)
+  savedAmount        Decimal   @default(0) @db.Decimal(18, 2)
+  deadline           DateTime?
+  type               GoalType  @default(SHORT_TERM)
+  isCompleted        Boolean   @default(false)
+  aiPredictionMonths Int?
+  aiLastAnalyzedAt   DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@index([userId])
+}

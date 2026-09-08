@@ -20,6 +20,8 @@ import {
   LogOut,
   User as UserIcon,
   Users,
+  Building2,
+  Target,
 } from 'lucide-react';
 import { ZenLogo } from '@/components/ui/ZenLogo';
 import { signOut, useSession } from 'next-auth/react';
@@ -47,7 +49,8 @@ export const Sidebar: React.FC = () => {
 
   // Business items shown with a divider
   const businessItems = [
-    { href: '/club', labelKey: 'nav_club' as const, icon: Users },
+    { href: '/business', label: 'Бизнес', icon: Building2 },
+    { href: '/goals', label: 'Цели', icon: Target },
   ];
 
   return (
@@ -131,7 +134,8 @@ export const Sidebar: React.FC = () => {
                       isActive ? '!text-white' : 'text-zen-400 group-hover:text-amber-500'
                     }`}
                   />
-                  {!collapsed && <span className={isActive ? '!text-white' : ''}>{t(item.labelKey)}</span>}
+                  {!collapsed && <span className={isActive ? '!text-white' : ''}>{(item as any).label || t((item as any).labelKey)}</span>}
+
                 </Link>
               );
             })}

@@ -54,13 +54,15 @@ interface FinancesClientProps {
     category: { id?: string; name: string; color: string | null } | null;
     account: { name: string; type: string };
     targetAccount: { name: string } | null;
+    business?: { name: string; color: string } | null;
   }[];
   categories: { id: string; name: string; type: string; color: string | null }[];
+  businesses: { id: string; name: string; color: string; icon: string }[];
 }
 
 type TxType = 'INCOME' | 'EXPENSE' | 'TRANSFER';
 
-export function FinancesClient({ accounts, transactions, categories }: FinancesClientProps) {
+export function FinancesClient({ accounts, transactions, categories, businesses }: FinancesClientProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const toast = useToast();
@@ -76,6 +78,7 @@ export function FinancesClient({ accounts, transactions, categories }: FinancesC
   const [targetAccountId, setTargetAccountId] = useState('');
   const [categoryId, setCategoryId] = useState('');
   const [comment, setComment] = useState('');
+  const [businessId, setBusinessId] = useState(''); // '' = personal, id = business
 
   // Account Form
   const [acctName, setAcctName] = useState('');
@@ -104,6 +107,7 @@ export function FinancesClient({ accounts, transactions, categories }: FinancesC
     setTargetAccountId('');
     setCategoryId('');
     setComment('');
+    setBusinessId('');
   };
 
   const handleAddTx = () => {
@@ -121,6 +125,7 @@ export function FinancesClient({ accounts, transactions, categories }: FinancesC
         categoryId: categoryId || undefined,
         targetAccountId: targetAccountId || undefined,
         comment: comment || undefined,
+        businessId: businessId || undefined,
       });
       const fmtAmt = Number(amount).toLocaleString('ru-RU');
       if (modalType === 'INCOME') toast.success(`✅ Доход +${fmtAmt} сум сохранён`);
@@ -488,6 +493,40 @@ export function FinancesClient({ accounts, transactions, categories }: FinancesC
                 </select>
               </div>
             </>
+          )}
+
+          {businesses.length > 0 && modalType !== 'TRANSFER' && (
+            <div>
+              <label className="block text-xs font-semibold text-zen-700 dark:text-zen-300 mb-1">
+                Тип транзакции
+              </label>
+              <div className="flex gap-2 flex-wrap">
+                <button
+                  onClick={() => setBusinessId('')}
+                  className={`flex-shrink-0 px-3 py-1.5 rounded-xl text-xs font-medium transition-all border ${
+                    businessId === ''
+                      ? 'bg-zinc-700 border-zinc-500 text-white'
+                      : 'bg-transparent border-zinc-600 text-zinc-400 hover:border-zinc-400'
+                  }`}
+                >
+                  👤 Личная
+                </button>
+                {businesses.map((b) => (
+                  <button
+                    key={b.id}
+                    onClick={() => setBusinessId(b.id)}
+                    className={`flex-shrink-0 px-3 py-1.5 rounded-xl text-xs font-medium transition-all border ${
+                      businessId === b.id
+                        ? 'text-white'
+                        : 'bg-transparent text-zinc-400 hover:text-white'
+                    }`}
+                    style={businessId === b.id ? { backgroundColor: b.color, borderColor: b.color } : { borderColor: b.color + '60' }}
+                  >
+                    💼 {b.name}
+                  </button>
+                ))}
+              </div>
+            </div>
           )}
 
           <div>

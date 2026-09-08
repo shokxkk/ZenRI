@@ -59,6 +59,7 @@ export async function addTransaction(data: {
   targetAccountId?: string;
   comment?: string;
   date?: string;
+  businessId?: string;
 }) {
   const userId = await getUserId();
   const amount = new Prisma.Decimal(data.amount);
@@ -75,6 +76,7 @@ export async function addTransaction(data: {
         targetAccountId: data.targetAccountId || null,
         comment: data.comment || null,
         date: data.date ? new Date(data.date) : new Date(),
+        businessId: data.businessId || null,
       },
     });
 
@@ -188,7 +190,7 @@ export async function createAccount(data: {
 
 export async function getQuickAddDataAction() {
   const userId = await getUserId();
-  const [accounts, categories] = await Promise.all([
+  const [accounts, categories, businesses] = await Promise.all([
     prisma.account.findMany({
       where: { userId, isActive: true },
       select: { id: true, name: true, type: true, currentBalance: true },
@@ -199,10 +201,17 @@ export async function getQuickAddDataAction() {
       select: { id: true, name: true, type: true, color: true },
       orderBy: { name: 'asc' },
     }),
+    prisma.business.findMany({
+      where: { userId, isActive: true },
+      select: { id: true, name: true, color: true, icon: true },
+      orderBy: { createdAt: 'asc' },
+    }),
   ]);
 
   return {
     accounts: accounts.map((a) => ({ ...a, currentBalance: Number(a.currentBalance) })),
     categories,
+    businesses,
   };
 }
+

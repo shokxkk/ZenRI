@@ -1,17 +1,18 @@
 import { AppShell } from '@/components/layout/AppShell';
 import { auth } from '@/lib/auth';
 import { redirect } from 'next/navigation';
-import { getAccounts, getTransactions, getCategories } from '@/app/actions/financeActions';
+import { getAccounts, getTransactions, getCategories, getQuickAddDataAction } from '@/app/actions/financeActions';
 import { FinancesClient } from './FinancesClient';
 
 export default async function FinancesPage() {
   const session = await auth();
   if (!session?.user) redirect('/login');
 
-  const [accounts, transactions, categories] = await Promise.all([
+  const [accounts, transactions, categories, quickData] = await Promise.all([
     getAccounts(),
     getTransactions(50),
     getCategories(),
+    getQuickAddDataAction(),
   ]);
 
   const serialized = {
@@ -35,6 +36,7 @@ export default async function FinancesPage() {
       createdAt: c.createdAt.toISOString(),
       updatedAt: c.updatedAt.toISOString(),
     })),
+    businesses: quickData.businesses,
   };
 
   return (
