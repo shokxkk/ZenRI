@@ -205,13 +205,13 @@ export async function getQuickAddDataAction() {
       where: { userId, isActive: true },
       select: { id: true, name: true, color: true, icon: true },
       orderBy: { createdAt: 'asc' },
-    }),
+    }).catch(() => []),
   ]);
 
   return {
     accounts: accounts.map((a) => ({ ...a, currentBalance: Number(a.currentBalance) })),
     categories,
-    businesses,
+    businesses: businesses || [],
   };
 }
 

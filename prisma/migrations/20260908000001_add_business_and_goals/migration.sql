@@ -1,5 +1,5 @@
 -- AlterTable: Add businessId to Transaction
-ALTER TABLE "Transaction" ADD COLUMN "businessId" TEXT;
+ALTER TABLE "Transaction" ADD COLUMN IF NOT EXISTS "businessId" TEXT;
 
 -- CreateEnum: GoalType
 DO $$ BEGIN

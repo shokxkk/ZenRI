@@ -54,10 +54,19 @@ export async function getBusinesses(period = 'month') {
   const userId = await getUserId();
   const { start, end } = await getPeriodRange(period);
 
-  const businesses = await prisma.business.findMany({
-    where: { userId, isActive: true },
-    orderBy: { createdAt: 'asc' },
-  });
+  let businesses: any[] = [];
+  try {
+    businesses = await prisma.business.findMany({
+      where: { userId, isActive: true },
+      orderBy: { createdAt: 'asc' },
+    });
+  } catch (err) {
+    console.error('Business query failed:', err);
+    return {
+      businesses: [],
+      summary: { totalIncome: 0, totalExpense: 0, totalProfit: 0 },
+    };
+  }
 
   const businessesWithStats = await Promise.all(
     businesses.map(async (b) => {
@@ -65,15 +74,15 @@ export async function getBusinesses(period = 'month') {
         prisma.transaction.aggregate({
           where: { userId, businessId: b.id, type: 'INCOME', date: { gte: start, lte: end } },
           _sum: { amount: true },
-        }),
+        }).catch(() => ({ _sum: { amount: 0 } })),
         prisma.transaction.aggregate({
           where: { userId, businessId: b.id, type: 'EXPENSE', date: { gte: start, lte: end } },
           _sum: { amount: true },
-        }),
+        }).catch(() => ({ _sum: { amount: 0 } })),
       ]);
 
-      const totalIncome = Number(income._sum.amount || 0);
-      const totalExpense = Number(expense._sum.amount || 0);
+      const totalIncome = Number(income._sum?.amount || 0);
+      const totalExpense = Number(expense._sum?.amount || 0);
 
       return {
         ...b,

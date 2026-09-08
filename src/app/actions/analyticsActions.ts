@@ -76,18 +76,23 @@ export async function getAnalyticsByPeriod(period = 'month') {
   );
 
   // Business breakdown
-  const businessGroups = await prisma.transaction.groupBy({
-    by: ['businessId'],
-    where: { userId, date: { gte: start, lte: end }, businessId: { not: null } },
-    _sum: { amount: true },
-  });
+  let businessBreakdown: any[] = [];
+  try {
+    const businessGroups = await prisma.transaction.groupBy({
+      by: ['businessId'],
+      where: { userId, date: { gte: start, lte: end }, businessId: { not: null } },
+      _sum: { amount: true },
+    });
 
-  const businessBreakdown = await Promise.all(
-    businessGroups.map(async (g) => {
-      const biz = g.businessId ? await prisma.business.findUnique({ where: { id: g.businessId } }) : null;
-      return { name: biz?.name || 'Бизнес', color: biz?.color || '#0066FF', amount: Number(g._sum.amount || 0) };
-    })
-  );
+    businessBreakdown = await Promise.all(
+      businessGroups.map(async (g) => {
+        const biz = g.businessId ? await prisma.business.findUnique({ where: { id: g.businessId } }).catch(() => null) : null;
+        return { name: biz?.name || 'Бизнес', color: biz?.color || '#0066FF', amount: Number(g._sum.amount || 0) };
+      })
+    );
+  } catch (err) {
+    console.error('Business breakdown query failed:', err);
+  }
 
   return {
     totalIncome,

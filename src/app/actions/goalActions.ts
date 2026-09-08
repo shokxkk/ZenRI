@@ -14,16 +14,21 @@ async function getUserId(): Promise<string> {
 // ─── 1. Get all goals ─────────────────────────────────────────────────────────
 export async function getGoals() {
   const userId = await getUserId();
-  const goals = await prisma.financialGoal.findMany({
-    where: { userId },
-    orderBy: [{ isCompleted: 'asc' }, { createdAt: 'desc' }],
-  });
+  try {
+    const goals = await prisma.financialGoal.findMany({
+      where: { userId },
+      orderBy: [{ isCompleted: 'asc' }, { createdAt: 'desc' }],
+    });
 
-  return goals.map((g) => ({
-    ...g,
-    targetAmount: Number(g.targetAmount),
-    savedAmount: Number(g.savedAmount),
-  }));
+    return goals.map((g) => ({
+      ...g,
+      targetAmount: Number(g.targetAmount),
+      savedAmount: Number(g.savedAmount),
+    }));
+  } catch (err) {
+    console.error('Goals query failed:', err);
+    return [];
+  }
 }
 
 // ─── 2. Create goal ───────────────────────────────────────────────────────────
