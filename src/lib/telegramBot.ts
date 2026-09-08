@@ -96,6 +96,21 @@ export async function sendTelegramMessage(
       }),
     });
     const data = await res.json();
+    if (!data.ok) {
+      console.error('Telegram sendMessage HTML error, trying fallback:', data);
+      // Fallback: strip HTML tags and send as plain text
+      const plainText = text.replace(/<[^>]*>/g, '');
+      const fallbackRes = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: chatId,
+          text: plainText,
+          reply_markup: replyMarkup,
+        }),
+      });
+      return await fallbackRes.json();
+    }
     return data;
   } catch (err) {
     console.error('Failed to send Telegram message:', err);

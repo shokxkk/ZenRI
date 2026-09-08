@@ -294,8 +294,18 @@ export async function POST(req: NextRequest) {
     const magicToken = createMagicLoginToken(userId, telegramId);
     const loginUrl = `https://www.zenri.uz/auth/telegram-callback?token=${magicToken}`;
 
+    function escapeHtml(str: string): string {
+      return (str || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    const safeDisplayName = escapeHtml(displayName);
+
     const welcomeText =
-      `👋 Здравствуйте, <b>${displayName}</b>!\n\n` +
+      `👋 Здравствуйте, <b>${safeDisplayName}</b>!\n\n` +
       `✨ Добро пожаловать в <b>ZenRI Life OS</b>.\n\n` +
       `🔑 <b>Ваш 6-значный код для входа на сайт:</b>\n\n` +
       `👉 <code>${sixDigitCode}</code> 👈\n\n` +
