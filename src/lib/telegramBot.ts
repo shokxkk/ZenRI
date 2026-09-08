@@ -1,6 +1,6 @@
 import crypto from 'crypto';
 
-const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '8797376988:AAEJJbESQHyr5apAbhOlLm3mKq1FX3OC2sw';
+const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
 const JWT_SECRET = process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || 'zenri_prod_jwt_secret_key_2026_zenri_app';
 
 export interface TelegramUser {
