@@ -118,7 +118,12 @@ export async function POST(req: NextRequest) {
     const telegramId = String(telegramIdNum);
     const text = (message.text || '').trim();
 
-    let user = await prisma.user.findUnique({ where: { telegramId } });
+    let user: any = null;
+    try {
+      user = await prisma.user.findUnique({ where: { telegramId } });
+    } catch (e) {
+      console.error('Webhook initial user search error:', e);
+    }
 
     // AI Parsing Algorithm for Quick Expense/Income messages
     if (text && !text.startsWith('/start') && user) {

@@ -26,31 +26,31 @@ export default async function DashboardPage() {
     topExpenseGroup,
     userCategories,
   ] = await Promise.all([
-    getAccounts(),
-    getTransactions(10),
-    getTransactions(60),
-    getTasks(),
-    getHabits(),
+    getAccounts().catch(() => []),
+    getTransactions(10).catch(() => []),
+    getTransactions(60).catch(() => []),
+    getTasks().catch(() => []),
+    getHabits().catch(() => []),
     prisma.transaction.aggregate({
       where: { userId, type: 'INCOME', date: { gte: startOfMonth } },
       _sum: { amount: true },
-    }),
+    }).catch(() => ({ _sum: { amount: 0 } })),
     prisma.transaction.aggregate({
       where: { userId, type: 'EXPENSE', date: { gte: startOfMonth } },
       _sum: { amount: true },
-    }),
+    }).catch(() => ({ _sum: { amount: 0 } })),
     prisma.transaction.groupBy({
       by: ['categoryId'],
       where: { userId, type: 'EXPENSE', date: { gte: startOfMonth }, categoryId: { not: null } },
       _sum: { amount: true },
       orderBy: { _sum: { amount: 'desc' } },
       take: 1,
-    }),
+    }).catch(() => []),
     prisma.category.findMany({
       where: { userId, isHidden: false },
       select: { id: true, name: true, type: true, color: true },
       orderBy: { name: 'asc' },
-    }),
+    }).catch(() => []),
   ]);
 
   let topCategoryName = 'Расходы';
